@@ -1,0 +1,68 @@
+
+
+[] HeaderPanel einbauen
+[] SourcePanel's nach oben packen
+
+
+
+[x] Range anzeige einbauen
+[x] Source Einstellung den richtigen Range abfragen
+[x] Source Anzeige im Button
+[x] Limit einbauen
+[x] Limit Anzeige einbauen.
+[] Rangeumschaltung Pin-Bits einbauen.
+[] Range Unselect umbauen.
+[] PrimaryPanel mit SwipController
+[] Measurment Voltage, Current, Resistor, Power
+[] 2-4 Wire einbauen
+
+[] Startbildschirm anzeigen (ADC okay uws.)
+
+
+[] BugFix SwipeController ( bei Button-Click wird der graph gerendert ) ???
+[] ADCChannel02.Value = CurrentMeasurement->ConvertToFloat( n ); Kontrollieren
+[x] VoltageRangePad anschliessen
+[x] CurrentRangePad anschliessen
+[x] Kein Touch/Click für disabled Controls und Focus.
+
+
+
+
+[x] LTC1655 anschließen
+[x] Output Adj setzen und verwenden.
+[x] BugFix: NumberPad zeigt falsche Einheit
+
+[] On/Off Schalter einbauen
+[] Registerwerte vom ADC beim Starten prüfen
+[]
+
+
+
+
+
+[] Parent sollte ContainerClass sein
+[x] Average kontrollieren
+[x]   NumberPad für Current und Voltage
+[] VoltagePanel Range anzeigen
+[] Voltage Range einbauen
+[] Tempatur einbauen
+[] Backlight mit Zeitsteuerung
+
+[] Border Focus Button
+[] Focus-pr�fen Ist erstmal ausgeschalten
+[] Buffer GetAverage()
+
+[] Graph Behandlung für Min == Max !! (Prio 2)
+[] // TODO Graph etwas kleiner < 800px
+[] 
+
+
+
+[x] Adj der Code Werte
+[x] Wie ist die Spannung am REF1 ? undefiniert
+[x] Buffer schreiben, Overflow
+[x] Channel wechseln
+ 
+[x] CurrentSet anbinden
+
+
