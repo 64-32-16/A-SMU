@@ -1,6 +1,12 @@
 
 
 [] HeaderPanel einbauen
+[] MeasurmentPanel's einbauen
+    [] Current
+    [] Voltage
+    [] Resistor 
+    [] Power
+[] Einheit "mA" in die RangeClass verlagern
 [] SourcePanel's nach oben packen
 
 

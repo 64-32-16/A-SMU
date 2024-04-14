@@ -26,6 +26,9 @@
 
 #define THEME_BUTTON_FONT_SIZE 29
 
+// Okay Green
+#define THEME_CURRENT_LABEL_COLOR 0xf000
+#define THEME_VOLTAGE_LABEL_COLOR 0x5cacf7
 
 #define BUTTON_FONT_COLOR 0x000000
 #define BUTTON_FONT_COLOR_DISABLED 0x808080
@@ -33,11 +36,18 @@
 #define BUTTON_BGCOLOR 0x808080
 #define BUTTON_BGCOLOR_DISABLED 0x707070
 
+#define THEME_FOCUS_COLOR 0xf2ea0a;
+
+
+
+
+
+
+//------------------------------------
 
 #define THEME_PRIMARAY_COLOR 0x5bed59
 
 
-#define THEME_FOCUS_COLOR 0xf2ea0a;
 
 //#define THEME_SECONDARY_COLOR 0x305bb8
 
@@ -45,7 +55,7 @@
 #define THEME_SECONDARY_BGCOLOR 0x101010
 
 #define THEME_POWER_LABEL_COLOR 0xf2ea0a
-#define THEME_VOLTAGE_LABEL_COLOR 0x5cacf7
+
 
 #define THEME_ERROR_COLOR 0xff000E
 
