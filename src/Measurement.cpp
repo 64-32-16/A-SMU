@@ -2,6 +2,32 @@
 #include "Measurement.h"
 
 
+
+/*----------------------------------------------------------------------------------
+    ResistorMeasurementClass
+------------------------------------------------------------------------------------*/
+
+
+ResistorMeasurementClass::ResistorMeasurementClass( MeasurementType type,  int32_t maxADC, int32_t minADC):
+MeasurementClass( type,  maxADC, minADC) 
+{
+    // Add Range
+     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, 1.0, "1R"));
+     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, 100.0, "100R"));
+     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, 1000.0, "1k"));
+     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, (1000.0 * 10.0), "10k"));
+     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, (1000.0 * 100.0), "100k"));
+     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, (1000.0 * 1000.0), "1M"));
+     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, (1000.0 * 10000.0), "10M"));
+
+}
+
+
+
+
+
+
+
 /*----------------------------------------------------------------------------------
     MeasurementClass
 ------------------------------------------------------------------------------------*/
@@ -29,12 +55,12 @@ RangeClass* MeasurementClass::AddRange( RangeClass *pRange)
 
 
  // aktuellen Range Bereich setzten
-void MeasurementClass::SetRange( RangeType range)
+boolean MeasurementClass::SetRange( RangeType range)
 {
     if( (Type == VoltageType && range >= 4 ) || (Type == CurrentType && range < 4 )  )   
     {
         Serial.println("[Error] RangeType not match with MeasurementType" );
-        return;
+        return false;
     }
 
     for( int idx=0; idx<= CountRange-1; idx++) 
@@ -47,6 +73,7 @@ void MeasurementClass::SetRange( RangeType range)
         }
 
     }
+    return true;
 
 }
 
@@ -150,11 +177,12 @@ float MeasurementClass::GetMin()
 
 
 /* 
-    Jeder Channel hat mindestes einen Bereich (Range) 
+    Jede Messung hat mindestes einen Bereich (Range) 
 */
-RangeClass::RangeClass( MeasurementType type, RangeType rangeType, float min, float max, uint8_t pin) 
+RangeClass::RangeClass( MeasurementType type, RangeType rangeType,  float min, float max, const char* text, uint8_t pin) 
 {
-    Type = type;
+    Text = text; 
+    Type = type; 
     Min = min;
     Max = max;
     Pin = pin;

@@ -78,12 +78,12 @@
 
 class ContainerClass;
 class ControlClass;
-
+class ButtonClass;
 
 
 
 typedef  void (ControlClass::*CallbackFn)( void); 
-
+typedef  void (ControlClass::*OnBtnClickFn)( ButtonClass *p);
 
 
 
@@ -180,6 +180,7 @@ class ButtonClass: public ControlClass
 	 const char* Classname() override {return "Button";}
 
 	 void SetText(const char* text) { Text = "";  Text.concat(text); }
+	 String GetText() { return Text;}
 	 void TouchStart( int x, int y) override ;
 	 void TouchEnd(int x, int y) override;
 
@@ -187,6 +188,7 @@ class ButtonClass: public ControlClass
 	 void Render()  override;
 	 
 	 void SetListener ( ControlClass *pObj, CallbackFn p) { pCallbackObject = pObj;  pCallback = p; }
+	 void SetClickEvent ( ControlClass *pObj, OnBtnClickFn p) { pCallbackObject = pObj;  pBtnClickFn = p; }
 
  protected:
      uint32_t FontColor = BUTTON_FONT_COLOR; 
@@ -195,6 +197,10 @@ class ButtonClass: public ControlClass
 
 	 CallbackFn pCallback = nullptr;  // Methoden-Zeiger
 	 ControlClass *pCallbackObject = nullptr; // Methoden-Objekt 
+
+	 
+	 OnBtnClickFn pBtnClickFn = nullptr;  // Button Click
+
 	
 
 };

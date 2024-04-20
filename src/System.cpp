@@ -192,7 +192,7 @@ SystemClass::SystemClass()
 	// Jede Messung hat mindestens einen Range.
 	CurrentMeasurement = new MeasurementClass(CurrentType, 0x7FFFFF - 1, 0x00);
 	{
-		RangeClass *ir1 = new RangeClass(CurrentType, Current1A, -1.00, 1.00);
+		RangeClass *ir1 = new RangeClass(CurrentType, Current1A, -1.00, 1.00, "1A");
 		{
 
 			ir1->AddInAdjustment(0x270B60, +0.407); // NUR TEST
@@ -202,13 +202,13 @@ SystemClass::SystemClass()
 			ir1->AddOutAdjustment(0x00, 0.0);		  // Adj for DAC (16 Bit)
 			ir1->AddOutAdjustment(0x10000 - 1, 1.00); // Adj for DAC (16 Bit)
 		}
-		RangeClass *ir2 = new RangeClass(CurrentType, Current100mA, -0.10, 0.10);
+		RangeClass *ir2 = new RangeClass(CurrentType, Current100mA, -0.10, 0.10, "100mA");
 		{
 			ir2->AddInAdjustment(0x00, 2.048);		// NUR TEST
 			ir2->AddInAdjustment(0x2F9C3A, 0.0);	// NUR TEST
 			ir2->AddInAdjustment(0x6CC07E, -2.048); // NUR TEST
 		}
-		RangeClass *ir3 = new RangeClass(CurrentType, Current1mA, -0.001, 0.001);
+		RangeClass *ir3 = new RangeClass(CurrentType, Current1mA, -0.001, 0.001, "1mA");
 		{
 
 			ir3->AddInAdjustment(0x00, 2.048);		// NUR TEST
@@ -226,13 +226,13 @@ SystemClass::SystemClass()
 	// Jede Messung hat mindestens einen Range.
 	VoltageMeasurement = new MeasurementClass(VoltageType, 0x7FFFFF - 1, 0x00);
 	{
-		RangeClass *vr1 = new RangeClass(VoltageType, Voltage4V, -4.0, 4.0);
+		RangeClass *vr1 = new RangeClass(VoltageType, Voltage4V, -4.0, 4.0, "4V");
 		{
 			vr1->AddInAdjustment(0x00, 2.048);		// NUR TEST
 			vr1->AddInAdjustment(0x2F9C3A, 0.0);	// NUR TEST
 			vr1->AddInAdjustment(0x6CC07E, -2.048); // NUR TEST
 		}
-		RangeClass *vr2 = new RangeClass(VoltageType, Voltage30V, -24.0, 24.0);
+		RangeClass *vr2 = new RangeClass(VoltageType, Voltage30V, -24.0, 24.0, "30V");
 		{
 
 			vr2->AddInAdjustment(0x19D39A, +20.0001); // NUR TEST

@@ -258,10 +258,17 @@ void ButtonClass::TouchStart(int x, int y)
 {   
     if( IsDisabled == true) return;
 
+    // TODO Dieser Event kann entfallen 
     if( pCallback != nullptr && pCallbackObject != nullptr) 
     {
         (pCallbackObject->*pCallback)();
     }
+
+    if( pBtnClickFn != nullptr && pCallbackObject != nullptr)
+    {
+        (pCallbackObject->*pBtnClickFn)(this);
+    }
+
     Beeper.KeyPress();
 
 } 

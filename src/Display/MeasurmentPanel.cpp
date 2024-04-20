@@ -3,6 +3,7 @@
 #include "Display.h"
 
 
+
 //-----------------------------------------------------------------------
 // C U R R E N T
 //-----------------------------------------------------------------------
@@ -12,19 +13,24 @@ CurrentMeasurmentPanel::CurrentMeasurmentPanel(int x, int y, int w, int h)
 {
 
     Title = "CURRENT";
-    pCurrentRangePad = new CurrentRangePad(  100,100, 600 , 300 );
-    
    
-
+    pRangePad = new RangePadClass(  10,180, (800-20) , (480-180-10) , System.GetCurrentMeasurement());
+    pRangePad->LabelTitle->SetText( "CURRENT MEASURING RANGE");
+   
     RangeButton->SetListener( this, (CallbackFn) &CurrentMeasurmentPanel::OnRangeClick);
 
 }
 
-
+/**
+ * @brief show Range Dialog Window
+ * 
+ */
 void CurrentMeasurmentPanel::OnRangeClick() 
 {   
-    Display.ShowWindow(pCurrentRangePad);
+    Display.ShowWindow(pRangePad);
 } 
+
+
 
 void CurrentMeasurmentPanel::Render()
 {
@@ -39,16 +45,8 @@ void CurrentMeasurmentPanel::Render()
     
     // Anzeige des aktuellen Ranges im Button
     RangeClass *range =   System.GetCurrentMeasurement()->GetSelectedRange(); 
+    MeasurmentPanel::SetRage( range);
 
-    if( range != nullptr)
-    {
-        if( range->GetRangeType() == Current1mA ) RangeButton->SetText("1mA");
-        if( range->GetRangeType() == Current100mA ) RangeButton->SetText("100mA");
-        if( range->GetRangeType() == Current1A ) RangeButton->SetText("1A");
-    } else 
-    {
-        RangeButton->SetText("Error");
-    }
     MeasurmentPanel::Render();
 
 }
@@ -66,9 +64,9 @@ VoltageMeasurmentPanel::VoltageMeasurmentPanel(int x, int y, int w, int h)
 {
 
     Title = "VOLTAGE";
-    pVoltageRangePad = new VoltageRangePad(  100,100, 600 , 300 );
     
-   
+    pRangePad = new RangePadClass(  10,180, (800-20) , (480-180-10) , System.GetVoltageMeasurement());
+    pRangePad->LabelTitle->SetText( "VOLTAGE MEASURING RANGE");
 
     RangeButton->SetListener( this, (CallbackFn) &VoltageMeasurmentPanel::OnRangeClick);
 
@@ -77,7 +75,7 @@ VoltageMeasurmentPanel::VoltageMeasurmentPanel(int x, int y, int w, int h)
 
 void VoltageMeasurmentPanel::OnRangeClick() 
 {   
-    Display.ShowWindow(pVoltageRangePad);
+    Display.ShowWindow(pRangePad);
 } 
 
 void VoltageMeasurmentPanel::Render()
@@ -94,6 +92,64 @@ void VoltageMeasurmentPanel::Render()
     // Anzeige des aktuellen Ranges im Button
     
     RangeClass *range =   System.GetVoltageMeasurement()->GetSelectedRange(); 
+    MeasurmentPanel::SetRage( range);
+
+    
+    MeasurmentPanel::Render();
+
+}
+
+
+//-----------------------------------------------------------------------
+//  R E S I S T O R
+//-----------------------------------------------------------------------
+
+
+ResistorMeasurmentPanel::ResistorMeasurmentPanel(int x, int y, int w, int h) 
+: MeasurmentPanel( x,y,w,h)
+{
+
+    Title = "RESISTOR";
+    //pVoltageRangePad = new VoltageRangePad(  100,100, 600 , 300 );
+    
+   
+
+    //RangeButton->SetListener( this, (CallbackFn) &VoltageMeasurmentPanel::OnRangeClick);
+
+}
+
+
+void ResistorMeasurmentPanel::OnRangeClick() 
+{   
+    //Display.ShowWindow(pVoltageRangePad);
+} 
+
+void ResistorMeasurmentPanel::Render()
+{
+
+    TitleLabel->SetText("MEASURING RESISTOR");
+    
+    //ValueLabel->SetText(System.FormatVoltage(System.Buffer.getRes()).c_str());
+    ValueLabel->SetFontColor(THEME_VOLTAGE_LABEL_COLOR);
+    TitleLabel->SetFontColor(THEME_VOLTAGE_LABEL_COLOR);
+    RangeLabel->SetFontColor(THEME_VOLTAGE_LABEL_COLOR);
+
+
+    // RANGE gemessen am DMM6500
+    // 10  Ohm  | 100 mA
+    // 100 Ohm  | 10 mA
+    // 1k       | 1 mA
+    // 10k      | 100 uA
+    // 100k     | 10 uA
+    // 1M       | 10 uA
+    // 10M      | 1 uA
+ 
+
+
+    // Anzeige des aktuellen Ranges im Button
+    
+    /*
+    RangeClass *range =   System.GetVoltageMeasurement()->GetSelectedRange(); 
 
     if( range != nullptr)
     {
@@ -103,10 +159,11 @@ void VoltageMeasurmentPanel::Render()
     {
         RangeButton->SetText("Error");
     }
-    
+    */
     MeasurmentPanel::Render();
 
 }
+
 
 
 
@@ -135,6 +192,19 @@ MeasurmentPanel::MeasurmentPanel(int x, int y, int w, int h)
 
     AddControl(RangeButton);
     AddControl(RangeLabel);
+}
+
+
+void MeasurmentPanel::SetRage(RangeClass *range )
+{
+    if( range != nullptr)
+    {
+        RangeButton->SetText( range->GetText());
+       
+    } else 
+    {
+        RangeButton->SetText("Error");
+    }
 }
 
 

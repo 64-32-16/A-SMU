@@ -221,6 +221,7 @@ PrimaryPanel::PrimaryPanel(int x, int y ,int w ,int h)
 
     int startX=20;
 
+    Header = new HeaderPanel( 0,0, 800, 32);
 
     ModeLabel = new LabelClass( startX, 48, 29, C1, "MEASURING CURRENT");
     
@@ -238,7 +239,7 @@ PrimaryPanel::PrimaryPanel(int x, int y ,int w ,int h)
     
 
 
-
+     AddControl(Header);
     AddControl(ModeLabel);
     AddControl(CurrentMONLabel);
 
@@ -604,40 +605,6 @@ void VoltageSourcePanel::Render()
     float limit = System.GetVoltageSource()->GetLimit()->GetValue();
     LimitButton->SetText(System.FormatCurrent(limit).c_str());
 
-    ContainerClass::Render();
-}
-
-//----------------------------------------------------------------------
-// VoltagPanel
-
-VoltagePanel::VoltagePanel(int x, int y ,int w ,int h) 
-{
-    X=x;
-    Y=y;
-    W=w;
-    H=h;
-   
-    Title = "VOLTAGE";
-
-
-    int startX = THEME_XSTART;
-   ModeLabel = new LabelClass( startX, 2, 29 , THEME_SECONDARY_COLOR, "MEASURE VOLTAGE 2-Wire");
-   ModeLabel->BgColor = THEME_SECONDARY_BGCOLOR;
-
-    MonValue = new LabelClass(startX, 70, 1,  THEME_VOLTAGE_LABEL_COLOR, "000.00012 V"); 
-
-    RangeButton = new ButtonClass( startX, 120 ,   "RANGE");
-
-   AddControl(ModeLabel);
-   AddControl(MonValue);
-   AddControl(RangeButton);
-   
-}
-
-
-void VoltagePanel::Render() 
-{
-    MonValue->SetText( System.FormatVoltage( System.Buffer.GetVoltage()).c_str()); 
     ContainerClass::Render();
 }
 

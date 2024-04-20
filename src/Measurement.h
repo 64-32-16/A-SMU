@@ -7,21 +7,22 @@
 #define FILTER_SIZE 5
 
 
+#define MAX_RANGES 10
 
 
 
 
 enum RangeType
 {
-    VoltageAuto, 
-    Voltage200mV,
-    Voltage4V,  // 2V
-    Voltage30V, // 20V
+    VoltageAuto,    // 0
+    Voltage200mV,   // 1
+    Voltage4V,      // 2 2V
+    Voltage30V,     // 3 20V
     
-    CurrentAuto,
-    Current1mA,
-    Current100mA,
-    Current1A
+    CurrentAuto,    // 4
+    Current1mA,     // 5
+    Current100mA,   // 6
+    Current1A       // 7
 };
 
 
@@ -83,7 +84,7 @@ class RangeClass
 {
     public:
 
-    RangeClass( MeasurementType type, RangeType rangeType, float min, float max, uint8_t pin=0);
+    RangeClass( MeasurementType type, RangeType rangeType,  float min, float max, const char* text, uint8_t pin=0);
 
 
     void AddInAdjustment( uint32_t codeValue, float floatValue, bool isNegativ=false);
@@ -100,14 +101,17 @@ class RangeClass
     void Unselect();
     void Select();
 
+    const char* GetText() { return Text;}
+
     RangeType GetRangeType(void ) { return Range;}
 
     float ConvertToFloat( int32_t code);
     int32_t ConvertToDigital( float v);
 
     protected:
-        float Max;  // max Value in diesem Range
-        float Min;  // min Value in diesem Range
+        const char* Text;   // Wir für den Range-Button benötigt.
+        float Max;          // max Value in diesem Range
+        float Min;          // min Value in diesem Range
         RangeType Range;
 
         int32_t MinCode; // adc code min in diesem Range
@@ -132,8 +136,7 @@ class MeasurementClass
         RangeClass* AddRange( RangeClass *pRange);
 
      
-        void SetRange( RangeType range);         
-        RangeClass* GetSelectedRange();
+
      
         MeasurementType Type; // Aufgabe des Channels ( Voltage, Current )
 
@@ -142,7 +145,18 @@ class MeasurementClass
        
         uint32_t MaxADC;  // maximaler ADC Wert, danach Overflow
         uint32_t MinADC;  // minimaler ADC Wert, danach Overflow  
-            
+
+
+
+        // --- Rangeverwaltung -----  
+
+        boolean virtual SetRange( RangeType range);         
+        RangeClass* GetSelectedRange();  
+        int GetRangeCount() { return CountRange;}
+        RangeClass *GetRange(int idx) 
+        {
+            return ( idx < 0 && idx >= CountRange) ? nullptr : Ranges[idx];
+        }
 
 
     protected:
@@ -157,13 +171,43 @@ class MeasurementClass
         float GetMin();
 
         int CurrentRange =0;
-        RangeClass *Ranges[4];   
+        RangeClass *Ranges[MAX_RANGES];   
         int CountRange = 0;
 
 
 
 };
 
+class CurrentMeasurementClass: public MeasurementClass 
+{
+    public:
+    //CurrentMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
+
+};
+
+class VoltageMeasurementClass: public MeasurementClass 
+{
+    public:
+    //VoltageMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
+
+};
+
+
+class ResistorMeasurementClass: public MeasurementClass 
+{
+    public:
+    ResistorMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
+
+
+};
+
+class PowerMeasurementClass: public MeasurementClass 
+{
+    public:
+    // PowerMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
+
+
+};
 
 
 #endif

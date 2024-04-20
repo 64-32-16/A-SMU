@@ -5,76 +5,103 @@
 #include "arduino.h"
 #include <GD2.h>
 #include "Controls.h"
-//#include "System.h"
-//#include "Display.h"
-//#include "MeasurmentPanel.h"
 
 
+
+typedef  void (ControlClass::*SetRangeFn)( int idx); 
+
+class RangeItemClass
+{
+public:
+	RangeClass *Range;
+	ButtonClass *Btn;
+};
+
+class RangePadClass: public WindowClass
+{
+
+public:
+	RangePadClass(int x, int y, int w, int h, MeasurementClass *measuring);
+	void Init(MeasurementClass *measuring);
+	ButtonClass *BtnClose;
+	LabelClass *LabelTitle;
+
+	void OnRangeBtnClick( ButtonClass *r); 
+	void OnKeyClose( void); // TODO Umstellen auf neuen Event
+	 
+	RangeClass * GetRangeByBtn( ButtonClass *btn );
+	ButtonClass * GetBtnByRange( RangeClass *r );
+	
+
+	void Render() override;
+	void Show() override;
+
+
+protected: 
+    RangeItemClass RangeItems[10];
+	int RangeItemsCount = 0;
+
+	MeasurementClass *pMeasuring = nullptr;
+};
 
 /**
- * @brief 
+ * @brief
  * Über dieses PopUp Window kann der Bereich für die
  * Strommessung ausgewählt werden.
- * 
+ *
  */
-class CurrentRangePad: public WindowClass 
+class CurrentRangePad : public WindowClass
 {
-	public:
-		
-		LabelClass *LabelTitle;		
-		ButtonClass *BtnClose;
+public:
+	LabelClass *LabelTitle;
+	ButtonClass *BtnClose;
 
-		ButtonClass *BtnAuto;
-		ButtonClass *BtnRange1mA;
-		ButtonClass *BtnRange100mA;
-		ButtonClass *BtnRange1A;
+	ButtonClass *BtnAuto;
+	ButtonClass *BtnRange1mA;
+	ButtonClass *BtnRange100mA;
+	ButtonClass *BtnRange1A;
 
-		const char* Classname() override {return "CurrentRangePad";}
+	const char *Classname() override { return "CurrentRangePad"; }
 
-		CurrentRangePad(  int x, int y, int w, int h);
+	CurrentRangePad(int x, int y, int w, int h);
 
-		void Render()  override;
-		void Show() override;
+	void Render() override;
+	void Show() override;
 
-	protected:
-		void AddListner(void);
-		void AddControls();
-		void OnKeyClose(void);
-		void OnKey1mA(void);
-		void OnKey100mA(void);
-		void OnKey1A(void);
+protected:
+	void AddListner(void);
+	void AddControls();
+	void OnKeyClose(void);
+	void OnKey1mA(void);
+	void OnKey100mA(void);
+	void OnKey1A(void);
 };
 
-
-class VoltageRangePad: public WindowClass 
+class VoltageRangePad : public WindowClass
 {
-	public:
-		
-		LabelClass *LabelTitle;		
-		ButtonClass *BtnClose;
+public:
+	LabelClass *LabelTitle;
+	ButtonClass *BtnClose;
 
-		ButtonClass *BtnAuto;
-		ButtonClass *BtnRange200mV;
-		ButtonClass *BtnRange4V;
-		ButtonClass *BtnRange30V;
+	ButtonClass *BtnAuto;
+	ButtonClass *BtnRange200mV;
+	ButtonClass *BtnRange4V;
+	ButtonClass *BtnRange30V;
 
-		const char* Classname() override {return "VoltageRangePad";}
+	const char *Classname() override { return "VoltageRangePad"; }
 
-		VoltageRangePad(  int x, int y, int w, int h);
+	VoltageRangePad(int x, int y, int w, int h);
 
-		void Render()  override;
+	void Render() override;
 
-		void Show() override;
+	void Show() override;
 
-	protected:
-		void AddListner(void);
-		void AddControls();
-		void OnKeyClose(void);
-		void OnKey4V(void);
-		void OnKey30V(void);
-		
+protected:
+	void AddListner(void);
+	void AddControls();
+	void OnKeyClose(void);
+	void OnKey4V(void);
+	void OnKey30V(void);
 };
-
-
 
 #endif

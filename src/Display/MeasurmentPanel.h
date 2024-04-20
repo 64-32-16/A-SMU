@@ -22,6 +22,8 @@ class MeasurmentPanel: public ContainerClass
 		void Render()  override;
 		const char* Classname() override {return "MeasurmentPanel";}
 
+		RangePadClass *pRangePad;
+
 
 
 		LabelClass *ValueLabel; 
@@ -34,6 +36,7 @@ class MeasurmentPanel: public ContainerClass
 
 	
 	protected: 
+	void SetRage(RangeClass *range );	
 	
 };
 
@@ -47,11 +50,26 @@ class CurrentMeasurmentPanel: public MeasurmentPanel
 	public:
 		CurrentMeasurmentPanel( int x, int y,  int w, int h);
 
-		CurrentRangePad *pCurrentRangePad;
 		void Render()  override;
 		const char* Classname() override {return "CurrentMeasurmentPanel";}
 
-		
+	
+	protected: 
+		void OnRangeClick();
+};
+
+
+/**
+ * @brief 
+ * 
+ */
+class ResistorMeasurmentPanel: public MeasurmentPanel 
+{
+	public:
+		ResistorMeasurmentPanel( int x, int y,  int w, int h);
+
+		void Render()  override;
+		const char* Classname() override {return "ResistorMeasurmentPanel";}
 
 	
 	protected: 
@@ -67,8 +85,7 @@ class VoltageMeasurmentPanel: public MeasurmentPanel
 {
 	public:
 		VoltageMeasurmentPanel( int x, int y,  int w, int h);
-
-		VoltageRangePad *pVoltageRangePad;
+		
 		void Render()  override;
 		const char* Classname() override {return "VoltageMeasurmentPanel";}
 

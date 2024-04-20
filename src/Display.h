@@ -157,6 +157,8 @@ class PrimaryPanel: public ContainerClass
 		void Render()  override;
 		const char* Classname() override {return "PrimaryPanel";}
 
+		HeaderPanel *Header;
+
 		LabelClass *RemoteLabel;
 		LabelClass *WiFiLabel;
 		LabelClass *SystemInfo;
@@ -291,19 +293,7 @@ class VoltageSourcePanel: public ContainerClass
 
 
 
-class VoltagePanel: public ContainerClass 
-{
-	public:
-		VoltagePanel( int x, int y,  int w, int h);
-		const char* Classname() override {return "VoltagePanel";}
-		void Render()  override;
 
-	protected: 
-		LabelClass *ModeLabel;
-		LabelClass *MonValue; 
-		ButtonClass *RangeButton;
-
-};
 
 class SecondaryPanel: public ContainerClass 
 {

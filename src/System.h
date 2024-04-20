@@ -209,11 +209,13 @@ class SystemClass
 
         boolean IsSimulation = false;
 
+
+        // Measuring
         MeasurementClass *GetCurrentMeasurement() {return CurrentMeasurement; };
         MeasurementClass *GetVoltageMeasurement() {return VoltageMeasurement; };
 
 
-
+        // Source 
         void SetSelectedSource( MeasurementType line );
         SourceClass *GetSelectedSource(void) { return SelectedSource; };
         SourceClass *GetVoltageSource(void) {return VoltageSource;};
