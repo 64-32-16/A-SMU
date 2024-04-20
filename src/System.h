@@ -211,13 +211,16 @@ class SystemClass
 
 
         // Measuring
+         void SetSelectedMeasuring( MeasurementType value );
         MeasurementClass *GetCurrentMeasurement() {return CurrentMeasurement; };
         MeasurementClass *GetVoltageMeasurement() {return VoltageMeasurement; };
         MeasurementClass *GetResistorMeasurement() {return ResistorMeasurement; };
+         MeasurementClass *GetSelectedMeasurement() {return SelectedMeasurement; };
+
 
 
         // Source 
-        void SetSelectedSource( MeasurementType line );
+        void SetSelectedSource( SourceLineType value );
         SourceClass *GetSelectedSource(void) { return SelectedSource; };
         SourceClass *GetVoltageSource(void) {return VoltageSource;};
         SourceClass *GetCurrentSource(void) {return CurrentSource;};
@@ -246,6 +249,7 @@ class SystemClass
         MeasurementClass *CurrentMeasurement;
         MeasurementClass *VoltageMeasurement;
         MeasurementClass *ResistorMeasurement;
+        MeasurementClass *SelectedMeasurement;
         
 
         // Source

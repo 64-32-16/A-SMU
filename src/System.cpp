@@ -185,85 +185,57 @@ SystemClass::SystemClass()
 	// TODO Pin setzten
 	VoltageSource = new SourceClass(VoltageSourceType, 0, HIGH, 0);
 	CurrentSource = new SourceClass(CurrentSourceType, 0, LOW, 0);
-	SetSelectedSource(VoltageType);
+	SetSelectedSource(VoltageSourceType);
 
-	// Current Measurement
-	// Max- und Min-Bereich vom ADC werden übergeben.
-	// Jede Messung hat mindestens einen Range.
-	CurrentMeasurement = new MeasurementClass(CurrentType, 0x7FFFFF - 1, 0x00);
-	{
-		RangeClass *ir1 = new RangeClass(CurrentType, Current1A, -1.00, 1.00, "1A");
-		{
-
-			ir1->AddInAdjustment(0x270B60, +0.407); // NUR TEST
-			ir1->AddInAdjustment(0x4C3CD3, 0.0);	// NUR TEST
-			ir1->AddInAdjustment(0x716068, -0.411); // NUR TEST
-
-			ir1->AddOutAdjustment(0x00, 0.0);		  // Adj for DAC (16 Bit)
-			ir1->AddOutAdjustment(0x10000 - 1, 1.00); // Adj for DAC (16 Bit)
-		}
-		RangeClass *ir2 = new RangeClass(CurrentType, Current100mA, -0.10, 0.10, "100mA");
-		{
-			ir2->AddInAdjustment(0x00, 2.048);		// NUR TEST
-			ir2->AddInAdjustment(0x2F9C3A, 0.0);	// NUR TEST
-			ir2->AddInAdjustment(0x6CC07E, -2.048); // NUR TEST
-		}
-		RangeClass *ir3 = new RangeClass(CurrentType, Current1mA, -0.001, 0.001, "1mA");
-		{
-
-			ir3->AddInAdjustment(0x00, 2.048);		// NUR TEST
-			ir3->AddInAdjustment(0x2F9C3A, 0.0);	// NUR TEST
-			ir3->AddInAdjustment(0x6CC07E, -2.048); // NUR TEST
-		}
-		CurrentMeasurement->AddRange(ir1);
-		CurrentMeasurement->AddRange(ir2);
-		CurrentMeasurement->AddRange(ir3);
-		CurrentMeasurement->SetRange(Current1A);
-	}
-
-	// Voltage Measurement
-	// Max- und Min-Bereich vom ADC werden übergeben.
-	// Jede Messung hat mindestens einen Range.
-	VoltageMeasurement = new MeasurementClass(VoltageType, 0x7FFFFF - 1, 0x00);
-	{
-		RangeClass *vr1 = new RangeClass(VoltageType, Voltage4V, -4.0, 4.0, "4V");
-		{
-			vr1->AddInAdjustment(0x00, 2.048);		// NUR TEST
-			vr1->AddInAdjustment(0x2F9C3A, 0.0);	// NUR TEST
-			vr1->AddInAdjustment(0x6CC07E, -2.048); // NUR TEST
-		}
-		RangeClass *vr2 = new RangeClass(VoltageType, Voltage30V, -24.0, 24.0, "30V");
-		{
-
-			vr2->AddInAdjustment(0x19D39A, +20.0001); // NUR TEST
-			vr2->AddInAdjustment(0x4C9C3F, 0.0000);	  // NUR TEST
-			vr2->AddInAdjustment(0x7F668B, -20.0001); // NUR TEST
-
-			// DAC
-			vr2->AddOutAdjustment(0x561C, -16.5024); // Adj for DAC (16 Bit)
-
-			vr2->AddOutAdjustment(0x807C, +0.046); // Adj for DAC (16 Bit)
-
-			vr2->AddOutAdjustment(0xAABA, +16.5444); // Adj for DAC (16 Bit)
-		}
-		VoltageMeasurement->AddRange(vr1);
-		VoltageMeasurement->AddRange(vr2);
-		VoltageMeasurement->SetRange(Voltage30V);
-	}
-
+	CurrentMeasurement = new CurrentMeasurementClass(CurrentType, 0x7FFFFF - 1, 0x00);
+	VoltageMeasurement = new VoltageMeasurementClass(VoltageType, 0x7FFFFF - 1, 0x00);
 	ResistorMeasurement = new ResistorMeasurementClass(ResistorType, 0x7FFFFF - 1, 0x00);
-
+	SetSelectedMeasuring( CurrentType);
 }
 
 // Mit dieser Funktion kann zwischen Voltage- und Current-Source umgeschaltet werden.
-void SystemClass::SetSelectedSource(MeasurementType line)
+void SystemClass::SetSelectedSource(SourceLineType value)
 {
-	if (line == VoltageType)
-		SelectedSource = VoltageSource;
-	if (line == CurrentType)
+	switch (value)
+	{
+	case CurrentSourceType:
 		SelectedSource = CurrentSource;
+		break;
+	case VoltageSourceType:
+		SelectedSource = VoltageSource;
+		break;
+	default:
+		SelectedSource = CurrentSource;
+		break;
+	}
 
 	SelectedSource->SetActive();
+}
+
+void SystemClass::SetSelectedMeasuring(MeasurementType value)
+{
+	switch (value)
+	{
+	case CurrentType:
+		SelectedMeasurement = CurrentMeasurement;
+		break;
+	case VoltageType:
+		SelectedMeasurement = VoltageMeasurement;
+		break;
+	case ResistorType:
+		SelectedMeasurement = ResistorMeasurement;
+		break;
+		/*
+		case PowerType:
+		SelectedMeasurement = PowerMeasurement;
+		break;
+		*/
+	default:
+		SelectedMeasurement = CurrentMeasurement;
+		break;
+	}
+
+	SelectedMeasurement->OnSelect();
 }
 
 void SystemClass::SetDAC(uint16_t code, uint channel)
@@ -338,8 +310,6 @@ void SystemClass::Execute()
 		{
 			micros_end = millis();
 			Random();
-
-			
 		}
 		return;
 	}

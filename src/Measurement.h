@@ -9,7 +9,13 @@
 
 #define MAX_RANGES 10
 
-
+enum MeasurementType 
+{
+    VoltageType,
+    CurrentType,
+    PowerType,
+    ResistorType
+};
 
 
 enum RangeType
@@ -40,13 +46,7 @@ enum RangeType
 };
 
 
-enum MeasurementType 
-{
-    VoltageType,
-    CurrentType,
-    PowerType,
-    ResistorType
-};
+
 
 
 struct CalibrationConfig
@@ -151,8 +151,6 @@ class MeasurementClass
 
      
 
-     
-        MeasurementType Type; // Aufgabe des Channels ( Voltage, Current )
 
         float ConvertToFloat(int32_t code);    // 2 Punktabgleich für den digitalen Code
         int32_t ConvertToDigital( float v);    // 2 Punktabgleich für den digitalen Code
@@ -162,8 +160,7 @@ class MeasurementClass
 
 
 
-        // --- Rangeverwaltung -----  
-
+        // --- Range-Verwaltung -----  
         boolean virtual SetRange( RangeType range);         
         RangeClass* GetSelectedRange();  
         int GetRangeCount() { return CountRange;}
@@ -172,10 +169,11 @@ class MeasurementClass
             return ( idx < 0 && idx >= CountRange) ? nullptr : Ranges[idx];
         }
 
+        void virtual OnSelect(void)  {};
+
+        MeasurementType Type; 
 
     protected:
-
-  
 
        
         void UnselectRanges( void); 
@@ -195,14 +193,14 @@ class MeasurementClass
 class CurrentMeasurementClass: public MeasurementClass 
 {
     public:
-    //CurrentMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
+    CurrentMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
 
 };
 
 class VoltageMeasurementClass: public MeasurementClass 
 {
     public:
-    //VoltageMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
+    VoltageMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
 
 };
 
@@ -211,6 +209,7 @@ class ResistorMeasurementClass: public MeasurementClass
 {
     public:
     ResistorMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
+    void OnSelect(void) override;
 
 
 };

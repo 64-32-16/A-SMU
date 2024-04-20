@@ -1,16 +1,19 @@
 
 
-[] HeaderPanel einbauen
-[] MeasurmentPanel's einbauen
-    [] Current
-    [] Voltage
-    [] Resistor 
+
+[] Select Measuring
+[x] MeasurmentPanel's einbauen
+    [x] Current
+    [x] Voltage
+    [x] Resistor 
     [] Power
 [] Einheit "mA" in die RangeClass verlagern
-[] SourcePanel's nach oben packen
+[] 
 
 
 
+
+[x] HeaderPanel einbauen
 [x] Range anzeige einbauen
 [x] Source Einstellung den richtigen Range abfragen
 [x] Source Anzeige im Button

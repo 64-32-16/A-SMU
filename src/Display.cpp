@@ -209,7 +209,13 @@ void HeaderPanel::Render()
 
 
 /*
-  WIRD ZU SOURCE PANEL !!
+    PrimaryPanel wir zur Anzeige der Messungen verwendet.  
+
+    TODO: 
+    Umbau für die Messungen
+    Funktion Button
+    FunktionsPad
+     
 */
 
 PrimaryPanel::PrimaryPanel(int x, int y ,int w ,int h) 
@@ -222,6 +228,8 @@ PrimaryPanel::PrimaryPanel(int x, int y ,int w ,int h)
     int startX=20;
 
     Header = new HeaderPanel( 0,0, 800, 32);
+
+
 
     ModeLabel = new LabelClass( startX, 48, 29, C1, "MEASURING CURRENT");
     

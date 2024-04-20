@@ -26,13 +26,12 @@ class MeasurmentPanel: public ContainerClass
 
 
 
+
 		LabelClass *ValueLabel; 
 		LabelClass *TitleLabel; 
-
-
-
 		LabelClass *RangeLabel;
 		ButtonClass *RangeButton;
+		ButtonClass *FunctionButton;
 
 	
 	protected: 

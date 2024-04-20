@@ -159,6 +159,13 @@ class PrimaryPanel: public ContainerClass
 
 		HeaderPanel *Header;
 
+		CurrentMeasurmentPanel *CurrentMeasure;
+		VoltageMeasurmentPanel *VoltageMeasure;
+		ResistorMeasurmentPanel *ResistorMeasure;
+		ButtonClass *FunctionButton;
+
+
+		// old
 		LabelClass *RemoteLabel;
 		LabelClass *WiFiLabel;
 		LabelClass *SystemInfo;
