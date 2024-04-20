@@ -303,6 +303,7 @@ SecondaryPanel::SecondaryPanel(int x, int y ,int w ,int h)
   
     CurrentMeasure = new CurrentMeasurmentPanel( 0, 50 , 800, 240 - 42);
     VoltageMeasure = new VoltageMeasurmentPanel( 0, 50 , 800, 240 - 42);
+    ResistorMeasure = new ResistorMeasurmentPanel( 0, 50 , 800, 240 - 42);
 
     Graph = new GraphClass    ( 0, 50 , 800, 240 - 42);
     Statistics = new StatisticsPanel ( 0, 50 , 800, 240 - 42);
@@ -310,13 +311,15 @@ SecondaryPanel::SecondaryPanel(int x, int y ,int w ,int h)
 
     SwipeController->Add( CurrentMeasure);
     SwipeController->Add( VoltageMeasure);
+    SwipeController->Add( ResistorMeasure);
     //SwipeController->Add(Graph);   
     SwipeController->Add(Statistics);
     
 
     AddControl( TitleLabel); 
     AddControl(  CurrentMeasure);
-     AddControl(  VoltageMeasure);
+    AddControl(  VoltageMeasure);
+    AddControl(  ResistorMeasure);
     //AddControl( Graph); 
     AddControl( Statistics); 
   

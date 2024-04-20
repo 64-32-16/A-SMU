@@ -12,13 +12,15 @@ ResistorMeasurementClass::ResistorMeasurementClass( MeasurementType type,  int32
 MeasurementClass( type,  maxADC, minADC) 
 {
     // Add Range
-     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, 1.0, "1R"));
-     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, 100.0, "100R"));
-     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, 1000.0, "1k"));
-     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, (1000.0 * 10.0), "10k"));
-     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, (1000.0 * 100.0), "100k"));
-     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, (1000.0 * 1000.0), "1M"));
-     AddRange( new RangeClass(ResistorType, Voltage4V, 0.0, (1000.0 * 10000.0), "10M"));
+     AddRange( new RangeClass(ResistorType, Resistor1R, 0.0, 1.0, "1R"));
+     AddRange( new RangeClass(ResistorType, Resistor100R, 0.0, 100.0, "100R"));
+     AddRange( new RangeClass(ResistorType, Resistor1k, 0.0, 1000.0, "1k"));
+     AddRange( new RangeClass(ResistorType, Resistor10k, 0.0, (1000.0 * 10.0), "10k"));
+     AddRange( new RangeClass(ResistorType, Resistor100k, 0.0, (1000.0 * 100.0), "100k"));
+     AddRange( new RangeClass(ResistorType, Resistor1M, 0.0, (1000.0 * 1000.0), "1M"));
+     AddRange( new RangeClass(ResistorType, Resistor10M, 0.0, (1000.0 * 10000.0), "10M"));
+
+     SetRange( Resistor1k);
 
 }
 

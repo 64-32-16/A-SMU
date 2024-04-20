@@ -213,6 +213,7 @@ class SystemClass
         // Measuring
         MeasurementClass *GetCurrentMeasurement() {return CurrentMeasurement; };
         MeasurementClass *GetVoltageMeasurement() {return VoltageMeasurement; };
+        MeasurementClass *GetResistorMeasurement() {return ResistorMeasurement; };
 
 
         // Source 
@@ -244,6 +245,8 @@ class SystemClass
          
         MeasurementClass *CurrentMeasurement;
         MeasurementClass *VoltageMeasurement;
+        MeasurementClass *ResistorMeasurement;
+        
 
         // Source
         SourceClass *VoltageSource;

@@ -14,15 +14,29 @@
 
 enum RangeType
 {
+    //-------------------
     VoltageAuto,    // 0
-    Voltage200mV,   // 1
-    Voltage4V,      // 2 2V
-    Voltage30V,     // 3 20V
+    Voltage200mV,   
+    Voltage4V,      
+    Voltage30V,     
     
+    //------------------
     CurrentAuto,    // 4
-    Current1mA,     // 5
-    Current100mA,   // 6
-    Current1A       // 7
+    Current1mA,     
+    Current100mA,   
+    Current1A,       
+
+    //------------------
+
+    ResistorAuto,    // 8
+    Resistor1R,    
+    Resistor100R,    
+    Resistor1k,    
+    Resistor10k,    
+    Resistor100k,    
+    Resistor1M,    
+    Resistor10M,    
+    
 };
 
 

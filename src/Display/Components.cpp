@@ -19,7 +19,7 @@ RangePadClass::RangePadClass(int x, int y, int w, int h, MeasurementClass *measu
     pMeasuring = measuring;
     Init(measuring);
 
-    LabelTitle = new LabelClass(50, 30, 24, C0, "GENERIC RANGE PAD");
+    LabelTitle = new LabelClass(50, 30, 24, C0, "Measure Range");
     BtnClose = new ButtonClass(280, 220, 180, 50, 29, "Close");
 
     BtnClose->SetListener(this, (CallbackFn)&RangePadClass::OnKeyClose);
@@ -31,8 +31,9 @@ RangePadClass::RangePadClass(int x, int y, int w, int h, MeasurementClass *measu
 void RangePadClass::Init(MeasurementClass *measuring)
 {
     int xStart = 40;
-    int btnH = 70;  // Button Height
+    int btnH = 60;  // Button Height
     int btnW = 120; // Button Width
+    int yStart = 60;
 
     if (measuring != nullptr)
     {
@@ -41,7 +42,14 @@ void RangePadClass::Init(MeasurementClass *measuring)
             RangeClass *r = measuring->GetRange(i);
             if (r != nullptr)
             {
-                ButtonClass *btn = new ButtonClass(xStart, 80, btnW, btnH, 29, r->GetText());
+                // Neue Zeile für die Button 
+                if( xStart + btnW > (800-10)) 
+                {
+                    yStart = yStart + 80;
+                    xStart = 40;
+                }
+                
+                ButtonClass *btn = new ButtonClass(xStart, yStart, btnW, btnH, 29, r->GetText());
                 RangeItems[i] = {r, btn};
 
                 RangeItemsCount = RangeItemsCount + 1;
@@ -110,9 +118,9 @@ void RangePadClass::Render()
     // Render Background Frame
     GD.Begin(RECTS);
 
-    GD.ColorRGB(0x808080);
+    GD.ColorRGB(0xEEEEEE);
 
-    GD.LineWidth(16 * 2);
+    GD.LineWidth(16 * 4);
     GD.Vertex2f(X, Y);
     GD.Vertex2f((X + W), (Y + H));
 

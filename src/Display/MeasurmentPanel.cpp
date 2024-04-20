@@ -15,7 +15,7 @@ CurrentMeasurmentPanel::CurrentMeasurmentPanel(int x, int y, int w, int h)
     Title = "CURRENT";
    
     pRangePad = new RangePadClass(  10,180, (800-20) , (480-180-10) , System.GetCurrentMeasurement());
-    pRangePad->LabelTitle->SetText( "CURRENT MEASURING RANGE");
+   
    
     RangeButton->SetListener( this, (CallbackFn) &CurrentMeasurmentPanel::OnRangeClick);
 
@@ -66,7 +66,7 @@ VoltageMeasurmentPanel::VoltageMeasurmentPanel(int x, int y, int w, int h)
     Title = "VOLTAGE";
     
     pRangePad = new RangePadClass(  10,180, (800-20) , (480-180-10) , System.GetVoltageMeasurement());
-    pRangePad->LabelTitle->SetText( "VOLTAGE MEASURING RANGE");
+   
 
     RangeButton->SetListener( this, (CallbackFn) &VoltageMeasurmentPanel::OnRangeClick);
 
@@ -110,56 +110,43 @@ ResistorMeasurmentPanel::ResistorMeasurmentPanel(int x, int y, int w, int h)
 {
 
     Title = "RESISTOR";
-    //pVoltageRangePad = new VoltageRangePad(  100,100, 600 , 300 );
+   
+    pRangePad = new RangePadClass(  10,180, (800-20) , (480-180-10) , System.GetResistorMeasurement());
     
    
-
-    //RangeButton->SetListener( this, (CallbackFn) &VoltageMeasurmentPanel::OnRangeClick);
+    RangeButton->SetListener( this, (CallbackFn) &ResistorMeasurmentPanel::OnRangeClick);
 
 }
 
-
+/**
+ * @brief show Range Dialog Window
+ * 
+ */
 void ResistorMeasurmentPanel::OnRangeClick() 
 {   
-    //Display.ShowWindow(pVoltageRangePad);
+    Display.ShowWindow(pRangePad);
 } 
+
+
 
 void ResistorMeasurmentPanel::Render()
 {
 
-    TitleLabel->SetText("MEASURING RESISTOR");
+    TitleLabel->SetText("MEASURING RESISTOR 2-Wire");
     
-    //ValueLabel->SetText(System.FormatVoltage(System.Buffer.getRes()).c_str());
-    ValueLabel->SetFontColor(THEME_VOLTAGE_LABEL_COLOR);
-    TitleLabel->SetFontColor(THEME_VOLTAGE_LABEL_COLOR);
-    RangeLabel->SetFontColor(THEME_VOLTAGE_LABEL_COLOR);
+    // BUFFER ??
+    ValueLabel->SetText(System.FormatCurrent(System.Buffer.GetCurrent()).c_str());
+    
+    ValueLabel->SetFontColor(THEME_RESISTOR_LABEL_COLOR);
+    TitleLabel->SetFontColor(THEME_RESISTOR_LABEL_COLOR);
+    RangeLabel->SetFontColor(THEME_RESISTOR_LABEL_COLOR);
+   
 
-
-    // RANGE gemessen am DMM6500
-    // 10  Ohm  | 100 mA
-    // 100 Ohm  | 10 mA
-    // 1k       | 1 mA
-    // 10k      | 100 uA
-    // 100k     | 10 uA
-    // 1M       | 10 uA
-    // 10M      | 1 uA
- 
-
-
+    
     // Anzeige des aktuellen Ranges im Button
-    
-    /*
-    RangeClass *range =   System.GetVoltageMeasurement()->GetSelectedRange(); 
+    RangeClass *range =   System.GetResistorMeasurement()->GetSelectedRange(); 
+    MeasurmentPanel::SetRage( range);
 
-    if( range != nullptr)
-    {
-        if( range->GetRangeType() == Voltage4V ) RangeButton->SetText("4V");
-        if( range->GetRangeType() == Voltage30V ) RangeButton->SetText("30V");
-    } else 
-    {
-        RangeButton->SetText("Error");
-    }
-    */
     MeasurmentPanel::Render();
 
 }

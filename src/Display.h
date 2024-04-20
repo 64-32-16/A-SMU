@@ -306,6 +306,7 @@ class SecondaryPanel: public ContainerClass
 
 		CurrentMeasurmentPanel *CurrentMeasure;
 		VoltageMeasurmentPanel *VoltageMeasure;
+		ResistorMeasurmentPanel *ResistorMeasure;
 
 		const char* Classname() override {return "SecondaryPanel";}
 		void Render()  override;

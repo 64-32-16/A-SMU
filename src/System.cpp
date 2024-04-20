@@ -250,6 +250,9 @@ SystemClass::SystemClass()
 		VoltageMeasurement->AddRange(vr2);
 		VoltageMeasurement->SetRange(Voltage30V);
 	}
+
+	ResistorMeasurement = new ResistorMeasurementClass(ResistorType, 0x7FFFFF - 1, 0x00);
+
 }
 
 // Mit dieser Funktion kann zwischen Voltage- und Current-Source umgeschaltet werden.
