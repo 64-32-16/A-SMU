@@ -23,9 +23,7 @@ class MeasurmentPanel: public ContainerClass
 		const char* Classname() override {return "MeasurmentPanel";}
 
 		RangePadClass *pRangePad;
-
-
-
+		MeasuringFunctionPadClass *pFunctionPad;
 
 		LabelClass *ValueLabel; 
 		LabelClass *TitleLabel; 
@@ -35,7 +33,10 @@ class MeasurmentPanel: public ContainerClass
 
 	
 	protected: 
+
+
 	void SetRage(RangeClass *range );	
+	void OnFunctionClick(void);
 	
 };
 

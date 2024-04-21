@@ -87,6 +87,14 @@ class BufferClass
         float GetPowerPeakToPeak() {return (GetPowerMax() - GetPowerMin()); }
         
 
+        // Resistor 
+        float GetResistorMin() { return ( 0.0); }
+        float GetResistorMax() { return (0.0); }
+        float GetResistor() { 
+            return (Voltage == 0.0) ? __FLT_MAX__ : (Voltage/Current); 
+        }
+        float GetResistorPeakToPeak() {return (0.0); }
+
 		int SampleRate() { return 10;} // in ms
 
 
@@ -201,6 +209,7 @@ class SystemClass
         String FormatCurrent( float value);
         String FormatVoltage( float value);
         String FormatPower( float value);
+         String FormatResistor( float value);
         
         String FormatBufferCount();
 
@@ -215,7 +224,7 @@ class SystemClass
         MeasurementClass *GetCurrentMeasurement() {return CurrentMeasurement; };
         MeasurementClass *GetVoltageMeasurement() {return VoltageMeasurement; };
         MeasurementClass *GetResistorMeasurement() {return ResistorMeasurement; };
-         MeasurementClass *GetSelectedMeasurement() {return SelectedMeasurement; };
+        MeasurementClass *GetSelectedMeasurement() {return SelectedMeasurement; };
 
 
 

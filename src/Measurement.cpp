@@ -75,8 +75,8 @@ VoltageMeasurementClass::VoltageMeasurementClass(MeasurementType type, int32_t m
 ResistorMeasurementClass::ResistorMeasurementClass(MeasurementType type, int32_t maxADC, int32_t minADC) : MeasurementClass(type, maxADC, minADC)
 {
     // Add Range
-    AddRange(new RangeClass(ResistorType, Resistor1R, 0.0, 1.0, "1R"));
-    AddRange(new RangeClass(ResistorType, Resistor100R, 0.0, 100.0, "100R"));
+    AddRange(new RangeClass(ResistorType, Resistor1R, 0.0, 1.0, "1 Ohm"));
+    AddRange(new RangeClass(ResistorType, Resistor100R, 0.0, 100.0, "100 Ohm"));
     AddRange(new RangeClass(ResistorType, Resistor1k, 0.0, 1000.0, "1k"));
     AddRange(new RangeClass(ResistorType, Resistor10k, 0.0, (1000.0 * 10.0), "10k"));
     AddRange(new RangeClass(ResistorType, Resistor100k, 0.0, (1000.0 * 100.0), "100k"));

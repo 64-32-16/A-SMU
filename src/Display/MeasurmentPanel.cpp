@@ -134,8 +134,8 @@ void ResistorMeasurmentPanel::Render()
 
     TitleLabel->SetText("MEASURING RESISTOR 2-Wire");
     
-    // BUFFER ??
-    ValueLabel->SetText(System.FormatCurrent(System.Buffer.GetCurrent()).c_str());
+
+    ValueLabel->SetText(System.FormatResistor(System.Buffer.GetResistor()).c_str());
     
     ValueLabel->SetFontColor(THEME_RESISTOR_LABEL_COLOR);
     TitleLabel->SetFontColor(THEME_RESISTOR_LABEL_COLOR);
@@ -167,20 +167,34 @@ MeasurmentPanel::MeasurmentPanel(int x, int y, int w, int h)
 
     int startX = 20;
 
-    TitleLabel = new LabelClass(startX, 2, 29, C1, "MEASURING ....");
+    pFunctionPad = new MeasuringFunctionPadClass(  100,30, (600) , (480-20-20) );
+    
+    TitleLabel = new LabelClass(startX, 2, 29, C1, "..");
 
-    ValueLabel = new LabelClass(startX, 70, 1, C1, "000.00012 ?");
+    ValueLabel = new LabelClass(startX, 70, 1, C1, "..");
+
 
     RangeLabel = new LabelClass(startX, 145, 29, C1, "Range");
-    RangeButton = new ButtonClass(startX + 100, 125, "100 ??");
+
+    RangeButton = new ButtonClass(startX + 100, 125, "..");
+    FunctionButton = new ButtonClass(startX + 600, 125, "Function");
+    
+    FunctionButton->SetListener( this, (CallbackFn) &MeasurmentPanel::OnFunctionClick);
+
+
 
     AddControl(TitleLabel);
     AddControl(ValueLabel);
 
+    AddControl(FunctionButton);
     AddControl(RangeButton);
     AddControl(RangeLabel);
 }
 
+void MeasurmentPanel::OnFunctionClick() 
+{   
+    Display.ShowWindow(pFunctionPad);
+} 
 
 void MeasurmentPanel::SetRage(RangeClass *range )
 {

@@ -17,6 +17,34 @@ public:
 	ButtonClass *Btn;
 };
 
+
+class MeasuringFunctionPadClass: public WindowClass 
+{
+	public:
+		MeasuringFunctionPadClass(int x, int y, int w, int h);
+		void OnKeyClose( ButtonClass *btn); 
+		void OnKeyCurrent( ButtonClass *btn); 
+		void OnKeyVoltage( ButtonClass *btn); 
+		void OnKeyResistor( ButtonClass *btn); 
+		void OnKeyPower( ButtonClass *btn); 
+		void Render() override;
+		void Show() override;
+
+	protected:
+		ButtonClass *BtnCurrent;
+		ButtonClass *BtnVoltage;
+		ButtonClass *BtnResistor;
+		ButtonClass *BtnPower;
+		ButtonClass *BtnClose;
+
+		
+
+		LabelClass *LabelTitle;
+		
+		
+};
+
+
 class RangePadClass: public WindowClass
 {
 

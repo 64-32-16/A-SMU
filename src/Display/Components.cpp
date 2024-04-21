@@ -2,6 +2,118 @@
 #include "Display/Components.h"
 #include "Display.h"
 
+
+/*----------------------------------------------------------------
+ MeasuringFunctionPadClass
+------------------------------------------------------------------*/
+
+/**
+ * @brief 
+ * 
+ */
+MeasuringFunctionPadClass::MeasuringFunctionPadClass(int x, int y, int w, int h)
+{
+    X = x;
+    Y = y;
+    W = w;
+    H = h;
+    int xStart = 50;
+    int btnH = 50;  // Button Height
+    int btnW = 220; // Button Width
+
+
+    LabelTitle = new LabelClass(xStart, 30, 24, C0, "Measuring");
+    BtnClose = new ButtonClass(xStart, 360, 180, 50, 29, "Close");
+
+    BtnCurrent = new ButtonClass(xStart, 60, btnW, btnH, 29, "Current");
+    BtnVoltage = new ButtonClass(xStart, 120+10, btnW, btnH, 29, "Voltage");
+    BtnResistor = new ButtonClass(xStart, 180+20, btnW, btnH, 29, "Resistor");
+    BtnPower = new ButtonClass(xStart, 240+30, btnW, btnH, 29, "Power");
+
+    BtnClose->SetClickEvent(this, (OnBtnClickFn)&MeasuringFunctionPadClass::OnKeyClose);
+    BtnCurrent->SetClickEvent(this, (OnBtnClickFn)&MeasuringFunctionPadClass::OnKeyCurrent);
+
+    
+    AddControl(BtnClose);
+    AddControl(LabelTitle);
+    AddControl(BtnCurrent);
+    AddControl(BtnVoltage);
+    AddControl(BtnResistor);
+    AddControl(BtnPower);
+
+
+}
+
+void MeasuringFunctionPadClass::OnKeyCurrent(ButtonClass *btn) { 
+    System.SetSelectedMeasuring( CurrentType);
+}
+void MeasuringFunctionPadClass::OnKeyVoltage(ButtonClass *btn) 
+{ 
+    System.SetSelectedMeasuring( VoltageType);
+}
+
+void MeasuringFunctionPadClass::OnKeyResistor(ButtonClass *btn) 
+{ 
+    System.SetSelectedMeasuring( ResistorType);
+}
+void MeasuringFunctionPadClass::OnKeyPower(ButtonClass *btn) 
+{ 
+     System.SetSelectedMeasuring( PowerType);
+
+}
+
+
+void MeasuringFunctionPadClass::OnKeyClose(ButtonClass *btn) { Display.HideWindow(); }
+
+void MeasuringFunctionPadClass::Render()
+{
+
+    // Render Background Frame
+    GD.Begin(RECTS);
+
+    GD.ColorRGB(0xEEEEEE);
+
+    GD.LineWidth(16 * 4);
+    GD.Vertex2f(X, Y);
+    GD.Vertex2f((X + W), (Y + H));
+
+    GD.ColorRGB(0x1A3857);
+
+    GD.Vertex2f((X + 2), (Y + 2));
+    GD.Vertex2f((X + W - 2), (Y + H - 2));
+
+    ContainerClass::Render();
+}
+
+void MeasuringFunctionPadClass::Show() 
+{
+   MeasurementClass *m = System.GetSelectedMeasurement();
+    if( m != nullptr) 
+    {
+        switch (m->Type)
+        {
+        case CurrentType:
+             Display.SetFocus(BtnCurrent);
+            break;
+        case VoltageType:
+             Display.SetFocus(BtnVoltage);
+            break;
+        case ResistorType:
+             Display.SetFocus(BtnResistor);
+            break;
+        case PowerType:
+             Display.SetFocus(BtnPower);
+            break;
+        default:
+            break;
+        }
+        
+    }  
+
+
+}
+
+
 /*----------------------------------------------------------------
  RangePad
 ------------------------------------------------------------------*/

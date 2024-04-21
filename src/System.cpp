@@ -442,21 +442,28 @@ void SystemClass::FormatValue(float value, char const *unit, bool scale)
 String SystemClass::FormatCurrent(float value)
 {
 	FormatStr = "";
-	FormatValue(value, "A");
+	FormatValue(value, " A");
 	return FormatStr;
 }
 
 String SystemClass::FormatVoltage(float value)
 {
 	FormatStr = "";
-	FormatValue(value, "V");
+	FormatValue(value, " V");
 	return FormatStr;
 }
 
 String SystemClass::FormatPower(float value)
 {
 	FormatStr = "";
-	FormatValue(value, "W");
+	FormatValue(value, " W");
+	return FormatStr;
+}
+
+String SystemClass::FormatResistor(float value)
+{
+	FormatStr = "";
+	FormatValue(value, " Ohm");
 	return FormatStr;
 }
 
