@@ -151,6 +151,57 @@ void ResistorMeasurmentPanel::Render()
 
 }
 
+//-----------------------------------------------------------------------
+//  R E S I S T O R
+//-----------------------------------------------------------------------
+
+
+PowerMeasurmentPanel::PowerMeasurmentPanel(int x, int y, int w, int h) 
+: MeasurmentPanel( x,y,w,h)
+{
+
+    Title = "POWER";
+   
+    pRangePad = new RangePadClass(  10,180, (800-20) , (480-180-10) , System.GetPowerMeasurement());
+    
+   
+    RangeButton->SetListener( this, (CallbackFn) &PowerMeasurmentPanel::OnRangeClick);
+
+}
+
+/**
+ * @brief show Range Dialog Window
+ * 
+ */
+void PowerMeasurmentPanel::OnRangeClick() 
+{   
+    Display.ShowWindow(pRangePad);
+} 
+
+
+
+void PowerMeasurmentPanel::Render()
+{
+
+    TitleLabel->SetText("MEASURING POWER 2-Wire");
+    
+
+    ValueLabel->SetText(System.FormatPower(System.Buffer.GetPower()).c_str());
+    
+    ValueLabel->SetFontColor(THEME_POWER_LABEL_COLOR);
+    TitleLabel->SetFontColor(THEME_POWER_LABEL_COLOR);
+    RangeLabel->SetFontColor(THEME_POWER_LABEL_COLOR);
+   
+
+    
+    // Anzeige des aktuellen Ranges im Button
+    RangeClass *range =   System.GetPowerMeasurement()->GetSelectedRange(); 
+    MeasurmentPanel::SetRage( range);
+
+    MeasurmentPanel::Render();
+
+}
+
 
 
 
@@ -167,7 +218,7 @@ MeasurmentPanel::MeasurmentPanel(int x, int y, int w, int h)
 
     int startX = 20;
 
-    pFunctionPad = new MeasuringFunctionPadClass(  100,30, (600) , (480-20-20) );
+    pFunctionPad = new MeasuringFunctionPadClass(  240,30, (320) , (480-20-20) );
     
     TitleLabel = new LabelClass(startX, 2, 29, C1, "..");
 

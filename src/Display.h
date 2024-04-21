@@ -162,30 +162,12 @@ class PrimaryPanel: public ContainerClass
 		CurrentMeasurmentPanel *CurrentMeasure;
 		VoltageMeasurmentPanel *VoltageMeasure;
 		ResistorMeasurmentPanel *ResistorMeasure;
+		PowerMeasurmentPanel *PowerMeasure;	
+
 		ButtonClass *FunctionButton;
 
-
-		// old
-		LabelClass *RemoteLabel;
-		LabelClass *WiFiLabel;
-		LabelClass *SystemInfo;
-
-
-
-		LabelClass *CurrentMONLabel; 
-		LabelClass *BufferLabel;
-		LabelClass *ModeLabel; // ====> TITLE
-
-
-
-		LabelClass *RangeLabel;
-		ButtonClass *RangeButton;
-
-		VoltageRangePad *pVoltageRangePad;
-		//CurrentRangePad *pCurrentRangePad;
 	
 	protected: 
-		void OnRangeClick();
 	
 };
 

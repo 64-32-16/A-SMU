@@ -91,6 +91,23 @@ void ResistorMeasurementClass::OnSelect()
 }
 
 /*----------------------------------------------------------------------------------
+    PowertMeasurementClass
+------------------------------------------------------------------------------------*/
+
+PowerMeasurementClass::PowerMeasurementClass(MeasurementType type, int32_t maxADC, int32_t minADC) : MeasurementClass(type, maxADC, minADC)
+{
+    // Add Range
+    AddRange(new RangeClass(PowerType, PowerAuto, 0.0, 1.0, "Auto"));
+   
+
+    SetRange( PowerAuto);
+}
+
+void PowerMeasurementClass::OnSelect()
+{
+}
+
+/*----------------------------------------------------------------------------------
     MeasurementClass
 ------------------------------------------------------------------------------------*/
 

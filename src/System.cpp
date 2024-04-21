@@ -190,6 +190,7 @@ SystemClass::SystemClass()
 	CurrentMeasurement = new CurrentMeasurementClass(CurrentType, 0x7FFFFF - 1, 0x00);
 	VoltageMeasurement = new VoltageMeasurementClass(VoltageType, 0x7FFFFF - 1, 0x00);
 	ResistorMeasurement = new ResistorMeasurementClass(ResistorType, 0x7FFFFF - 1, 0x00);
+	PowerMeasurement = new PowerMeasurementClass(PowerType, 0x7FFFFF - 1, 0x00);
 	SetSelectedMeasuring( CurrentType);
 }
 
@@ -218,20 +219,24 @@ void SystemClass::SetSelectedMeasuring(MeasurementType value)
 	{
 	case CurrentType:
 		SelectedMeasurement = CurrentMeasurement;
+		Serial.println("System.Select Current");
 		break;
 	case VoltageType:
 		SelectedMeasurement = VoltageMeasurement;
+		Serial.println("System.Select Voltage");
 		break;
 	case ResistorType:
 		SelectedMeasurement = ResistorMeasurement;
+		Serial.println("System.Select Resistor");
 		break;
-		/*
+		
 		case PowerType:
 		SelectedMeasurement = PowerMeasurement;
 		break;
-		*/
+		
 	default:
 		SelectedMeasurement = CurrentMeasurement;
+		Serial.println("System.Select Default");
 		break;
 	}
 

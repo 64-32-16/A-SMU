@@ -1,16 +1,21 @@
 
+// -------------- MEASURING -----------------
 
+[] Select Measuring inkl. Pad
 
-[] Select Measuring
-[x] MeasurmentPanel's einbauen
-    [x] Current
-    [x] Voltage
-    [x] Resistor 
-    [] Power
-[] Einheit "mA" in die RangeClass verlagern
+[x] Current
+[x] Voltage
+[x] Resistor 
+[] Power
+[x] Einheit "mA" in die RangeClass verlagern
 [] 
 
+// -------------- UNIT HELPER ------------
+ 
+// -------------- SOURCE -----------------
 
+[] Voltage
+[] Current
 
 
 [x] HeaderPanel einbauen
@@ -21,8 +26,6 @@
 [x] Limit Anzeige einbauen.
 [] Rangeumschaltung Pin-Bits einbauen.
 [] Range Unselect umbauen.
-[] PrimaryPanel mit SwipController
-[] Measurment Voltage, Current, Resistor, Power
 [] 2-4 Wire einbauen
 
 [] Startbildschirm anzeigen (ADC okay uws.)

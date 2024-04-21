@@ -59,6 +59,7 @@ class CurrentMeasurmentPanel: public MeasurmentPanel
 };
 
 
+
 /**
  * @brief 
  * 
@@ -85,6 +86,26 @@ class VoltageMeasurmentPanel: public MeasurmentPanel
 {
 	public:
 		VoltageMeasurmentPanel( int x, int y,  int w, int h);
+		
+		void Render()  override;
+		const char* Classname() override {return "VoltageMeasurmentPanel";}
+
+		
+
+	
+	protected: 
+		void OnRangeClick();
+};
+
+
+/**
+ * @brief 
+ * 
+ */
+class PowerMeasurmentPanel: public MeasurmentPanel 
+{
+	public:
+		PowerMeasurmentPanel( int x, int y,  int w, int h);
 		
 		void Render()  override;
 		const char* Classname() override {return "VoltageMeasurmentPanel";}

@@ -2,14 +2,13 @@
 #include "Display/Components.h"
 #include "Display.h"
 
-
 /*----------------------------------------------------------------
  MeasuringFunctionPadClass
 ------------------------------------------------------------------*/
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  */
 MeasuringFunctionPadClass::MeasuringFunctionPadClass(int x, int y, int w, int h)
 {
@@ -21,47 +20,49 @@ MeasuringFunctionPadClass::MeasuringFunctionPadClass(int x, int y, int w, int h)
     int btnH = 50;  // Button Height
     int btnW = 220; // Button Width
 
-
     LabelTitle = new LabelClass(xStart, 30, 24, C0, "Measuring");
-    BtnClose = new ButtonClass(xStart, 360, 180, 50, 29, "Close");
+    BtnClose = new ButtonClass(70, 360, 180, 50, 29, "Close");
 
     BtnCurrent = new ButtonClass(xStart, 60, btnW, btnH, 29, "Current");
-    BtnVoltage = new ButtonClass(xStart, 120+10, btnW, btnH, 29, "Voltage");
-    BtnResistor = new ButtonClass(xStart, 180+20, btnW, btnH, 29, "Resistor");
-    BtnPower = new ButtonClass(xStart, 240+30, btnW, btnH, 29, "Power");
+    BtnVoltage = new ButtonClass(xStart, 120 + 10, btnW, btnH, 29, "Voltage");
+    BtnResistor = new ButtonClass(xStart, 180 + 20, btnW, btnH, 29, "Resistor");
+    BtnPower = new ButtonClass(xStart, 240 + 30, btnW, btnH, 29, "Power");
 
     BtnClose->SetClickEvent(this, (OnBtnClickFn)&MeasuringFunctionPadClass::OnKeyClose);
     BtnCurrent->SetClickEvent(this, (OnBtnClickFn)&MeasuringFunctionPadClass::OnKeyCurrent);
+    BtnVoltage->SetClickEvent(this, (OnBtnClickFn)&MeasuringFunctionPadClass::OnKeyVoltage);
+    BtnResistor->SetClickEvent(this, (OnBtnClickFn)&MeasuringFunctionPadClass::OnKeyResistor);
+    BtnPower->SetClickEvent(this, (OnBtnClickFn)&MeasuringFunctionPadClass::OnKeyPower);
 
-    
     AddControl(BtnClose);
     AddControl(LabelTitle);
     AddControl(BtnCurrent);
     AddControl(BtnVoltage);
     AddControl(BtnResistor);
     AddControl(BtnPower);
-
-
 }
 
-void MeasuringFunctionPadClass::OnKeyCurrent(ButtonClass *btn) { 
-    System.SetSelectedMeasuring( CurrentType);
+void MeasuringFunctionPadClass::OnKeyCurrent(ButtonClass *btn)
+{
+    System.SetSelectedMeasuring(CurrentType);
+    OnKeyClose(btn);
 }
-void MeasuringFunctionPadClass::OnKeyVoltage(ButtonClass *btn) 
-{ 
-    System.SetSelectedMeasuring( VoltageType);
-}
-
-void MeasuringFunctionPadClass::OnKeyResistor(ButtonClass *btn) 
-{ 
-    System.SetSelectedMeasuring( ResistorType);
-}
-void MeasuringFunctionPadClass::OnKeyPower(ButtonClass *btn) 
-{ 
-     System.SetSelectedMeasuring( PowerType);
-
+void MeasuringFunctionPadClass::OnKeyVoltage(ButtonClass *btn)
+{
+    System.SetSelectedMeasuring(VoltageType);
+    OnKeyClose(btn);
 }
 
+void MeasuringFunctionPadClass::OnKeyResistor(ButtonClass *btn)
+{
+    System.SetSelectedMeasuring(ResistorType);
+    OnKeyClose(btn);
+}
+void MeasuringFunctionPadClass::OnKeyPower(ButtonClass *btn)
+{
+    System.SetSelectedMeasuring(PowerType);
+    OnKeyClose(btn);
+}
 
 void MeasuringFunctionPadClass::OnKeyClose(ButtonClass *btn) { Display.HideWindow(); }
 
@@ -85,34 +86,30 @@ void MeasuringFunctionPadClass::Render()
     ContainerClass::Render();
 }
 
-void MeasuringFunctionPadClass::Show() 
+void MeasuringFunctionPadClass::Show()
 {
-   MeasurementClass *m = System.GetSelectedMeasurement();
-    if( m != nullptr) 
+    MeasurementClass *m = System.GetSelectedMeasurement();
+    if (m != nullptr)
     {
         switch (m->Type)
         {
         case CurrentType:
-             Display.SetFocus(BtnCurrent);
+            Display.SetFocus(BtnCurrent);
             break;
         case VoltageType:
-             Display.SetFocus(BtnVoltage);
+            Display.SetFocus(BtnVoltage);
             break;
         case ResistorType:
-             Display.SetFocus(BtnResistor);
+            Display.SetFocus(BtnResistor);
             break;
         case PowerType:
-             Display.SetFocus(BtnPower);
+            Display.SetFocus(BtnPower);
             break;
         default:
             break;
         }
-        
-    }  
-
-
+    }
 }
-
 
 /*----------------------------------------------------------------
  RangePad
@@ -120,7 +117,7 @@ void MeasuringFunctionPadClass::Show()
 
 /**
  * @brief a rangepad can connect to measuring switch the range
- * 
+ *
  */
 RangePadClass::RangePadClass(int x, int y, int w, int h, MeasurementClass *measuring)
 {
@@ -154,13 +151,13 @@ void RangePadClass::Init(MeasurementClass *measuring)
             RangeClass *r = measuring->GetRange(i);
             if (r != nullptr)
             {
-                // Neue Zeile für die Button 
-                if( xStart + btnW > (800-10)) 
+                // Neue Zeile für die Button
+                if (xStart + btnW > (800 - 10))
                 {
                     yStart = yStart + 80;
                     xStart = 40;
                 }
-                
+
                 ButtonClass *btn = new ButtonClass(xStart, yStart, btnW, btnH, 29, r->GetText());
                 RangeItems[i] = {r, btn};
 
@@ -182,6 +179,7 @@ void RangePadClass::OnRangeBtnClick(ButtonClass *btn)
     if (r != nullptr && pMeasuring != nullptr)
     {
         pMeasuring->SetRange(r->GetRangeType());
+        OnKeyClose();
     }
 }
 
@@ -244,10 +242,9 @@ void RangePadClass::Render()
     ContainerClass::Render();
 }
 
-
 /**
  * @brief the function ist called when the dialog is displayed
- * 
+ *
  */
 void RangePadClass::Show()
 {

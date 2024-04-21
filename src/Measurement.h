@@ -41,7 +41,9 @@ enum RangeType
     Resistor10k,    
     Resistor100k,    
     Resistor1M,    
-    Resistor10M,    
+    Resistor10M,   
+
+    PowerAuto,  
     
 };
 
@@ -217,8 +219,8 @@ class ResistorMeasurementClass: public MeasurementClass
 class PowerMeasurementClass: public MeasurementClass 
 {
     public:
-    // PowerMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
-
+    PowerMeasurementClass( MeasurementType type, int32_t maxADC, int32_t minADC);
+    void OnSelect(void) override;
 
 };
 

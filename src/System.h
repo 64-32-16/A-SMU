@@ -224,6 +224,7 @@ class SystemClass
         MeasurementClass *GetCurrentMeasurement() {return CurrentMeasurement; };
         MeasurementClass *GetVoltageMeasurement() {return VoltageMeasurement; };
         MeasurementClass *GetResistorMeasurement() {return ResistorMeasurement; };
+        MeasurementClass *GetPowerMeasurement() {return PowerMeasurement; };
         MeasurementClass *GetSelectedMeasurement() {return SelectedMeasurement; };
 
 
@@ -258,6 +259,7 @@ class SystemClass
         MeasurementClass *CurrentMeasurement;
         MeasurementClass *VoltageMeasurement;
         MeasurementClass *ResistorMeasurement;
+        MeasurementClass *PowerMeasurement;
         MeasurementClass *SelectedMeasurement;
         
 
