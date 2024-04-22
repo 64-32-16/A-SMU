@@ -243,6 +243,12 @@ void SystemClass::SetSelectedMeasuring(MeasurementType value)
 	SelectedMeasurement->OnSelect();
 }
 
+ void SystemClass::SetSelectedWire( WireType wire) 
+ {
+	Wire = wire;
+ }
+
+
 void SystemClass::SetDAC(uint16_t code, uint channel)
 {
 	if (pDAC != nullptr)

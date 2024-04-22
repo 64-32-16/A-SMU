@@ -17,6 +17,12 @@ enum MeasurementType
     ResistorType
 };
 
+enum WireType 
+{
+    Wire2,
+    Wire4
+
+};
 
 enum RangeType
 {

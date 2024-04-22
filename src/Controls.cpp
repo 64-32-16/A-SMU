@@ -391,3 +391,18 @@ ControlClass* ContainerClass::FindFocusControl( int x, int y )
 
 
 
+void  ContainerClass::TRACE( ContainerClass *p, uint level) 
+{
+    
+    Serial.print("Control Count "); Serial.println(ControlCounter);
+    Serial.print("Control Level "); Serial.println(level);
+    
+    for(int i=0; i<= ControlCounter-1;i++)     
+    {
+        if( pControls[i]->GetType() == ContainerType ) 
+        {
+            TRACE((ContainerClass*) pControls[i], ++level );
+        }
+    }
+
+}

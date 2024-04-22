@@ -18,6 +18,29 @@ public:
 };
 
 
+class WirePadClass: public WindowClass 
+{
+	public:
+		WirePadClass(int x, int y, int w, int h);
+		void OnKey2Wire( ButtonClass *btn); 
+		void OnKey4Wire( ButtonClass *btn); 
+		void OnKeyClose( ButtonClass *btn); 
+		void Render() override;
+		void Show() override;
+
+	protected:
+		ButtonClass *Btn2Wire;
+		ButtonClass *Btn4Wire;
+		ButtonClass *BtnClose;
+
+		
+
+		LabelClass *LabelTitle;
+		
+		
+};
+
+
 class MeasuringFunctionPadClass: public WindowClass 
 {
 	public:

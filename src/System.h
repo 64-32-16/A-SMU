@@ -226,6 +226,10 @@ class SystemClass
         MeasurementClass *GetResistorMeasurement() {return ResistorMeasurement; };
         MeasurementClass *GetPowerMeasurement() {return PowerMeasurement; };
         MeasurementClass *GetSelectedMeasurement() {return SelectedMeasurement; };
+        void SetSelectedWire( WireType wire);
+        WireType GetSelectedWire( ) {return Wire;}
+
+        WireType Wire = Wire2;
 
 
 

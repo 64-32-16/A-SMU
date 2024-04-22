@@ -8,7 +8,7 @@
 #include "System.h"
 
 
-#define MAX_CONTROLS 1024
+#define MAX_CONTROLS 128
 
 #define TOUCH_NONE 0
 #define TOUCH_START 1
@@ -75,7 +75,14 @@
 #define THEME_XSTART 20
 #define MAX_SWIPE_PANELS 10
 
-
+enum ClassType 
+{
+	ControlType,
+	ContainerType,
+	ButtonType,
+	LabelType,
+	WindowType,
+};
 
 
 class ContainerClass;
@@ -114,6 +121,8 @@ class ControlClass
 	 ControlClass *Parent = nullptr;  // TODO ACHTUNG SOLLTE CONTAINER SEIN
 
 	 virtual const char* Classname() {return "Control";}
+	 virtual uint GetType() {return ControlType; }
+	
 
 	 virtual void Render() {};
 	 
@@ -146,12 +155,16 @@ class ContainerClass: public ControlClass
 
 		void Render() override;
 	    const char* Classname() override {return "Container";}
+		uint GetType() override {return ContainerType;} 
+
 		ControlClass *pControls[MAX_CONTROLS];
 		void DispatchTouchEvent( uint8_t eventtype, int x, int y, int dx, int dy) override; 
 
 		bool IsActive() {return (GetX() < 0  || (GetX()+W) > 800  ) ;}
 
 		ControlClass* FindFocusControl( int x, int y) override;
+
+		void TRACE( ContainerClass *p, uint level=0);
 
 	protected:
 		
@@ -180,6 +193,7 @@ class ButtonClass: public ControlClass
 	 
 	
 	 const char* Classname() override {return "Button";}
+	
 
 	 void SetText(const char* text) { Text = "";  Text.concat(text); }
 	 String GetText() { return Text;}
@@ -216,6 +230,7 @@ class LabelClass: public ControlClass
 
 	 
 	 LabelClass( int x, int y, uint16_t fontSize,  uint32_t fontColor, const char *text );
+	 
 	 const char* Classname() override {return "Label";}
 
 	 void SetText( const char* text ) {Text = "";  Text.concat(text);}

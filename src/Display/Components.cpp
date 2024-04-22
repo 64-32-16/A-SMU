@@ -2,6 +2,95 @@
 #include "Display/Components.h"
 #include "Display.h"
 
+
+
+
+/*----------------------------------------------------------------
+ WirePadClass
+------------------------------------------------------------------*/
+
+/**
+ * @brief
+ *
+ */
+WirePadClass::WirePadClass(int x, int y, int w, int h)
+{
+    X = x;
+    Y = y;
+    W = w;
+    H = h;
+    int xStart = 50;
+    int btnH = 50;  // Button Height
+    int btnW = 220; // Button Width
+
+  
+
+    LabelTitle = new LabelClass(xStart, 30, 24, C0, "Wiring");
+    BtnClose = new ButtonClass(70, 360, 180, 50, 29, "Close");
+
+    Btn2Wire = new ButtonClass(xStart, 60, btnW, btnH, 29, "2-Wire");
+    Btn4Wire = new ButtonClass(xStart, 120 + 10, btnW, btnH, 29, "4-Wire");
+
+
+    BtnClose->SetClickEvent(this, (OnBtnClickFn)&WirePadClass::OnKeyClose);
+    Btn2Wire->SetClickEvent(this, (OnBtnClickFn)&WirePadClass::OnKey2Wire);
+    Btn4Wire->SetClickEvent(this, (OnBtnClickFn)&WirePadClass::OnKey4Wire);
+ 
+    AddControl(BtnClose);
+    AddControl(LabelTitle);
+    AddControl(Btn2Wire);
+    AddControl(Btn4Wire);
+}
+
+void WirePadClass::OnKey2Wire(ButtonClass *btn)
+{
+    System.SetSelectedWire(Wire2);
+    OnKeyClose(btn);
+}
+void WirePadClass::OnKey4Wire(ButtonClass *btn)
+{
+     System.SetSelectedWire(Wire4);
+    OnKeyClose(btn);
+}
+
+
+void WirePadClass::OnKeyClose(ButtonClass *btn) { Display.HideWindow(); }
+
+void WirePadClass::Render()
+{
+
+    // Render Background Frame
+    GD.Begin(RECTS);
+
+    GD.ColorRGB(0xEEEEEE);
+
+    GD.LineWidth(16 * 4);
+    GD.Vertex2f(X, Y);
+    GD.Vertex2f((X + W), (Y + H));
+
+    GD.ColorRGB(0x1A3857);
+
+    GD.Vertex2f((X + 2), (Y + 2));
+    GD.Vertex2f((X + W - 2), (Y + H - 2));
+
+    ContainerClass::Render();
+}
+
+void WirePadClass::Show()
+{
+
+    WireType w = System.GetSelectedWire();
+
+    Serial.print("Selected Wire ");Serial.println( w);
+    if( w == Wire2 )  Display.SetFocus(Btn2Wire);
+    if( w == Wire4 )  Display.SetFocus(Btn4Wire);
+
+}
+
+
+
+
+
 /*----------------------------------------------------------------
  MeasuringFunctionPadClass
 ------------------------------------------------------------------*/

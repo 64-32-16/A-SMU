@@ -1,34 +1,58 @@
 
+//------ BASIC--------------------------
+
+[] MAX_CONTORLS prüfen, Statistic ist der gößste Container
+[] Click-Event unterbrechen.
+[] Parent sollte ContainerClass sein
+
+// -------------- DISPLAY -----------------
+
+
+[] Startbildschirm anzeigen (ADC okay uws.)
+[] Backlight mit Zeitsteuerung
+
 // -------------- MEASURING -----------------
 
-[] Select Measuring inkl. Pad
-
+[] Set Range überarbeiten
+[x] Select Measuring inkl. Pad
 [x] Current
 [x] Voltage
 [x] Resistor 
-[] Power
+[x] Power
 [x] Einheit "mA" in die RangeClass verlagern
-[] 
+
 
 // -------------- UNIT HELPER ------------
  
+[] Neue Klasse für die Einheiten erstellen
+
 // -------------- SOURCE -----------------
 
 [] Voltage
 [] Current
 
+// -------------- GRAPH -----------------
 
-[x] HeaderPanel einbauen
-[x] Range anzeige einbauen
+
+// -------------- SYSTEM -----------------
+[x] 2- und 4-Wire Umschaltung einbauen
+[] Rangeumschaltung Pin-Bits einbauen
+[] On/Off Schalter einbauen
+[] Registerwerte vom ADC beim Starten prüfen
+
+// -------------- BUFFER -----------------
+
+
+
+
+
+
+
+
 [x] Source Einstellung den richtigen Range abfragen
 [x] Source Anzeige im Button
 [x] Limit einbauen
 [x] Limit Anzeige einbauen.
-[] Rangeumschaltung Pin-Bits einbauen.
-[] Range Unselect umbauen.
-[] 2-4 Wire einbauen
-
-[] Startbildschirm anzeigen (ADC okay uws.)
 
 
 [] BugFix SwipeController ( bei Button-Click wird der graph gerendert ) ???
@@ -44,21 +68,21 @@
 [x] Output Adj setzen und verwenden.
 [x] BugFix: NumberPad zeigt falsche Einheit
 
-[] On/Off Schalter einbauen
-[] Registerwerte vom ADC beim Starten prüfen
+
+
 []
 
 
 
 
 
-[] Parent sollte ContainerClass sein
+
 [x] Average kontrollieren
 [x]   NumberPad für Current und Voltage
 [] VoltagePanel Range anzeigen
 [] Voltage Range einbauen
 [] Tempatur einbauen
-[] Backlight mit Zeitsteuerung
+
 
 [] Border Focus Button
 [] Focus-pr�fen Ist erstmal ausgeschalten

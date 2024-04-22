@@ -248,6 +248,10 @@ class GraphClass: public ContainerClass
 
 };
 
+class SourcePanel: public ContainerClass 
+{
+
+};
 
 class VoltageSourcePanel: public ContainerClass 
 {

@@ -34,8 +34,10 @@ void CurrentMeasurmentPanel::OnRangeClick()
 
 void CurrentMeasurmentPanel::Render()
 {
+     const char* title = (System.GetSelectedWire() == Wire2) ? "MEASURING CURRENT 2-Wire" : "MEASURING CURRENT 4-Wire";
+     TitleLabel->SetText(title );
 
-    TitleLabel->SetText("MEASURING CURRENT 2-Wire");
+    
     ValueLabel->SetText(System.FormatCurrent(System.Buffer.GetCurrent()).c_str());
     ValueLabel->SetFontColor(THEME_CURRENT_LABEL_COLOR);
     TitleLabel->SetFontColor(THEME_CURRENT_LABEL_COLOR);
@@ -80,8 +82,9 @@ void VoltageMeasurmentPanel::OnRangeClick()
 
 void VoltageMeasurmentPanel::Render()
 {
+     const char* title = (System.GetSelectedWire() == Wire2) ? "MEASURING VOLTAGE 2-Wire" : "MEASURING VOLTAGE 4-Wire";
+    TitleLabel->SetText(title );
 
-    TitleLabel->SetText("MEASURING VOLTAGE");
     ValueLabel->SetText(System.FormatVoltage(System.Buffer.GetVoltage()).c_str());
     ValueLabel->SetFontColor(THEME_VOLTAGE_LABEL_COLOR);
     TitleLabel->SetFontColor(THEME_VOLTAGE_LABEL_COLOR);
@@ -131,9 +134,8 @@ void ResistorMeasurmentPanel::OnRangeClick()
 
 void ResistorMeasurmentPanel::Render()
 {
-
-    TitleLabel->SetText("MEASURING RESISTOR 2-Wire");
-    
+    const char* title = (System.GetSelectedWire() == Wire2) ? "MEASURING RESISTOR 2-Wire" : "MEASURING RESISTOR 4-Wire";
+    TitleLabel->SetText(title );
 
     ValueLabel->SetText(System.FormatResistor(System.Buffer.GetResistor()).c_str());
     
@@ -182,8 +184,9 @@ void PowerMeasurmentPanel::OnRangeClick()
 
 void PowerMeasurmentPanel::Render()
 {
+    const char* title = (System.GetSelectedWire() == Wire2) ? "MEASURING POWER 2-Wire" : "MEASURING POWER 4-Wire";
 
-    TitleLabel->SetText("MEASURING POWER 2-Wire");
+    TitleLabel->SetText(title );
     
 
     ValueLabel->SetText(System.FormatPower(System.Buffer.GetPower()).c_str());
@@ -220,6 +223,8 @@ MeasurmentPanel::MeasurmentPanel(int x, int y, int w, int h)
 
     pFunctionPad = new MeasuringFunctionPadClass(  240,30, (320) , (480-20-20) );
     
+    pWirePad = new WirePadClass(  240,30, (320) , (480-20-20) );
+    
     TitleLabel = new LabelClass(startX, 2, 29, C1, "..");
 
     ValueLabel = new LabelClass(startX, 70, 1, C1, "..");
@@ -229,18 +234,26 @@ MeasurmentPanel::MeasurmentPanel(int x, int y, int w, int h)
 
     RangeButton = new ButtonClass(startX + 100, 125, "..");
     FunctionButton = new ButtonClass(startX + 600, 125, "Function");
+    WireButton = new ButtonClass(startX + 440, 125, "2-Wire");
     
     FunctionButton->SetListener( this, (CallbackFn) &MeasurmentPanel::OnFunctionClick);
-
+    WireButton->SetListener( this, (CallbackFn) &MeasurmentPanel::OnWireClick);
 
 
     AddControl(TitleLabel);
     AddControl(ValueLabel);
 
     AddControl(FunctionButton);
+    AddControl(WireButton);
+    
     AddControl(RangeButton);
     AddControl(RangeLabel);
 }
+
+void MeasurmentPanel::OnWireClick() 
+{   
+    Display.ShowWindow(pWirePad);
+} 
 
 void MeasurmentPanel::OnFunctionClick() 
 {   
@@ -263,6 +276,8 @@ void MeasurmentPanel::SetRage(RangeClass *range )
 
 void MeasurmentPanel::Render()
 {
+    WireButton->SetText ((System.GetSelectedWire() == Wire2) ? "2-Wire" : "4-Wire");
+    
     ContainerClass::Render();
 }
 

@@ -24,12 +24,14 @@ class MeasurmentPanel: public ContainerClass
 
 		RangePadClass *pRangePad;
 		MeasuringFunctionPadClass *pFunctionPad;
+		WirePadClass *pWirePad;
 
 		LabelClass *ValueLabel; 
 		LabelClass *TitleLabel; 
 		LabelClass *RangeLabel;
 		ButtonClass *RangeButton;
 		ButtonClass *FunctionButton;
+		ButtonClass *WireButton;
 
 	
 	protected: 
@@ -37,7 +39,7 @@ class MeasurmentPanel: public ContainerClass
 
 	void SetRage(RangeClass *range );	
 	void OnFunctionClick(void);
-	
+	void OnWireClick(void);
 };
 
 
