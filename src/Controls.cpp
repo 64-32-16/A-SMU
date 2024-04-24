@@ -118,13 +118,17 @@ void SwipeControllerClass::TouchSwipe( int x, int y, int dx , int dy)
     if( Direction == SWIPE_RIGHT) 
     {   
         c->X = (dx *-1 );
+        c->Visible = false;
         p->X = -800 + (dx * -1);
+        p->Visible = true;
     }
 
     if( Direction == SWIPE_LEFT ) 
     {
         c->X = (dx *-1);
+        c->Visible = false;
         n->X = 800 - (dx );
+        n->Visible = true;
     }
     
 
@@ -183,14 +187,6 @@ ControlClass* ControlClass::FindFocusControl( int x, int y)
     return result;
 } 
 
-void ControlClass::DispatchTouchEvent(  uint8_t eventtype, int x, int y, int dx, int dy) 
-{
-    
-    if( eventtype == TOUCH_START) TouchStart(x,y);
-    if( eventtype == TOUCH_END) TouchEnd(x,y);
-    if( eventtype == TOUCH_SWIPE) TouchSwipe(x,y, dx,dy);
-    
-}
 
 
 //------------------------------------------------------------
@@ -258,7 +254,15 @@ void ButtonClass::TouchStart(int x, int y)
 {   
     if( IsDisabled == true) return;
 
-    // TODO Dieser Event kann entfallen 
+
+
+} 
+
+void ButtonClass::TouchEnd(int x, int y) 
+{   
+    if( IsDisabled == true) return;  
+
+        // TODO Dieser Event kann entfallen 
     if( pCallback != nullptr && pCallbackObject != nullptr) 
     {
         (pCallbackObject->*pCallback)();
@@ -269,13 +273,7 @@ void ButtonClass::TouchStart(int x, int y)
         (pCallbackObject->*pBtnClickFn)(this);
     }
 
-    Beeper.KeyPress();
-
-} 
-
-void ButtonClass::TouchEnd(int x, int y) 
-{   
-    if( IsDisabled == true) return;   
+    Beeper.KeyPress(); 
 } 
 
 //------------------------------------------------------------
@@ -324,6 +322,8 @@ void ContainerClass::AddControl( ControlClass *p)
 
 
 
+
+
 void ContainerClass::Render( ) 
 {
     
@@ -334,9 +334,6 @@ void ContainerClass::Render( )
     {
         ControlClass *p = pControls[i];
         if( p != nullptr) {
-           
-             
-
             p->Render(); 
         }
     }
@@ -344,27 +341,6 @@ void ContainerClass::Render( )
 
 }
 
-
-void ContainerClass::DispatchTouchEvent( uint8_t eventtype, int x, int y, int dx, int dy) 
-{
-   if( Visible == false) return;
-
-    
-    for( int i=0; i<ControlCounter; i++ ) 
-    {
-        ControlClass *p = pControls[i];
-        if( p != nullptr) {  
-            bool in = p->IsIn(x,y);
-            
-            if( in )  p->DispatchTouchEvent(eventtype, x ,y, dx ,dy );
-        }
-    }
-    
-    if( eventtype == TOUCH_START) TouchStart(x,y);
-    if( eventtype == TOUCH_END) TouchEnd(x,y);
-    if( eventtype == TOUCH_SWIPE) TouchSwipe(x,y, dx, dy);
-    
-}
 
 
 /*
@@ -374,6 +350,8 @@ ControlClass* ContainerClass::FindFocusControl( int x, int y )
 {
     ControlClass* found = nullptr;
     
+    if( Visible == false) return found;
+
     for( int i=0; i< ControlCounter; i++ ) 
     {
         ControlClass *p = pControls[i];
@@ -384,7 +362,7 @@ ControlClass* ContainerClass::FindFocusControl( int x, int y )
         }
 
     }
-    Serial.println("FindFocusControl " + (found != nullptr ) );
+  
 
     return found;
 }
@@ -394,14 +372,16 @@ ControlClass* ContainerClass::FindFocusControl( int x, int y )
 void  ContainerClass::TRACE( ContainerClass *p, uint level) 
 {
     
-    Serial.print("Control Count "); Serial.println(ControlCounter);
-    Serial.print("Control Level "); Serial.println(level);
+    Serial.print("Container Name "); Serial.println(p->Classname());
+    Serial.print("Container Count "); Serial.println(p->ControlCounter);
+    Serial.print("Container Level "); Serial.println(level);
     
-    for(int i=0; i<= ControlCounter-1;i++)     
+    for(int i=0; i<= p->ControlCounter-1;i++)     
     {
-        if( pControls[i]->GetType() == ContainerType ) 
+        ControlClass *c = p->pControls[i];
+        if( c->GetType() == ContainerType ) 
         {
-            TRACE((ContainerClass*) pControls[i], ++level );
+            TRACE((ContainerClass*) c, ++level );
         }
     }
 

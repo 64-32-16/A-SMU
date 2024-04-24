@@ -9,6 +9,7 @@ DisplayClass::DisplayClass()
     Y = 0;
     W = 800;
     H = 480;
+    Input.TouchState = TOUCH_END;
 
     pPrimary = new PrimaryPanel(0, 0, 800, 240);
 
@@ -16,6 +17,8 @@ DisplayClass::DisplayClass()
 
     AddControl(pPrimary);
     AddControl(pSecondary);
+
+    RegisterSubscriber( pSecondary);
 
     Beeper.KeyPress();
 }
@@ -29,6 +32,8 @@ void DisplayClass::ShowWindow(WindowClass *p)
         HideFocus();
         pModalWindow->Show();
     }
+
+
 }
 
 void DisplayClass::Render()
@@ -67,45 +72,77 @@ void DisplayClass::RenderFocus()
     }
 }
 
+/**
+ * @brief TouchStat-Event erzeugt für einen Button MouseDown und für 
+ * einen Subscriber einen TouchStart-Event.
+ * 
+ * @param x 
+ * @param y 
+ */
 void DisplayClass::OnTouchStart(int x, int y)
 {
-    Serial.println("DisplayClass::OnTouchStart");
+    ControlClass *c = nullptr;
 
-    if (pModalWindow != nullptr)
-    {
-        pFocus = pModalWindow->FindFocusControl(x, y);
-        pModalWindow->DispatchTouchEvent(TOUCH_START, x, y, 0, 0);
-    }
-    else
-    {
+   
 
-        pFocus = FindFocusControl(x, y);
-        DispatchTouchEvent(TOUCH_START, x, y, 0, 0);
+    c = (pModalWindow != nullptr) ?  pModalWindow->FindFocusControl(x, y) : FindFocusControl(x,y);    
+
+    // MouseDown-Event
+    if (c != nullptr && Input.pTouchObj == nullptr)
+    {        
+       
+        SetFocus(c);
+        Input.pTouchObj = c;  
+
+        c->TouchStart(  x, y );     
+        Input.TouchState = TOUCH_START; 
     }
+
+    // TouchStart für einen Subscriber
+    if( c==nullptr && pModalWindow == nullptr && Input.pTouchObj == nullptr) 
+    {
+        if( pSubscriber != nullptr) {
+          
+            pSubscriber->TouchStart(x,y);
+            Input.TouchState = TOUCH_SWIPE;
+        }
+    }
+
+
+    return;
+
+
 }
 void DisplayClass::OnTouchEnd(int x, int y)
 {
-    if (pModalWindow != nullptr)
-    {
+  
+    
+    if( Input.TouchState == TOUCH_END) return;
 
-        pModalWindow->DispatchTouchEvent(TOUCH_END, x, y, 0, 0);
-    }
-    else
+    // MouseUp-Event
+    if( Input.pTouchObj != nullptr ) 
     {
-        DispatchTouchEvent(TOUCH_END, x, y, 0, 0);
+        
+        Input.pTouchObj->TouchEnd(x,y);
+        Input.pTouchObj = nullptr;
+    } else 
+    {
+         // TouchEnd für einen Subscriber
+        if( pSubscriber != nullptr){
+           
+             pSubscriber->TouchEnd(x,y);
+        }
     }
+    Input.TouchState = TOUCH_END;
+   
 }
 void DisplayClass::OnTouchSwipe(int x, int y, int dx, int dy)
 {
-    pFocus = nullptr;
 
-    if (pModalWindow != nullptr)
-    {
-        pModalWindow->DispatchTouchEvent(TOUCH_SWIPE, x, y, dx, dy);
-    }
-    else
-    {
-        DispatchTouchEvent(TOUCH_SWIPE, x, y, dx, dy);
+    if( Input.pTouchObj == nullptr) {
+        pFocus = nullptr;
+       
+        if( pSubscriber != nullptr) pSubscriber->TouchSwipe(x,y, dx, dy);
     }
 }
 
@@ -115,32 +152,37 @@ void DisplayClass::ReadInput()
 
     if (GD.inputs.tag)
     {
+        // Touch Kalibrierung
+        GD.inputs.tag_x = GD.inputs.tag_x - 40;
 
-        if (Input.TouchState == TOUCH_NONE)
+        
+        if( Input.TouchState == TOUCH_END ) 
         {
-            Input.StartX = GD.inputs.tag_x; // Start Position merken
+            Input.StartX = GD.inputs.tag_x; //Start Position merken
             Input.StartY = GD.inputs.tag_y;
-            OnTouchStart(GD.inputs.tag_x, GD.inputs.tag_y);
-            Input.TouchState = TOUCH_SWIPE;
+            OnTouchStart(GD.inputs.tag_x, GD.inputs.tag_y );
+           
+            
         }
 
-        if (Input.TouchState == TOUCH_SWIPE)
+
+        if(Input.TouchState == TOUCH_SWIPE )        
         {
-            int dx = (Input.StartX - GD.inputs.tag_x);
-            int dy = (Input.StartY - GD.inputs.tag_y);
-            if ((abs(dx) >= 20) || (abs(dy) >= 20))
+            int dx = (Input.StartX -  GD.inputs.tag_x);
+            int dy = (Input.StartY - GD.inputs.tag_y); 
+            if( ( abs(dx)>= 20) || ( abs(dy)>= 20)  ) 
             {
-                OnTouchSwipe(GD.inputs.tag_x, GD.inputs.tag_y, dx, dy);
-            }
+                OnTouchSwipe(GD.inputs.tag_x, GD.inputs.tag_y , dx ,dy );
+            } 
+
         }
-    }
-    else
+
+    } else 
     {
-        if (Input.TouchState == TOUCH_SWIPE)
-        {
-            OnTouchEnd(Input.StartX, Input.StartY);
-        }
-        Input.TouchState = TOUCH_NONE;
+
+        OnTouchEnd(Input.StartX , Input.StartY  );           
+
+       
     }
 }
 
@@ -254,11 +296,18 @@ SecondaryPanel::SecondaryPanel(int x, int y, int w, int h)
     Statistics = new StatisticsPanel(0, 50, 800, 240 - 42);
 
 
+    // Source
+    VoltageSource = new VoltageSourcePanel( 0, 50 , 800, 240 - 42);
+    
+
+
     // SwipeController->Add(Graph);
+    SwipeController->Add(VoltageSource);
     SwipeController->Add(Statistics);
 
     AddControl(TitleLabel);
 
+    AddControl(VoltageSource);
     // AddControl( Graph);
     AddControl(Statistics);
 
@@ -431,7 +480,7 @@ void StatisticsPanel::Render()
     if (Visible == false)
         return;
 
-    // Serial.println("StatisticsPanel::Render()");
+   
 
     CValue->SetText(System.FormatCurrent(System.Buffer.GetCurrent()).c_str());
     CPeakToPeak->SetText(System.FormatCurrent(System.Buffer.GetCurrentPeakToPeak()).c_str());
@@ -466,7 +515,7 @@ VoltageSourcePanel::VoltageSourcePanel(int x, int y, int w, int h)
 
     pLimitNumberPad = new NumberPad(System.GetVoltageSource()->GetLimit(), 100, 10, 600, 460);
 
-    pVoltageRangePad = new VoltageRangePad(100, 100, 600, 300);
+    pRangePad = new RangePadClass(  10,180, (800-20) , (480-180-10) , System.GetVoltageMeasurement());
 
     int startX = THEME_XSTART;
     ModeLabel = new LabelClass(startX, 2, 29, THEME_SECONDARY_COLOR, "SOURCE VOLTAGE");
@@ -484,7 +533,7 @@ VoltageSourcePanel::VoltageSourcePanel(int x, int y, int w, int h)
     SourceButton->SetListener(this, (CallbackFn)&VoltageSourcePanel::OnSetSourceClick);
 
     LimitLabel = new LabelClass(startX + 510, 145, 29, THEME_SECONDARY_COLOR, "Limit");
-    LimitButton = new ButtonClass(startX + 590, 125, "+250mA");
+    LimitButton = new ButtonClass(startX + 590, 125, "+1.2345mA");
     LimitButton->SetListener(this, (CallbackFn)&VoltageSourcePanel::OnSetLimitClick);
 
     AddControl(ModeLabel);
@@ -518,10 +567,10 @@ void VoltageSourcePanel::OnSetSourceClick()
 
 void VoltageSourcePanel::OnRangeClick()
 {
-    if (pVoltageRangePad == nullptr)
+    if (pRangePad == nullptr)
         return;
 
-    Display.ShowWindow(pVoltageRangePad);
+    Display.ShowWindow(pRangePad);
 }
 
 void VoltageSourcePanel::Render()
@@ -671,7 +720,7 @@ void GraphClass::Render()
     if (Visible == false)
         return;
 
-    Serial.println(" GraphClass::Render()");
+    //Serial.println(" GraphClass::Render()");
 
     int h = 180;
     int y = GetY();
@@ -747,8 +796,8 @@ void NumberPad::OnKeyUnitMikros(void)
 
 NumberPad::NumberPad(INumberPad *device, int x, int y, int w, int h)
 {
-    if (device == nullptr)
-        Serial.println("DEVICE IS NULL");
+    //if (device == nullptr)
+    //    Serial.println("DEVICE IS NULL");
 
     X = x;
     Y = y;
@@ -786,7 +835,11 @@ NumberPad::NumberPad(INumberPad *device, int x, int y, int w, int h)
     col = col + btnW + d;
     Btn6 = new ButtonClass(col, row, btnW, btnH, 30, "6");
     col = col + btnW + d;
+
+    BtnUnitMilli = new ButtonClass(col, row, btnW, btnH, 30, "unit");
+
     BtnUnitMilli = new ButtonClass(col, row, btnW, btnH, 30, (pDevice->GetSourceType() == VoltageSourceType) ? "mV" : "mA");
+    
     col = col + btnW + d;
     BtnClear = new ButtonClass(col, row, 140, btnH, 30, "Clear");
 
@@ -799,7 +852,9 @@ NumberPad::NumberPad(INumberPad *device, int x, int y, int w, int h)
     col = col + btnW + d;
     Btn9 = new ButtonClass(col, row, btnW, btnH, 30, "9");
     col = col + btnW + d;
+    
     BtnUnitMicro = new ButtonClass(col, row, btnW, btnH, 30, (pDevice->GetSourceType() == VoltageSourceType) ? "uV" : "uA");
+    
     col = col + btnW + d;
     BtnBackspace = new ButtonClass(col, row, 140, btnH, 30, "Back");
 
@@ -823,12 +878,16 @@ NumberPad::NumberPad(INumberPad *device, int x, int y, int w, int h)
 
 void NumberPad::Show()
 {
-
-    float v = pDevice->GetValue();
+    //Serial.println("NumberPad::Show()");
+   
 
     if (pDevice != nullptr)
     {
+         float v = pDevice->GetValue();
         SetValue(v);
+    } else 
+    {
+       Serial.println("[Error] NumberPad kat keinen Device");
     }
 }
 
@@ -953,6 +1012,7 @@ void NumberPad::BufferToDisplay()
 {
     ValidateInput();
 
+    
     DisplayBuffer = "";
     DisplayBuffer.concat(InputBuffer.c_str());
     if (UnitBase == Base)
@@ -963,6 +1023,8 @@ void NumberPad::BufferToDisplay()
         DisplayBuffer.concat((pDevice->GetSourceType() == VoltageSourceType) ? " uV" : " uA");
 
     InputField->SetText(DisplayBuffer.c_str());
+
+    
 }
 
 void NumberPad::AddDecimalPointToBuffer(char c)

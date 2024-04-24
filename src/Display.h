@@ -20,7 +20,9 @@ class InputClass
 
 		int TrackX;
 		int TrackY;
-	
+
+		ControlClass *pTouchObj = nullptr;
+
 		uint8_t TouchState = 0; // 0=Kein Input // 1=Pressed // 2=Released
 
 };
@@ -275,7 +277,7 @@ class VoltageSourcePanel: public ContainerClass
 
 		NumberPad *pSourceNumberPad;
 		NumberPad *pLimitNumberPad;
-		VoltageRangePad *pVoltageRangePad;
+		RangePadClass *pRangePad;
 
 
 		void OnSetSourceClick(void);
@@ -297,9 +299,7 @@ class SecondaryPanel: public ContainerClass
 		GraphClass *Graph;
 		StatisticsPanel *Statistics; 
 
-		CurrentMeasurmentPanel *CurrentMeasure;
-		VoltageMeasurmentPanel *VoltageMeasure;
-		ResistorMeasurmentPanel *ResistorMeasure;
+		VoltageSourcePanel *VoltageSource;
 
 		const char* Classname() override {return "SecondaryPanel";}
 		void Render()  override;
@@ -341,6 +341,9 @@ class DisplayClass: public ContainerClass
 		void ShowWindow(WindowClass *p );
 		void HideWindow() { HideFocus(); pModalWindow = nullptr; }
 
+		// Ein Simple Subscriber zur Event-Weiterleitung
+		void RegisterSubscriber( ContainerClass *p) { pSubscriber = p; }
+
 		void SetFocus(ControlClass *pControl) { pFocus = pControl; }
 		void HideFocus() { pFocus = nullptr;}
 
@@ -353,6 +356,8 @@ class DisplayClass: public ContainerClass
 	protected:
 		ControlClass *pFocus = nullptr; 
 		WindowClass *pModalWindow = nullptr;
+
+		ContainerClass *pSubscriber = nullptr; 
 
 		void RenderFocus();
 		

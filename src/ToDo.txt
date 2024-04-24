@@ -1,9 +1,8 @@
-
-//------ BASIC--------------------------
-
+[]
+[] Touch-Events überarbeiten
 [] MAX_CONTORLS prüfen, Statistic ist der gößste Container
-[] Click-Event unterbrechen.
-[] Parent sollte ContainerClass sein
+
+
 
 // -------------- DISPLAY -----------------
 
@@ -32,6 +31,10 @@
 [] Current
 
 // -------------- GRAPH -----------------
+
+//------ BASIC--------------------------
+
+[] Parent sollte ContainerClass sein^
 
 
 // -------------- SYSTEM -----------------

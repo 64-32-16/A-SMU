@@ -8,7 +8,7 @@
 #include "System.h"
 
 
-#define MAX_CONTROLS 128
+#define MAX_CONTROLS 64
 
 #define TOUCH_NONE 0
 #define TOUCH_START 1
@@ -133,7 +133,7 @@ class ControlClass
 	 virtual void TouchEnd(int x, int y) {};
 	 virtual void TouchSwipe(int x, int y, int dx, int dy) {};
 	 
-	 virtual void DispatchTouchEvent( uint8_t eventtype, int x, int y,  int dx, int dy); 
+	 
 	 bool IsIn( int x, int y);
 
 	 int GetX(); 
@@ -158,7 +158,7 @@ class ContainerClass: public ControlClass
 		uint GetType() override {return ContainerType;} 
 
 		ControlClass *pControls[MAX_CONTROLS];
-		void DispatchTouchEvent( uint8_t eventtype, int x, int y, int dx, int dy) override; 
+		
 
 		bool IsActive() {return (GetX() < 0  || (GetX()+W) > 800  ) ;}
 

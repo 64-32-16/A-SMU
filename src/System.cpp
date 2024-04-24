@@ -201,12 +201,15 @@ void SystemClass::SetSelectedSource(SourceLineType value)
 	{
 	case CurrentSourceType:
 		SelectedSource = CurrentSource;
+		Serial.println("System.Select Source Current");
 		break;
 	case VoltageSourceType:
 		SelectedSource = VoltageSource;
+		Serial.println("System.Select Source Voltage");
 		break;
 	default:
 		SelectedSource = CurrentSource;
+		Serial.println("System.Select Source Current");
 		break;
 	}
 
@@ -289,6 +292,8 @@ void SystemClass::Random()
 
 void SystemClass::Begin()
 {
+
+
 	if (IsSimulation)
 		return;
 

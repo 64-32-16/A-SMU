@@ -89,6 +89,7 @@ uint32_t current_millis = 0;
 
 BeeperClass Beeper;
 
+
 SystemClass System;
 DisplayClass Display;
 
@@ -97,6 +98,8 @@ void setup()
 {
 
   Serial.begin(9600);
+
+
 
   Serial.println("A-SMU setup");
   btStop();
@@ -114,6 +117,8 @@ void setup()
   System.Begin();
 
   Beeper.KeyPress();
+
+ 
 
 }
 

@@ -192,6 +192,8 @@ class SystemClass
         SystemClass();    
 
 
+
+
         const char* GetInfo() {return Info;}
         bool IsSystemOn() { return SystemOn; }
         bool SetSystemOn();
@@ -215,6 +217,8 @@ class SystemClass
 
         void Begin();
         void Execute(); 
+
+        
 
         boolean IsSimulation = false;
 
