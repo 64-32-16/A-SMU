@@ -9,7 +9,8 @@
 #include "System.h"
 #include "Display/MeasurmentPanel.h"
 #include "Display/SourcePanel.h"
-
+#include "Display/StatisticsPanel.h"
+#include "Display/GraphPanel.h"
 
 
 class InputClass 
@@ -82,82 +83,6 @@ class PrimaryPanel: public ContainerClass
 	
 };
 
-class PowerPanel: public ContainerClass 
-{
-	public:
-		PowerPanel( int x, int y,  int w, int h);
-		const char* Classname() override {return "PowerPanel";}
-
-
-		LabelClass *MonValue; 
-
-		void Render() override;
-
-	protected: 
-		LabelClass *ModeLabel;
-		ButtonClass *RangeButton;
-		
-
-};
-
-
-class StatisticsPanel: public ContainerClass 
-{
-	public:
-		StatisticsPanel( int x, int y,  int w, int h);
-		const char* Classname() override {return "StatisticsPanel";}
-
-
-		LabelClass *PeakToPeak;
-		LabelClass *Value;
-		LabelClass *Average;
-		LabelClass *Min;
-		LabelClass *Max;
-		
-		LabelClass *CPeakToPeak;
-		LabelClass *CValue;
-		LabelClass *CAverage;
-		LabelClass *CMin;
-		LabelClass *CMax;		
-
-		LabelClass *VPeakToPeak;
-		LabelClass *VValue;
-		LabelClass *VAverage;
-		LabelClass *VMin;
-		LabelClass *VMax;	
-		 
-		LabelClass *BufferInfoLabel;	
-		LabelClass *BufferInfo;	
-
-
-		ButtonClass *ClearBufferBtn;
-
-		void Render() override;
-
-		void OnClearBtn();
-
-	protected: 
-
-	
-};
-
-
-class GraphClass: public ContainerClass 
-{
-	public:
-		GraphClass( int x, int y,  int w, int h);
-		const char* Classname() override {return "GraphClass";}
-		void Render()  override;
-
-	
-
-		int RowHeight() { return 30;}
-	protected: 
-
-		void DrawMinMax(); 
-		void DrawValues();
-
-};
 
 
 
@@ -170,7 +95,7 @@ class SecondaryPanel: public ContainerClass
 		SecondaryPanel( int x, int y,  int w, int h);
 
 
-		GraphClass *Graph;
+		GraphPanelClass *Graph;
 		StatisticsPanel *Statistics; 
 
 		VoltageSourcePanel *VoltageSource;
