@@ -337,6 +337,14 @@ void SecondaryPanel::Render()
 
     int ROW_HEIGHT = 32;
 
+    //---- HEADER  Background-----------------
+    GD.Begin(RECTS);
+    GD.LineWidth(16 * 2);
+    GD.ColorRGB(0x313131);
+    GD.Vertex2f(GetX(), (GetY() ));
+    GD.Vertex2f(800, (GetY() + ROW_HEIGHT));
+
+
     // First Row
     GD.LineWidth(16 * 1);
     GD.Begin(LINE_STRIP);

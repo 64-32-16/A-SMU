@@ -23,14 +23,16 @@
 
 // -------------- UNIT HELPER ------------
  
-[] Neue Klasse für die Einheiten erstellen
+[] Neue Klasse für die Einheiten erstellen und überarbeiten
 
-// -------------- SOURCE -----------------
+// -------------- SOURCE PANEL -----------------
 
-[] Voltage
+[] Voltage 
 [] Current
 
 // -------------- GRAPH -----------------
+
+[] Anzeigen der unterschiedlichen Messungen
 
 //------ BASIC--------------------------
 
@@ -38,6 +40,7 @@
 
 
 // -------------- SYSTEM -----------------
+
 [x] 2- und 4-Wire Umschaltung einbauen
 [] Rangeumschaltung Pin-Bits einbauen
 [] On/Off Schalter einbauen
