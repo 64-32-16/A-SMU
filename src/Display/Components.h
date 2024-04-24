@@ -18,6 +18,16 @@ public:
 };
 
 
+enum UnitBaseEnum 
+{
+	Base,
+	Millis,
+	Mikros
+
+};
+
+
+
 class WirePadClass: public WindowClass 
 {
 	public:
@@ -154,5 +164,92 @@ protected:
 	void OnKey4V(void);
 	void OnKey30V(void);
 };
+
+
+//-----------------------------------------------------------------------
+
+
+
+class NumberPad: public WindowClass
+{
+	public:
+		LabelClass *InputField;
+		ButtonClass *Btn0;
+		ButtonClass *Btn1;
+		ButtonClass *Btn2;
+		ButtonClass *Btn3;
+		ButtonClass *Btn4;
+		ButtonClass *Btn5;
+		ButtonClass *Btn6;
+		ButtonClass *Btn7;
+		ButtonClass *Btn8;
+		ButtonClass *Btn9;
+		ButtonClass *BtnDecimal;
+		ButtonClass *BtnUnit;
+		ButtonClass *BtnNone;
+		
+		ButtonClass *BtnUnitMilli;
+		ButtonClass *BtnUnitMicro;
+		ButtonClass *BtnPlusMinus;
+		ButtonClass *BtnAbort;
+		ButtonClass *BtnEnter;
+		ButtonClass *BtnClear;
+		ButtonClass *BtnBackspace;
+
+		UnitBaseEnum UnitBase = Base;
+
+		NumberPad( INumberPad *device, int x, int y, int w, int h);
+
+		const char* Classname() override {return "NumberPad";}
+
+		void Render()  override;
+
+		void Show() override;
+
+	protected:
+
+		void OnKey01();
+        void OnKey02();
+        void OnKey03();
+        void OnKey04();
+        void OnKey05();
+        void OnKey06();
+        void OnKey07();
+        void OnKey08();
+        void OnKey09();
+        void OnKey00();
+        void OnKeyEnter();
+        void OnKeyESC();
+        void OnKeyComma();
+        void OnKeyBackspace();
+		void OnKeyAbort();
+		void OnKeyClear();
+		void OnKeyPlusMinus();
+		void OnKeyUnit();
+		void OnKeyUnitMillis();
+		void OnKeyUnitMikros();
+
+
+		String InputBuffer;
+		String DisplayBuffer;
+        void AddToBuffer(char c);
+        void BufferToDisplay();
+        void AddDecimalPointToBuffer(char c);
+        void BackspaceToBuffer(void);
+		float GetAsFloat(void);
+		void TogglePlusMinus();
+
+		void AddListner(void);
+		void AddControls();
+		void Clear();
+		void SetValue( float v); 
+
+		INumberPad *pDevice;	// 
+
+		void ValidateInput();   // Aktuelle Eingabe mit dem Device vergleichen.
+
+
+};
+
 
 #endif
