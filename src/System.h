@@ -81,18 +81,19 @@ class BufferClass
         float GetVoltageAverage(); 
 
         // Power 
-        float GetPowerMin() { return (CurrentMin*VoltageMin); }
-        float GetPowerMax() { return (CurrentMax*VoltageMax); }
-        float GetPower() { return (Current*Voltage); }
+        float GetPowerMin() { return CalcPower(CurrentMin,VoltageMin); }
+        float GetPowerMax() { return CalcPower(CurrentMax,VoltageMax); }
+        float GetPower() { return CalcPower(Current, Voltage); }
         float GetPowerPeakToPeak() {return (GetPowerMax() - GetPowerMin()); }
         
 
         // Resistor 
-        float GetResistorMin() { return ( 0.0); }
-        float GetResistorMax() { return (0.0); }
-        float GetResistor() { 
-            return (Voltage == 0.0) ? __FLT_MAX__ : (Voltage/Current); 
-        }
+        float GetResistorMax() { return  CalcResitor(GetVoltageMin() , GetCurrentMin() ); }
+        float GetResistorMin() { return CalcResitor(GetVoltageMax() , GetCurrentMax() ); }
+        float GetResistor() {  return CalcResitor(Voltage , Current); }
+
+
+
         float GetResistorPeakToPeak() {return (0.0); }
 
 		int SampleRate() { return 10;} // in ms
@@ -114,6 +115,16 @@ class BufferClass
 
 
 		long Time = 0;
+
+
+        float CalcResitor( float v, float c ) { 
+            return (v == 0.0) ? __FLT_MAX__ : (v/c); 
+        }
+
+        float CalcPower ( float v , float c) 
+        {
+            return ( v * c);
+        }
 
 };
 

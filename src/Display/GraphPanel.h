@@ -21,8 +21,14 @@ class GraphPanelClass: public ContainerClass
 		int RowHeight() { return 30;}
 	protected: 
 
-		void DrawMinMax(); 
+		void DrawYAxis(); 
 		void DrawValues();
+        float GetMaxValue();
+        float GetMinValue();
+        uint GetColor();
+        const char* GetUnit();
+
+		float GetBufferValue( BufferDataClass b) ;
 
 };
 

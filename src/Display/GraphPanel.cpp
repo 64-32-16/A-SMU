@@ -17,10 +17,16 @@ GraphPanelClass::GraphPanelClass(int x, int y, int w, int h)
     Title = "GRAPH";
 }
 
-void GraphPanelClass::DrawMinMax()
+
+/**
+ * @brief Aus den Daten ein Min und Max bilden und als Y-Achsenbeschreibung 
+ * darstellen
+ * 
+ */
+void GraphPanelClass::DrawYAxis()
 {
-    float max = System.Buffer.GetCurrentMax();
-    float min = System.Buffer.GetCurrentMin();
+    float max = GetMaxValue();
+    float min = GetMinValue();
 
     float step = (max - min) / 6.0;
 
@@ -41,8 +47,8 @@ void GraphPanelClass::DrawValues()
     if (GetX() < 0 || (GetX() + W) > 800)
         return;
 
-    float max = System.Buffer.GetCurrentMax();
-    float min = System.Buffer.GetCurrentMin();
+    float max = GetMaxValue();
+    float min = GetMinValue();
 
     if ((max - min) == 0.0)
         return;
@@ -76,16 +82,158 @@ void GraphPanelClass::DrawValues()
 
     GD.Begin(LINE_STRIP);
     GD.LineWidth(10);
-    GD.ColorRGB(C1);
+    GD.ColorRGB(GetColor());
 
     for (int i = 0; i < c; i++)
     {
 
-        int ypos = y + (m0 * (b[i].Current - min));
+        int ypos = y + (m0 * (GetBufferValue(b[i]) - min));
         GD.Vertex2f((x), ypos);
         x = x + m1;
     }
 }
+
+
+float GraphPanelClass::GetBufferValue( BufferDataClass b) 
+{
+   float value = 0.0;
+    MeasurementClass *p = System.GetSelectedMeasurement();
+    if( p != nullptr) 
+    {
+        switch (p->Type)
+        {
+        case CurrentType:
+            value = b.Current;
+            break;
+        case VoltageType:
+            value = b.Voltage;
+            break;        
+        case ResistorType:
+            value = b.Resistor;
+            break;    
+        case PowerType:
+            value = b.Power;
+            break;                          
+        default:
+            value = 0.0;
+            break;
+        }
+       
+    }
+     return value;
+
+}  
+
+
+
+/**
+ * @brief Delivers the maximum value from the buffer
+ * 
+ * @return float 
+ */
+float  GraphPanelClass::GetMaxValue() 
+{
+    float value = 0.0;
+    MeasurementClass *p = System.GetSelectedMeasurement();
+    if( p != nullptr) 
+    {
+        switch (p->Type)
+        {
+        case CurrentType:
+            value = System.Buffer.GetCurrentMax();
+            break;
+        case VoltageType:
+            value = System.Buffer.GetVoltageMax();
+            break;        
+        case ResistorType:
+            value = System.Buffer.GetResistorMax();
+            break;    
+        case PowerType:
+            value = System.Buffer.GetPowerMax();
+            break;                          
+        default:
+            value = 0.0;
+            break;
+        }
+       
+    }
+     return value;
+}
+
+
+/**
+ * @brief Delivers the maximum value from the buffer
+ * 
+ * @return 
+ */
+
+uint  GraphPanelClass::GetColor() 
+{
+    uint value = THEME_CURRENT_LABEL_COLOR;
+    MeasurementClass *p = System.GetSelectedMeasurement();
+    if( p != nullptr) 
+    {
+        switch (p->Type)
+        {
+        case CurrentType:
+            value = THEME_CURRENT_LABEL_COLOR;
+            break;
+        case VoltageType:
+            value = THEME_VOLTAGE_LABEL_COLOR;
+            break;        
+        case ResistorType:
+            value = THEME_RESISTOR_LABEL_COLOR ;
+            break;    
+        case PowerType:
+            value = THEME_POWER_LABEL_COLOR;
+            break;                          
+        default:
+            value = THEME_CURRENT_LABEL_COLOR;
+            break;
+        }
+       
+    }
+     return value;
+}
+
+
+
+/**
+ * @brief Delivers the minimum value from the buffer
+ * 
+ * @return float 
+ */
+float  GraphPanelClass::GetMinValue() 
+{
+    float value = 0.0;
+    MeasurementClass *p = System.GetSelectedMeasurement();
+    if( p != nullptr) 
+    {
+        switch (p->Type)
+        {
+        case CurrentType:
+            value = System.Buffer.GetCurrentMin();
+            break;
+        case VoltageType:
+            value = System.Buffer.GetVoltageMin();
+            break;        
+        case ResistorType:
+            value = System.Buffer.GetResistorMin();
+            break;    
+        case PowerType:
+            value = System.Buffer.GetPowerMin();
+            break;                          
+        default:
+            value = 0.0;
+            break;
+        }
+       
+    }
+     return value;
+}
+
+
+
 
 void GraphPanelClass::Render()
 {
@@ -125,7 +273,7 @@ void GraphPanelClass::Render()
         x = x + 70;
     }
 
-    DrawMinMax();
+    DrawYAxis();
 
     DrawValues();
 }

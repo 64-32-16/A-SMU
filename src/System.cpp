@@ -222,19 +222,20 @@ void SystemClass::SetSelectedMeasuring(MeasurementType value)
 	{
 	case CurrentType:
 		SelectedMeasurement = CurrentMeasurement;
-		Serial.println("System.Select Current");
+		Serial.println("System.Select Measuring Current");
 		break;
 	case VoltageType:
 		SelectedMeasurement = VoltageMeasurement;
-		Serial.println("System.Select Voltage");
+		Serial.println("System.Select Measuring Voltage");
 		break;
 	case ResistorType:
 		SelectedMeasurement = ResistorMeasurement;
-		Serial.println("System.Select Resistor");
+		Serial.println("System.Select Measuring Resistor");
 		break;
 		
 		case PowerType:
 		SelectedMeasurement = PowerMeasurement;
+		Serial.println("System.Select Measuring Power");
 		break;
 		
 	default:
@@ -573,8 +574,8 @@ int BufferClass::GetData(BufferDataClass buffer[], uint16_t bufferSize)
 	{
 		buffer[c].Voltage = Data[idx].Voltage;
 		buffer[c].Current = Data[idx].Current;
-		buffer[c].Power = Data[idx].Power;
-		buffer[c].Resistor = Data[idx].Resistor;
+		buffer[c].Power =  CalcPower(Data[idx].Voltage,  Data[idx].Current);
+		buffer[c].Resistor = CalcResitor(Data[idx].Voltage,  Data[idx].Current);
 
 		buffer[c].Time = Data[idx].Time;
 		c = c + 1;
