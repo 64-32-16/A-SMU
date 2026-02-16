@@ -96,9 +96,9 @@ Dabei war ChatGPT immer eine Quelle der Inspiration und eine sinnvoll Unterstüt
 
 Diese Struktur verhindert Masseschleifen und ermöglicht echtes Floating.
 Auf meiner ToDo-Liste steht noch eine Floating-Überwachung gegen PE.
-Da ich Anfänger bin, sollte meine A-SMU auch gegen eine Fehlbedienung ausgelegt sein.
+Da ich kein Profi bin, sollte meine A-SMU auch gegen eine Fehlbedienung ausgelegt sein.
 
-<img src="LTSpice/images/schaltplan.png" width="90%">
+![schaltplan](LTSpice/images/schaltplan.png)
 ------------------------------------------------------------------------
 
 # Funktionsblöcke
@@ -144,9 +144,8 @@ Keine schwebenden Gates, kein undefiniertes Verhalten.
 
 Der Regler ist bewusst einfach und deterministisch ausgelegt.
 
-------------------------------------------------------------------------
 
-## 5. CC-Clamp-System (Strombegrenzung)
+### 5. CC-Clamp-System (Strombegrenzung)
 
 Getrennte positive und negative Clamp-Blöcke:
 
@@ -157,9 +156,15 @@ Diese wirken direkt auf den Summenknoten des CV-Reglers.
 
 Vorteile:
 
--   stabile CV→CC Übergänge
+-   stabile und saubere CV→CC Übergänge
 -   keine Loop-Crossover-Probleme
 -   symmetrisches Verhalten
+
+Ich habe mich bewusst für einen CV-Regler entschieden, da einen CC-Regler mit V-Clamp das Regel-Problem 
+bei einer externen Spannung von z.B. 2.0 V und einen V-LIMIT von 1.0 V dazu führt, dass der Klemmblock den Ausgang
+auf MAX Ausgangsstrom zieht. Ich habe lange an einer saubern Klemmlösung mit CV→CC Übergängen gearbeitet. 
+
+  ![Endstufe](LTSpice/images/regler.png)
 
 ------------------------------------------------------------------------
 
