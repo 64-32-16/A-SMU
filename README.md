@@ -98,9 +98,6 @@ Diese Struktur verhindert Masseschleifen und ermöglicht echtes Floating.
 Auf meiner ToDo-Liste steht noch eine Floating-Überwachung gegen PE.
 Da ich kein Profi bin, sollte meine A-SMU auch gegen eine Fehlbedienung ausgelegt sein.
 
-![schaltplan](LTSpice/images/blockdiagramm.png)
-
-- <a href="LTSpice/images/schaltplan.png" target="_blank">Schaltplan</a>
 ------------------------------------------------------------------------
 
 # Funktionsblöcke
@@ -199,6 +196,8 @@ Gebufferte Ausgabe für:
 -   OVP-Vergleich
 -   externe Messung
 
+  ![Endstufe](LTSpice/images/umon_imon.png)
+  
 ------------------------------------------------------------------------
 
 ## 8. OVP -- Überspannungsschutz
@@ -210,29 +209,7 @@ Gebufferte Ausgabe für:
 
 Verhindert automatisches Wiederanlaufen nach Fehler.
 
-------------------------------------------------------------------------
-
-# Kritischer Designfall: 1,45 A
-
-Ein zentraler Designpunkt ist der Fall:
-
-1,45 A bei hoher Ausgangsspannung.
-
-Bei 30 V entspricht dies ca. 43,5 W Verlustleistung im linearen Bereich.
-
-Typische Risiken:
-
--   SOA-Verletzung
--   thermisches Durchgehen
--   asymmetrisches Verhalten
-
-Die A-SMU adressiert diesen Fall durch:
-
--   explizite SOA-Betrachtung
--   definierte Shunt-Struktur
--   getrennte Clamp-Architektur
--   deterministisches ZHIGH-Abschalten
--   floating Reglerdomäne
+  ![Endstufe](LTSpice/images/ovp.png)
 
 ------------------------------------------------------------------------
 
@@ -258,14 +235,13 @@ Projekt befindet sich aktuell in der Simulationsphase.
 
 Geplante nächste Schritte:
 
--   Stabilitätsanalyse
--   SOA-Validierung
--   Thermische Simulation
--   PCB-Layout
--   Hardware-Prototyp
+-   PCB-Layout der analogen Regelung inkl. Endstufe
+-   Digital-Board ADC/DAC Lm199 und MCU
+-   Spannungsversorgung
+-   Software Touchdisplay mit EVE2 Diaplay 5 Zoll
+-   P- und R-Regler
 
 ------------------------------------------------------------------------
 
 # Lizenz
 
-Noch festzulegen.
