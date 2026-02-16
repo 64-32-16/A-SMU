@@ -89,7 +89,7 @@ Dabei war ChatGPT immer eine Quelle der Inspiration und eine sinnvoll Unterstüt
 
 ### Control / Regler-Domain
 
--   ±15 V
+-   ±15 V Steuerspannung (galvanisch getrennt)
 -   AGND floatet auf FORCE_LO
 -   enthält CV-Regler, Clamp-Logik, OVP
 -   keine Verbindung zu PE, USB oder System-GND
