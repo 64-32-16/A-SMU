@@ -6,10 +6,10 @@
 
 Dieses Projekt ist inspiriert durch:
 
--   J-SMU von Jaromir Sukuba\
--   DIY-SMU von Dave Erickson
-
-Beide Projekte zeigen eindrucksvoll, dass leistungsfähige SMUs diskret
+-  [J-SMU von Jaromir Sukuba](https://github.com/jaromir-sukuba/J-SMU) 
+-  [DIY-SMU von Dave Erickson](https://www.djerickson.com/diy_smu/) 
+     
+Beide Projekte sind inspiriert durch Keithley 236 und zeigen eindrucksvoll, dass leistungsfähige SMUs diskret
 realisierbar sind.
 
 Die A-SMU verfolgt jedoch einen eigenen Ansatz mit Fokus auf:
