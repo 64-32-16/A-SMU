@@ -100,7 +100,7 @@ Da ich kein Profi bin, sollte meine A-SMU auch gegen eine Fehlbedienung ausgeleg
 
 ![schaltplan](LTSpice/images/blockdiagramm.png)
 
-[Simulation](LTSpice/images/schaltplan.png) 
+- [Schaltplan](LTSpice/images/schaltplan.png) 
 ------------------------------------------------------------------------
 
 # Funktionsblöcke
