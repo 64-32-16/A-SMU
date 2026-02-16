@@ -42,7 +42,7 @@ Die A-SMU verfolgt jedoch zum Teil einen anderen, Analogansatz mit Fokus auf:
 - Deterministische Endstufenabschaltung über Z-HIGH
 - Galvanisch getrennte, vollständig floating Reglerdomäne
 - High-Voltage-Endstufe ±30 V (perspektivisch erweiterbar)
-- Noch kein GRUARD, das Konzept hab ich noch nicht verstanden.
+- Noch kein GUARD, da ich das Konzept noch nicht verstanden habe.
 
 
 
