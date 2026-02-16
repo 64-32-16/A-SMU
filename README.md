@@ -94,6 +94,8 @@ abschaltbare SMU.
 -   keine Verbindung zu PE, USB oder System-GND
 
 Diese Struktur verhindert Masseschleifen und ermöglicht echtes Floating.
+Auf meiner ToDo-Liste steht noch eine Floating-Überwachung gegen PE.
+
 
 ------------------------------------------------------------------------
 
@@ -105,13 +107,13 @@ Diskrete Push-Pull-Endstufe mit:
 
 -   IRFP250 (N-Kanal)
 -   IRFP9240 (P-Kanal)
--   Source-Shunts: 0,5 Ω und 0,1 Ω
+-   Source-Shunts: 0,1 Ω und 10R
 
 Eigenschaften:
 
 -   Linearbetrieb
 -   symmetrisches Verhalten
--   definierte SOA-Betrachtung
+-   Ruhestrom von ca. 50mA
 -   aktive Gate-Abschaltung über ZHIGH
 
 ------------------------------------------------------------------------
