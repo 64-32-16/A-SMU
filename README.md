@@ -50,8 +50,8 @@ Die A-SMU verfolgt jedoch zum Teil einen anderen, Analogansatz mit Fokus auf:
 
 - Ausgangsspannung: ±30 V (HV-Domain isoliert)
 - Strom:
-   -Range 1: ±0-1 A
-   -Range 1: ±0-100 mA
+    -Range 1: ±0-1 A
+    -Range 1: ±0-100 mA
 - Spannung:
     -Range 1:  ±0-5V (1:2)
     -Range 2:  ±0-30V (1:12)
