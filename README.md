@@ -98,7 +98,7 @@ Diese Struktur verhindert Masseschleifen und ermöglicht echtes Floating.
 Auf meiner ToDo-Liste steht noch eine Floating-Überwachung gegen PE.
 Da ich kein Profi bin, sollte meine A-SMU auch gegen eine Fehlbedienung ausgelegt sein.
 
-![schaltplan](LTSpice/images/schaltplan.png)
+![schaltplan](LTSpice/images/blockdiagramm.png)
 ------------------------------------------------------------------------
 
 # Funktionsblöcke
