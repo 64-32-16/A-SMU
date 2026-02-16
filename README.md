@@ -31,7 +31,7 @@ Dieses Projekt ist inspiriert durch die Projekte von:
 -  [DIY-SMU von Dave Erickson](https://www.djerickson.com/diy_smu/) 
   
 
-Beide Projekte orientieren sich an der Architektur klassischer Keithley-SMUs 236 und zeigen, dass leistungsfähige SMUs diskret realisierbar sind.
+Beide Projekte orientieren sich an einer klassischen Architektur der Keithley-SMUs 236 und zeigen, dass leistungsfähige SMUs diskret realisierbar sind.
 
 Die A-SMU verfolgt jedoch zum Teil einen anderen, Analogansatz mit Fokus auf:
 
@@ -44,7 +44,7 @@ Die A-SMU verfolgt jedoch zum Teil einen anderen, Analogansatz mit Fokus auf:
 - High-Voltage-Endstufe ±30 V (perspektivisch erweiterbar)
 - Noch kein GUARD, da ich das Konzept noch nicht verstanden habe.
 
-
+Dieses ist ein Hobby-Projekt, jedoch mit einer ambitionieren Zielsetzung. 
 
 ## Zielparameter
 
@@ -71,9 +71,6 @@ Das Projekt befindet sich aktuell im Simulationsstadium (LTspice) und
 dient als Grundlage für meine SMU.
 Das Projekt wurde in Zusammenarbeit mit ChatGPT 5.2 erstellt. 
 Dabei war ChatGPT immer eine Quelle der Inspiration und eine sinnvoll Unterstützung. 
-
-
-
 
 ------------------------------------------------------------------------
 
@@ -177,6 +174,7 @@ Es ist ein kontinuierlicher Übergang
 Skalierung:
 
 1 V = 1 A
+1 V = 10 mA
 
 Direkte analoge Repräsentation des Ausgangsstroms.\
 Wird für Clamp-Erzeugung und ADC genutzt.
@@ -187,8 +185,8 @@ Wird für Clamp-Erzeugung und ADC genutzt.
 
 Umschaltbare Skalierung:
 
--   1:2
--   1:12
+-   1:2 => +/- 0..5V
+-   1:12 => +/- 0..30V
 
 Gebufferte Ausgabe für:
 
@@ -209,7 +207,7 @@ Gebufferte Ausgabe für:
 
 Verhindert automatisches Wiederanlaufen nach Fehler.
 
-  ![Endstufe](LTSpice/images/ovp.png)
+  ![ovp](LTSpice/images/ovp.png)
 
 ------------------------------------------------------------------------
 
@@ -236,6 +234,7 @@ Projekt befindet sich aktuell in der Simulationsphase.
 Geplante nächste Schritte:
 
 -   PCB-Layout der analogen Regelung inkl. Endstufe
+    - Geplante Umsetzung mit easyeda pro   
 -   Digital-Board ADC/DAC Lm199 und MCU
 -   Spannungsversorgung
 -   Software Touchdisplay mit EVE2 Diaplay 5 Zoll
