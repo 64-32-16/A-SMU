@@ -118,6 +118,8 @@ Eigenschaften:
 -   Ruhestrom von ca. 50mA (Offset)
 -   aktive Gate-Abschaltung über ZHIGH
 
+  ![Endstufe](LTSpice/images/Endstufe.png)
+
 ------------------------------------------------------------------------
 
 ## 3. ZHIGH -- deterministisches Abschalten
