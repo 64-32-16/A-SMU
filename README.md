@@ -145,7 +145,7 @@ Keine schwebenden Gates, kein undefiniertes Verhalten.
 Der Regler ist bewusst einfach und deterministisch ausgelegt.
 
 
-### 5. CC-Clamp-System (Strombegrenzung)
+## 4.1. CC-Clamp-System (Strombegrenzung)
 
 Getrennte positive und negative Clamp-Blöcke:
 
@@ -162,7 +162,7 @@ Vorteile:
 
 Ich habe mich bewusst für einen CV-Regler entschieden, da einen CC-Regler mit V-Clamp das Regel-Problem 
 bei einer externen Spannung von z.B. 2.0 V und einen V-LIMIT von 1.0 V dazu führt, dass der Klemmblock den Ausgang
-auf MAX Ausgangsstrom zieht. Ich habe lange an einer saubern Klemmlösung mit CV→CC Übergängen gearbeitet. 
+auf MAX Ausgangsstrom zieht. Ich habe lange an einer saubern Klemmlösung mit sauberen CV→CC Übergängen gearbeitet. 
 
   ![Endstufe](LTSpice/images/regler.png)
 
