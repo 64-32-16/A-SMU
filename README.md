@@ -68,9 +68,8 @@ Die **A-SMU (Analog Source Measure Unit)** ist eine vollständig diskret
 aufgebaute, analog geregelte SMU-Architektur mit klar getrennter
 Hochvolt- und Reglerdomäne.\
 Das Projekt befindet sich aktuell im Simulationsstadium (LTspice) und
-dient als Grundlage für meine SMU.
-Das Projekt wurde in Zusammenarbeit mit ChatGPT 5.2 erstellt. 
-Dabei war ChatGPT immer eine Quelle der Inspiration und eine sinnvoll Unterstützung. 
+dient als Grundlage für meine A-SMU.
+Teile der Systemarchitektur und Dokumentation wurden unter Verwendung von ChatGPT 5.2 entwickelt.
 
 ------------------------------------------------------------------------
 
@@ -156,9 +155,8 @@ Vorteile:
 -   keine Loop-Crossover-Probleme
 -   symmetrisches Verhalten
 
-Ich habe mich bewusst für einen CV-Regler entschieden, da einen CC-Regler mit V-Clamp das Regel-Problem 
-bei einer externen Spannung von z.B. 2.0 V und einen V-LIMIT von 1.0 V hat und dazu führt, dass der Klemmblock den Ausgang
-auf MAX Ausgangsstrom zieht. 
+Ein klassischer CC-Regler mit zusätzlichem Spannungs-Clamp führt bei externer Spannung (z. B. 2 V) und niedriger V_LIMIT (z. B. 1 V) zu 
+instabilem Verhalten, da der Klemmblock den Ausgang auf maximalen Strom treiben kann.
 
 Ich habe lange an einer saubern Klemmlösung mit sauberen und stabilen CV→CC Übergängen gearbeitet. 
 Die Strombegrenzung erzeugt nur eine zusätzliche Fehlerspannung
@@ -173,8 +171,8 @@ Es ist ein kontinuierlicher Übergang
 
 Skalierung:
 
-1 V = 1 A
-1 V = 10 mA
+ ±1 V =>  ±1 A
+ ±1 V =>  ±10 mA
 
 Direkte analoge Repräsentation des Ausgangsstroms.\
 Wird für Clamp-Erzeugung und ADC genutzt.
@@ -185,8 +183,8 @@ Wird für Clamp-Erzeugung und ADC genutzt.
 
 Umschaltbare Skalierung:
 
--   1:2 => +/- 0..5V
--   1:12 => +/- 0..30V
+-   1:2 =>  ±0..5V
+-   1:12 => ±0..30V
 
 Gebufferte Ausgabe für:
 
@@ -240,6 +238,7 @@ Geplante nächste Schritte:
 -   Software Touchdisplay mit EVE2 Diaplay 5 Zoll
 -   P- und R-Regler
 
+  ![3d](LTSpice/images/3d_pcb.png)
 ------------------------------------------------------------------------
 
 # Lizenz
