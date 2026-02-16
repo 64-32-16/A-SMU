@@ -172,8 +172,8 @@ Es ist ein kontinuierlicher Übergang
 
 Skalierung:
 
- ±1 V =>  ±1 A
- ±1 V =>  ±10 mA
+- ±1 V =>  ±1 A
+- ±1 V =>  ±10 mA
 
 Direkte analoge Repräsentation des Ausgangsstroms.\
 Wird für Clamp-Erzeugung und ADC genutzt.
