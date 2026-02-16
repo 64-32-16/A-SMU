@@ -161,8 +161,13 @@ Vorteile:
 -   symmetrisches Verhalten
 
 Ich habe mich bewusst für einen CV-Regler entschieden, da einen CC-Regler mit V-Clamp das Regel-Problem 
-bei einer externen Spannung von z.B. 2.0 V und einen V-LIMIT von 1.0 V dazu führt, dass der Klemmblock den Ausgang
-auf MAX Ausgangsstrom zieht. Ich habe lange an einer saubern Klemmlösung mit sauberen CV→CC Übergängen gearbeitet. 
+bei einer externen Spannung von z.B. 2.0 V und einen V-LIMIT von 1.0 V hat und dazu führt, dass der Klemmblock den Ausgang
+auf MAX Ausgangsstrom zieht. 
+
+Ich habe lange an einer saubern Klemmlösung mit sauberen und stabilen CV→CC Übergängen gearbeitet. 
+Die Strombegrenzung erzeugt nur eine zusätzliche Fehlerspannung
+Das System wechselt nicht zwischen zwei Reglern.
+Es ist ein kontinuierlicher Übergang
 
   ![Endstufe](LTSpice/images/regler.png)
 
