@@ -2,6 +2,27 @@
 
 ## Floating High-Voltage Analog Source Measure Unit (Simulation)
 
+# Was ist eine SMU?
+
+Eine **Source Measure Unit (SMU)** ist ein Messgerät, das gleichzeitig:
+
+-   Spannung oder Strom liefern (Source)
+-   Spannung oder Strom aufnehmen (Sink)
+-   Spannung und Strom messen (Measure)
+-   nahtlos zwischen CV (Constant Voltage) und CC (Constant Current)
+    wechseln
+
+Eine SMU vereint damit:
+
+-   Netzgerät
+-   elektronische Last
+-   Präzisionsmultimeter
+
+in einem einzigen geschlossenen Regelkreis. Für eine detailiert Beschreibung schau bitte [hier](https://en.wikipedia.org/wiki/Source_measure_unit)  
+
+------------------------------------------------------------------------
+
+
 # Motivation
 
 Dieses Projekt ist inspiriert durch:
@@ -9,16 +30,16 @@ Dieses Projekt ist inspiriert durch:
 -  [J-SMU von Jaromir Sukuba](https://github.com/jaromir-sukuba/J-SMU) 
 -  [DIY-SMU von Dave Erickson](https://www.djerickson.com/diy_smu/) 
      
-Beide Projekte sind inspiriert durch Keithley 236 und zeigen eindrucksvoll, dass leistungsfähige SMUs diskret
+Beide Projekte basieren auf Ideen aus der Keithley 236 und zeigen eindrucksvoll, dass leistungsfähige SMUs diskret
 realisierbar sind.
 
 Die A-SMU verfolgt jedoch einen eigenen Ansatz mit Fokus auf:
 
--   konsequente galvanische Trennung
+-   Nur ein CV-PI-Regler, keine automatische Umschaltung CV/CC
+-   Klemmblöcke I-Limit liefern eine exakte Spannung (ISET-IMON) über einen Halbwellengleichrichter in den Summenknoten vom CV-PI-Regler. 
+-   explizite Hardware-Schutzmechanismen (Overvoltage Protection) OPV
+-   deterministische Abschaltlogik (Z-HIGH der Endstufe).
 -   floating Reglerdomäne
--   explizite Hardware-Schutzmechanismen
--   deterministische Abschaltlogik
--   robuste Behandlung kritischer SOA-Fälle
 
 
 ------------------------------------------------------------------------
@@ -40,25 +61,6 @@ Ziel ist eine Architektur, die:
 -   explizite Schutzlogik enthält (OVP, Clamp)
 -   auch kritische Lastfälle (z.B. 1,45 A im linearen Bereich) sicher
     beherrscht
-
-------------------------------------------------------------------------
-
-# Was ist eine SMU?
-
-Eine **Source Measure Unit (SMU)** ist ein Messgerät, das gleichzeitig:
-
--   Spannung oder Strom liefern (Source)
--   Spannung und Strom messen (Measure)
--   nahtlos zwischen CV (Constant Voltage) und CC (Constant Current)
-    wechseln
-
-Eine SMU vereint damit:
-
--   Netzgerät
--   elektronische Last
--   Präzisionsmultimeter
-
-in einem einzigen geschlossenen Regelkreis.
 
 ------------------------------------------------------------------------
 
