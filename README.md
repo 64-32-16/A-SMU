@@ -33,7 +33,7 @@ Dieses Projekt ist inspiriert durch:
 
 Beide Projekte orientieren sich an der Architektur klassischer Keithley-SMUs 236 und zeigen, dass leistungsfähige SMUs diskret realisierbar sind.
 
-Die A-SMU verfolgt jedoch einen bewusst anderen, deterministischen Analogansatz mit Fokus auf:
+Die A-SMU verfolgt jedoch zum Teil einen anderen, Analogansatz mit Fokus auf:
 
 - Nur ein CV-PI-Regler (keine separate CC-Regelschleife)
 - Strombegrenzung über differenzielle Clamp-Blöcke
