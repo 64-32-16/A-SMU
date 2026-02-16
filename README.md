@@ -71,6 +71,7 @@ Das Projekt befindet sich aktuell im Simulationsstadium (LTspice) und
 dient als Grundlage für meine A-SMU.
 Teile der Systemarchitektur und Dokumentation wurden unter Verwendung von ChatGPT 5.2 entwickelt.
 
+  ![3d](LTSpice/images/3d_pcb.png)
 ------------------------------------------------------------------------
 
 # Architektur
@@ -238,7 +239,7 @@ Geplante nächste Schritte:
 -   Software Touchdisplay mit EVE2 Diaplay 5 Zoll
 -   P- und R-Regler
 
-  ![3d](LTSpice/images/3d_pcb.png)
+
 ------------------------------------------------------------------------
 
 # Lizenz
