@@ -42,7 +42,23 @@ Die A-SMU verfolgt jedoch einen bewusst anderen, deterministischen Analogansatz 
 - Deterministische Endstufenabschaltung über Z-HIGH
 - Galvanisch getrennte, vollständig floating Reglerdomäne
 - High-Voltage-Endstufe ±30 V (perspektivisch erweiterbar)
+- Noch kein GRUARD, das Konzept hab ich noch nicht verstanden.
 
+
+
+## Zielparameter
+
+- Ausgangsspannung: ±30 V (HV-Domain isoliert)
+- Ausgangsstrom:  ±1 V 
+- Reglerdomäne: ±15 V (floating)
+- CV-Regler: PI, analog
+- Strom:
+   -- Range 1: ±0-1 A
+   -- Range 1: ±0-100 mA
+- Spannung:
+    -- Range 1:  ±0-5V (1:2)
+    -- Range 2:  ±0-30V (1:12)
+- OVP: 12-Bit DAC-gesteuert
 
 ------------------------------------------------------------------------
 
