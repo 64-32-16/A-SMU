@@ -25,7 +25,7 @@ in einem einzigen geschlossenen Regelkreis. Für eine detailiert Beschreibung sc
 
 # Motivation
 
-Dieses Projekt ist inspiriert durch:
+Dieses Projekt ist inspiriert durch die Projekte von:
 
 -  [J-SMU von Jaromir Sukuba](https://github.com/jaromir-sukuba/J-SMU) 
 -  [DIY-SMU von Dave Erickson](https://www.djerickson.com/diy_smu/) 
@@ -68,8 +68,9 @@ Die **A-SMU (Analog Source Measure Unit)** ist eine vollständig diskret
 aufgebaute, analog geregelte SMU-Architektur mit klar getrennter
 Hochvolt- und Reglerdomäne.\
 Das Projekt befindet sich aktuell im Simulationsstadium (LTspice) und
-dient als Grundlage für eine robuste, hochpräzise und deterministisch
-abschaltbare SMU.
+dient als Grundlage für meine SMU.
+Das Projekt wurde in Zusammenarbeit mit ChatGPT 5.2 erstellt. 
+Dabei war ChatGPT immer eine Quelle der Inspiration und eine sinnvoll Unterstützung. 
 
 
 
@@ -95,6 +96,7 @@ abschaltbare SMU.
 
 Diese Struktur verhindert Masseschleifen und ermöglicht echtes Floating.
 Auf meiner ToDo-Liste steht noch eine Floating-Überwachung gegen PE.
+Da ich Anfänger bin, sollte meine A-SMU auch gegen eine Fehlbedienung ausgelegt sein.
 
 
 ------------------------------------------------------------------------
@@ -113,7 +115,7 @@ Eigenschaften:
 
 -   Linearbetrieb
 -   symmetrisches Verhalten
--   Ruhestrom von ca. 50mA
+-   Ruhestrom von ca. 50mA (Offset)
 -   aktive Gate-Abschaltung über ZHIGH
 
 ------------------------------------------------------------------------
