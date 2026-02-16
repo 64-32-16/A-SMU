@@ -18,7 +18,7 @@ Eine SMU vereint damit:
 -   elektronische Last
 -   Präzisionsmultimeter
 
-in einem einzigen geschlossenen Regelkreis. Für eine detailiert Beschreibung schau bitte [hier](https://en.wikipedia.org/wiki/Source_measure_unit)  
+in einem einzigen geschlossenen Regelkreis. Für eine detailiert Beschreibung schau bitte hier. [https://en.wikipedia.org/wiki/Source_measure_unit](https://en.wikipedia.org/wiki/Source_measure_unit)  
 
 ------------------------------------------------------------------------
 
@@ -29,17 +29,19 @@ Dieses Projekt ist inspiriert durch:
 
 -  [J-SMU von Jaromir Sukuba](https://github.com/jaromir-sukuba/J-SMU) 
 -  [DIY-SMU von Dave Erickson](https://www.djerickson.com/diy_smu/) 
-     
-Beide Projekte basieren auf Ideen aus der Keithley 236 und zeigen eindrucksvoll, dass leistungsfähige SMUs diskret
-realisierbar sind.
+  
 
-Die A-SMU verfolgt jedoch einen eigenen Ansatz mit Fokus auf:
+Beide Projekte orientieren sich an der Architektur klassischer Keithley-SMUs 236 und zeigen, dass leistungsfähige SMUs diskret realisierbar sind.
 
--   Nur ein CV-PI-Regler, keine automatische Umschaltung CV/CC
--   Klemmblöcke I-Limit liefern eine exakte Spannung (ISET-IMON) über einen Halbwellengleichrichter in den Summenknoten vom CV-PI-Regler. 
--   explizite Hardware-Schutzmechanismen (Overvoltage Protection) OPV
--   deterministische Abschaltlogik (Z-HIGH der Endstufe).
--   floating Reglerdomäne
+Die A-SMU verfolgt jedoch einen bewusst anderen, deterministischen Analogansatz mit Fokus auf:
+
+- Nur ein CV-PI-Regler (keine separate CC-Regelschleife)
+- Strombegrenzung über differenzielle Clamp-Blöcke
+(I_LIMIT − I_MON wird als Halbwellen-Signal in den Summenknoten des CV-Reglers injiziert)
+- Explizite Hardware-Schutzmechanismen (Overvoltage Protection, OVP)
+- Deterministische Endstufenabschaltung über Z-HIGH
+- Galvanisch getrennte, vollständig floating Reglerdomäne
+- High-Voltage-Endstufe ±30 V (perspektivisch erweiterbar)
 
 
 ------------------------------------------------------------------------
@@ -53,16 +55,6 @@ Das Projekt befindet sich aktuell im Simulationsstadium (LTspice) und
 dient als Grundlage für eine robuste, hochpräzise und deterministisch
 abschaltbare SMU.
 
-Ziel ist eine Architektur, die:
-
--   vollständig floating betrieben werden kann
--   eine klare Domänentrennung besitzt (HV / Control)
--   deterministisches Abschalten ermöglicht (ZHIGH)
--   explizite Schutzlogik enthält (OVP, Clamp)
--   auch kritische Lastfälle (z.B. 1,45 A im linearen Bereich) sicher
-    beherrscht
-
-------------------------------------------------------------------------
 
 
 
