@@ -31,14 +31,12 @@ Dieses Projekt ist inspiriert durch die Projekte von:
 -  [DIY-SMU von Dave Erickson](https://www.djerickson.com/diy_smu/) 
   
 
-Beide Projekte orientieren sich an einer klassischen Architektur der Keithley-SMUs 236 und zeigen, dass leistungsfähige SMUs diskret realisierbar sind.
+Beide Projekte orientieren sich an einer klassischen Architektur der Keithley-SMUs 236 mit den Konzept, das ein Clamp-Blöcken in dem Summenknoten vom PI eingreifen.
 
-Die A-SMU verfolgt jedoch zum Teil einen anderen, Analogansatz mit Fokus auf:
+Die A-SMU verfolgt jedoch ein anderes Konzept:
 
-- Nur ein CV-PI-Regler (keine separate CC-Regelschleife)
-- Strombegrenzung über differenzielle Clamp-Blöcke
-(I_LIMIT − I_MON wird als Halbwellen-Signal in den Summenknoten des CV-Reglers injiziert)
-- Explizite Hardware-Schutzmechanismen (Overvoltage Protection, OVP)
+- Die A-SMU arbeitet als Spannungsregler (CV) mit symmetrischer Strombegrenzung (CC). Ein einziger invertierender PI-Regler    erhält über analoge min/max-Blöcke automatisch den begrenzenden Fehler. Keine digitale Modusumschaltung.
+- Es erfolgt somit eine automatische Umschaltung von CV=>CC Mode.
 - Deterministische Endstufenabschaltung über Z-HIGH
 - Galvanisch getrennte, vollständig floating Reglerdomäne
 - High-Voltage-Endstufe ±30 V (perspektivisch erweiterbar)
@@ -69,10 +67,19 @@ aufgebaute, analog geregelte SMU-Architektur mit klar getrennter
 Hochvolt- und Reglerdomäne.\
 Das Projekt befindet sich aktuell im Simulationsstadium (LTspice) und
 dient als Grundlage für meine A-SMU.
-Teile der Systemarchitektur und Dokumentation wurden unter Verwendung von ChatGPT 5.2 entwickelt.
+Teile der Systemarchitektur und Dokumentation wurden unter Verwendung von Sunnet 4.6 entwickelt.
 
   ![3d](LTSpice/images/3d_pcb.png)
 ------------------------------------------------------------------------
+# Gesamtformel
+
+Fehlersignale
+f_V	V_MON − V_SET	Spannungsfehler (Hauptregler)
+f_I_HI	I_MON − I_LIMIT	Oberes Stromlimit (+Compliance)
+f_I_LO	I_MON − (−I_LIMIT)	Unteres Stromlimit (−Compliance)
+
+error = max( min(f_V, f_I_LO), f_I_HI )
+SET_AMP = −PI(error)
 
 # Architektur
 
@@ -88,7 +95,7 @@ Teile der Systemarchitektur und Dokumentation wurden unter Verwendung von ChatGP
 
 -   ±15 V Steuerspannung (galvanisch getrennt)
 -   AGND floatet auf FORCE_LO
--   enthält CV-Regler, Clamp-Logik, OVP
+-   enthält CV-Regler, Min/Max, OVP
 -   keine Verbindung zu PE, USB oder System-GND
 
 Diese Struktur verhindert Masseschleifen und ermöglicht echtes Floating.
@@ -141,30 +148,6 @@ Keine schwebenden Gates, kein undefiniertes Verhalten.
 Der Regler ist bewusst einfach und deterministisch ausgelegt.
 
 
-## 4.1. CC-Clamp-System (Strombegrenzung)
-
-Getrennte positive und negative Clamp-Blöcke:
-
--   CLAMP+
--   CLAMP−
-
-Diese wirken direkt auf den Summenknoten des CV-Reglers.
-
-Vorteile:
-
--   stabile und saubere CV→CC Übergänge
--   keine Loop-Crossover-Probleme
--   symmetrisches Verhalten
-
-Ein klassischer CC-Regler mit zusätzlichem Spannungs-Clamp führt bei externer Spannung (z. B. 2 V) und niedriger V_LIMIT (z. B. 1 V) zu 
-instabilem Verhalten, da der Klemmblock den Ausgang auf maximalen Strom treiben kann.
-
-Ich habe lange an einer saubern Klemmlösung mit sauberen und stabilen CV→CC Übergängen gearbeitet. 
-Die Strombegrenzung erzeugt nur eine zusätzliche Fehlerspannung
-Das System wechselt nicht zwischen zwei Reglern.
-Es ist ein kontinuierlicher Übergang
-
-  ![Endstufe](LTSpice/images/regler.png)
 
 ------------------------------------------------------------------------
 
@@ -217,7 +200,7 @@ Simulation umfasst:
 -   vollständige analoge Architektur
 -   MOSFET-Endstufe
 -   CV-Regler
--   CC-Clamps
+-   Min/Max-Block
 -   ZHIGH-Logik
 -   OVP-Latch
 -   IMON / VMON Skalierung
@@ -237,7 +220,7 @@ Geplante nächste Schritte:
 -   Digital-Board ADC/DAC Lm199 und MCU
 -   Spannungsversorgung
 -   Software Touchdisplay mit EVE2 Diaplay 5 Zoll
--   P- und R-Regler
+-   PI-Regler
 
 
 ------------------------------------------------------------------------
