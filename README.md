@@ -37,6 +37,7 @@ Die A-SMU verfolgt jedoch ein anderes Konzept:
 
 - Die A-SMU arbeitet als Spannungsregler (CV) mit symmetrischer Strombegrenzung (CC). Ein einziger invertierender PI-Regler    erhält über analoge min/max-Blöcke automatisch den begrenzenden Fehler. Keine digitale Modusumschaltung.
 - Nahtlos zwischen CV (Constant Voltage) und CC (Constant Current) wechseln
+- Die Hardware sieht keinen Unterschied zwischen CV und CC — der Modus ist eine reine GUI-Abstraktion. ±I_LIMIT symmetrisch.
 - Deterministische Endstufenabschaltung über Z-HIGH
 - Galvanisch getrennte, vollständig floating Reglerdomäne
 - High-Voltage-Endstufe ±30 V (perspektivisch erweiterbar)
