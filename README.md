@@ -339,7 +339,7 @@ Geplante nächste Schritte:
 -   Digital-Board ADC/DAC Lm199 und MCU
 -   Spannungsversorgung
 -   Software Touchdisplay mit EVE2 Diaplay 5 Zoll
--   PI-Regler
+
 
 
 ------------------------------------------------------------------------
