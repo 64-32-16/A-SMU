@@ -346,3 +346,4 @@ Geplante nächste Schritte:
 
 # Lizenz
 
+Dieses Projekt steht unter der MIT-Lizenz.
