@@ -152,6 +152,16 @@ Keine schwebenden Gates, kein undefiniertes Verhalten.
 
 Der Regler ist bewusst einfach und deterministisch ausgelegt.
 
+### High-Capacitance-Mode
+
+DG412 schaltet C2 (9nF) parallel zu C1 → Ki sinkt um Faktor 10 für kapazitive Lasten. Umschaltbar über RP2040-GPIO.
+
+| Modus | C gesamt | Ki | Anwendung |
+|-------|----------|-----|-----------|
+| Normal | 1nF | 100.000 rad/s | Ohmsche Lasten |
+| High-Cap | 10nF | 10.000 rad/s | Kapazitive Lasten |
+
+
 ## 5. Min/Max-Block -- automatische CV/CC-Arbitration
 
 Der Min/Max-Block ist das Herzstück der A-SMU-Regelarchitektur. Er entscheidet automatisch, welches Fehlersignal den PI-Regler steuert -- ohne digitale Modusumschaltung.
@@ -236,6 +246,28 @@ Verhindert automatisches Wiederanlaufen nach Fehler.
 
   ![ovp](LTSpice/images/ovp.png)
 
+
+
+------------------------------------------------------------------------
+## 9. DAC-Zuordnung
+
+Zwei DACs, keine Analogschalter für Moduswahl. Der RP2040 rechnet die GUI-Parameter auf Hardware-Werte um.
+
+### Source Voltage (CV-Mode)
+
+```
+V_SET   = Sollspannung
+I_LIMIT = Compliance-Strom
+```
+
+### Source Current (CC-Mode)
+
+```
+V_SET   = sign(I_SET) × V_LIMIT
+I_LIMIT = |I_SET|
+```
+
+Die Hardware sieht keinen Unterschied zwischen CV und CC — der Modus ist eine reine GUI-Abstraktion. `±I_LIMIT` symmetrisch wie bei Keithley 2450.
 ------------------------------------------------------------------------
 
 ## Betriebsverhalten in allen Quadranten
