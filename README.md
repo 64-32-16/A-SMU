@@ -202,7 +202,7 @@ Der Übergang zwischen den Modi ist stufenlos und vollständig analog -- es gibt
 Skalierung:
 
 - ±1 V =>  ±1 A
-- ±1 V =>  ±10 mA
+- ±1 V =>  ±100 mA
 
 Direkte analoge Repräsentation des Ausgangsstroms.
 
@@ -238,6 +238,47 @@ Verhindert automatisches Wiederanlaufen nach Fehler.
 
 ------------------------------------------------------------------------
 
+## Betriebsverhalten in allen Quadranten
+
+### Q1 (V > 0, I > 0) — SOURCE
+
+`V_SET = +1V`, `I_LIMIT = 100mA`, `Rload = 10Ω`
+
+CV regelt auf 1V, I_MON = 100mA. Der Spannungsfehler `f_V` dominiert, beide Stromfehler sind inaktiv (`f_I_HI < 0`, `f_I_LO > 0`).
+
+**Compliance-Fall:** Bei `Rload = 5Ω` würde der Strom 200mA erreichen → `f_I_HI` wird positiv → `max()` wählt `f_I_HI` → PI regelt Strom exakt auf +100mA, V_MON sinkt auf 0.5V.
+
+### Q2 (V > 0, I < 0) — SINK
+
+`V_SET = +1V`, `I_LIMIT = 100mA`, `Vext = +2V`
+
+V_MON = 2V (durch Vext fixiert), `f_V = 2.0 − 1.0 = +1.0` → PI treibt SET_AMP negativ → SINK wird aktiv → Strom wird negativ.
+
+Bei `I_MON = −100mA`: `f_I_LO = −0.1 − (−0.1) = 0` → `min(f_V, f_I_LO) = 0` → `error = 0` → PI findet Gleichgewicht. Strom exakt auf −100mA geregelt.
+
+### Q3 (V < 0, I < 0) — SINK
+
+`V_SET = −1V`, `I_LIMIT = 100mA`, `Rload = 10Ω`
+
+CV regelt auf −1V, I_MON = −100mA. Der Spannungsfehler `f_V` dominiert.
+
+**Compliance-Fall:** Bei `Rload = 5Ω` würde der Strom −200mA erreichen → `f_I_LO` wird negativ → `min()` wählt `f_I_LO` → PI regelt Strom exakt auf −100mA.
+
+### Q4 (V < 0, I > 0) — SOURCE
+
+`V_SET = −1V`, `I_LIMIT = 100mA`, `Vext = −2V`
+
+V_MON = −2V (durch Vext fixiert), `f_V = −2.0 − (−1.0) = −1.0` → PI treibt SET_AMP positiv → SOURCE wird aktiv → Strom wird positiv.
+
+Bei `I_MON = +100mA`: `f_I_HI = 0.1 − 0.1 = 0` → `max(min(f_V, f_I_LO), 0) = 0` → PI findet Gleichgewicht. Strom exakt auf +100mA geregelt.
+
+### Zusammenfassung
+
+> In jedem Quadranten integriert der PI den aktiven Fehler auf Null.
+> Kein proportionaler Clamp, keine stationäre Abweichung, kein Priority-Bit.
+> `f_V = V_MON − V_SET` hat inhärent das richtige Vorzeichen in allen vier Quadranten — deshalb ist kein Priority-Bit nötig.
+
+------------------------------------------------------------------------
 # Aktueller Stand im Repository
 
 Simulation umfasst:
