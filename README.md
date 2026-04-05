@@ -36,7 +36,7 @@ Beide Projekte orientieren sich an einer klassischen Architektur der Keithley-SM
 Die A-SMU verfolgt jedoch ein anderes Konzept:
 
 - Die A-SMU arbeitet als Spannungsregler (CV) mit symmetrischer Strombegrenzung (CC). Ein einziger invertierender PI-Regler    erhält über analoge min/max-Blöcke automatisch den begrenzenden Fehler. Keine digitale Modusumschaltung.
-- Es erfolgt somit eine automatische Umschaltung von CV=>CC Mode.
+- Nahtlos zwischen CV (Constant Voltage) und CC (Constant Current) wechseln
 - Deterministische Endstufenabschaltung über Z-HIGH
 - Galvanisch getrennte, vollständig floating Reglerdomäne
 - High-Voltage-Endstufe ±30 V (perspektivisch erweiterbar)
@@ -67,20 +67,25 @@ aufgebaute, analog geregelte SMU-Architektur mit klar getrennter
 Hochvolt- und Reglerdomäne.\
 Das Projekt befindet sich aktuell im Simulationsstadium (LTspice) und
 dient als Grundlage für meine A-SMU.
-Teile der Systemarchitektur und Dokumentation wurden unter Verwendung von Sunnet 4.6 entwickelt.
+Teile der Systemarchitektur und Dokumentation wurden unter Verwendung von Sonnet 4.6 entwickelt.
 
   ![3d](LTSpice/images/3d_pcb.png)
 ------------------------------------------------------------------------
 # Gesamtformel
 
-Fehlersignale
-f_V	V_MON − V_SET	Spannungsfehler (Hauptregler)
-f_I_HI	I_MON − I_LIMIT	Oberes Stromlimit (+Compliance)
-f_I_LO	I_MON − (−I_LIMIT)	Unteres Stromlimit (−Compliance)
+Aus drei Fehlersignalen wird durch analoge Min/Max-Verknüpfung der begrenzende Fehler selektiert:
 
+```
 error = max( min(f_V, f_I_LO), f_I_HI )
-SET_AMP = −PI(error)
+```
 
+| Signal | Formel | Aktiv wenn... |
+|---|---|---|
+| f_V | V_MON − V_SET | Spannung weicht vom Sollwert ab (CV) |
+| f_I_HI | I_MON − I_LIMIT | Strom überschreitet +Compliance (CC) |
+| f_I_LO | I_MON − (−I_LIMIT) | Strom unterschreitet −Compliance (CC) |
+
+Der Block implementiert eine symmetrische Strombegrenzung: Überschreitet der Ausgangsstrom die positive oder negative Compliance, übernimmt automatisch der entsprechende Stromregler -- der Spannungsregler tritt in den Hintergrund.
 # Architektur
 
 ## 1. Domänentrennung
@@ -143,7 +148,7 @@ Keine schwebenden Gates, kein undefiniertes Verhalten.
 
 -   Ein PI-Regler
 -   arbeitet vollständig in der floating Domain
--   Summenknoten erlaubt Clamp-Einspeisung
+-   Min/Max Fließend-Fehler-Umschaltung
 
 Der Regler ist bewusst einfach und deterministisch ausgelegt.
 
@@ -199,8 +204,7 @@ Skalierung:
 - ±1 V =>  ±1 A
 - ±1 V =>  ±10 mA
 
-Direkte analoge Repräsentation des Ausgangsstroms.\
-Wird für Clamp-Erzeugung und ADC genutzt.
+Direkte analoge Repräsentation des Ausgangsstroms.
 
 ------------------------------------------------------------------------
 
