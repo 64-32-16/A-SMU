@@ -147,6 +147,47 @@ Keine schwebenden Gates, kein undefiniertes Verhalten.
 
 Der Regler ist bewusst einfach und deterministisch ausgelegt.
 
+## 5. Min/Max-Block -- automatische CV/CC-Arbitration
+
+Der Min/Max-Block ist das Herzstück der A-SMU-Regelarchitektur. Er entscheidet automatisch, welches Fehlersignal den PI-Regler steuert -- ohne digitale Modusumschaltung.
+
+### Funktion
+
+Aus drei Fehlersignalen wird durch analoge Min/Max-Verknüpfung der begrenzende Fehler selektiert:
+
+```
+error = max( min(f_V, f_I_LO), f_I_HI )
+```
+
+| Signal | Formel | Aktiv wenn... |
+|---|---|---|
+| f_V | V_MON − V_SET | Spannung weicht vom Sollwert ab (CV) |
+| f_I_HI | I_MON − I_LIMIT | Strom überschreitet +Compliance (CC) |
+| f_I_LO | I_MON − (−I_LIMIT) | Strom unterschreitet −Compliance (CC) |
+
+Der Block implementiert eine symmetrische Strombegrenzung: Überschreitet der Ausgangsstrom die positive oder negative Compliance, übernimmt automatisch der entsprechende Stromregler -- der Spannungsregler tritt in den Hintergrund.
+
+### Implementierung
+
+Realisiert mit Standard-Operationsverstärkern in Diodenlogik:
+
+-   OPA140 als schneller, präziser Op-Amp
+-   1N4148 Schaltdioden
+-   100 Ω Serienwiderstände (zur Entkopplung der Diodenzweige)
+-   Buffer-Stufe am Ausgang (OPA140) zur Lastunabhängigkeit
+
+### Betriebsmodi
+
+| Modus | Aktives Signal | Bedingung |
+|---|---|---|
+| CV | f_V | −I_LIMIT < I_MON < +I_LIMIT |
+| CC+ | f_I_HI | I_MON ≥ +I_LIMIT |
+| CC− | f_I_LO | I_MON ≤ −I_LIMIT |
+
+Der Übergang zwischen den Modi ist stufenlos und vollständig analog -- es gibt keine Schaltschwelle, keinen Komparator und kein digitales Steuersignal.
+
+  ![minmax](LTSpice/images/minmax.png)
+
 
 
 ------------------------------------------------------------------------
