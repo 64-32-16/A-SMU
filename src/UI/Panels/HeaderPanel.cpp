@@ -67,13 +67,15 @@ void HeaderPanel::UpdateTexts()
         return;
     }
 
-    const uint32_t totalMinutes = millis() / 60000UL;
-    const uint8_t hours = (totalMinutes / 60UL) % 24UL;
-    const uint8_t minutes = totalMinutes % 60UL;
+    const uint32_t totalSeconds = millis() / 1000UL;
+    const uint8_t hours = (totalSeconds / 3600UL) % 24UL;
+    const uint8_t minutes = (totalSeconds / 60UL) % 60UL;
+    const uint8_t seconds = totalSeconds % 60UL;
 
-    snprintf(_timeTextBuffer, sizeof(_timeTextBuffer), "%02u:%02u",
+    snprintf(_timeTextBuffer, sizeof(_timeTextBuffer), "%02u:%02u:%02u",
         static_cast<unsigned int>(hours),
-        static_cast<unsigned int>(minutes));
+        static_cast<unsigned int>(minutes),
+        static_cast<unsigned int>(seconds));
 
     _triggerLabel.SetText("AUTO");
     _controlLabel.SetText("LOCAL");

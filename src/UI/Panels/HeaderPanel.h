@@ -25,7 +25,7 @@ private:
 
 private:
     SystemClass* _system;
-    char _timeTextBuffer[8];
+    char _timeTextBuffer[9];
     Button _homeButton;
     Button _menuButton;
     Label _triggerLabel;

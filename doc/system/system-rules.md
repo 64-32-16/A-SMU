@@ -45,3 +45,15 @@
 - Panels may keep local buffers for rendered text.
 - Panels may keep local formatting state for stable display formatting.
 - These buffers and formatting states are not domain state and must not become an alternate source of truth.
+
+## Persistent Settings
+
+- Persistent settings are owned by the system layer, not by GUI panels.
+- Settings persistence must store domain settings from `SystemClass`, such as source mode, measure mode, range modes, ranges, source values, limit values, and related system settings.
+- GUI panels must not save or restore persistent domain settings directly.
+- Other frontends, such as SCPI, must use the same system-level persistence rules.
+- Domain changes mark persistent settings as dirty.
+- Dirty settings are saved only after 30 seconds without further persistent setting changes.
+- Number pad editing must not mark settings dirty while text is being edited; only accepted values written to `SystemClass` may mark settings dirty.
+- Persistent storage should use versioning and validation, such as magic value, format version, and checksum or CRC.
+- Invalid, missing, or unsupported persisted settings must fall back to safe defaults.
