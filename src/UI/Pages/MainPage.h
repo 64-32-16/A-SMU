@@ -5,6 +5,7 @@
 #include "../Core/Panel.h"
 #include "../Panels/HeaderPanel.h"
 #include "../Panels/MainConfigPanel.h"
+#include "../Panels/MeasurePanel.h"
 #include "../Panels/SourcePanel.h"
 #include "../../Core/System.h"
 
@@ -18,6 +19,7 @@ public:
     SystemClass* GetSystem() const;
 
     SourcePanel& GetSourcePanel();
+    MeasurePanel& GetMeasurePanel();
     MainConfigPanel& GetConfigPanel();
     HeaderPanel& GetHeaderPanel();
 
@@ -28,6 +30,7 @@ private:
     SystemClass* _system;
     HeaderPanel _headerPanel;
     SourcePanel _sourcePanel;
+    MeasurePanel _measurePanel;
     MainConfigPanel _configPanel;
 };
 

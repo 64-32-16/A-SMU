@@ -96,6 +96,23 @@ TOOLBAR_BUTTON_FONT_COLOR
 
 ![Boolean](./images/boolean-button.png)
 
+Der Boolean-Button wird als statischer Schiebeschalter ohne Animation umgesetzt.
+Er zeigt einen klaren Zustand (`ON` / `OFF`) und ist damit kein normaler Aktionsbutton.
+
+Einsatz:
+
+```text
+OUTPUT ON/OFF
+```
+
+Regeln:
+
+- Der Zustand kommt aus `SystemClass`.
+- Eine Bedienaktion schreibt den neuen Zustand über einen Setter in `SystemClass`.
+- Der Boolean-Button hat keine eigene Domain-Wahrheit.
+- Der Schiebeschalter darf in der Config-Bar ohne zusätzliches Textlabel verwendet werden.
+- Grafische Spezialcontrols müssen ihren EVE-Zeichenzustand kapseln, z.B. mit Save/Restore-Context, damit LineWidth, PointSize oder ColorA keine folgenden Controls beeinflussen.
+
 #### 2.2.2 Label
 
 Ein Label für z.B. LAN: Off oder Trigger: AUTO
@@ -104,6 +121,7 @@ Ein Label für z.B. LAN: Off oder Trigger: AUTO
 
 Für die Auswahl von z.B. dem Sense-Typ stellen wir immer einen Dialog bereit und kennzeichnen den aktuell aktiven Bereich.
 Die Buttons in Auswahl-Dialogen verwenden dieselbe Hintergrund- und Schriftfarbe wie die Header-Buttons.
+Diese Festlegung gilt für alle Auswahl-Dialoge, z.B. Range-, Function- und Output-Off-State-Dialoge.
 
 ![select-dialog](./images/select-dialog.png)
 
@@ -111,6 +129,7 @@ Die Buttons in Auswahl-Dialogen verwenden dieselbe Hintergrund- und Schriftfarbe
 
 Das Number-Pad dient zur Eingabe von Werten. Wird ein Wert außerhalb des gültigen Bereichs angegeben, wird der Wert in Rot dargestellt und die Eingabe kann nicht mit "OK" bestätigt werden.
 Die Buttons im Number-Pad verwenden dieselbe Hintergrund- und Schriftfarbe wie die Header-Buttons.
+Diese Farbregel ist bewusst Teil des UX-Konzepts und soll nicht ohne neue UX-Entscheidung geändert werden.
 
 ![number-pad](./images/number-pad.png)
 
@@ -226,3 +245,24 @@ POWER(P)            +---,---- W  = 3,4
 
 TEMP(C)             +-- C = 2,0
 ```
+
+### 5.1 Hauptwerte
+
+Die großen Source- und Measure-Werte werden fixbreit dargestellt.
+Ziel ist eine ruhige Anzeige ohne horizontales Springen bei wechselnden Messwerten.
+
+Beispiele:
+
+```text
++000.0000 V
+-000.0123 A
++001.2345 V
+```
+
+Regeln:
+
+- Die großen Hauptwerte nutzen einen monospaced bzw. mono-geeigneten Font.
+- Die Textoption `OPT_MONO` bleibt für diese Labels aktiv.
+- Format für große Hauptwerte: Vorzeichen, drei Stellen vor dem Dezimaltrenner, vier Nachkommastellen.
+- Dieses feste Format gilt nur für die großen Source-/Measure-Hauptwerte.
+- Buttons, Popups, NumberPad, Statistik und Graph-Achsen dürfen weiterhin kompakter formatiert werden.

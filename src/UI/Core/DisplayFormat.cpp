@@ -48,6 +48,20 @@ void DisplayFormat::FormatValue(DisplayQuantity quantity, float value,
     snprintf(unitBuffer, unitBufferSize, "%s", GetUnitText(quantity, state._unitIndex));
 }
 
+void DisplayFormat::FormatFixedValue(DisplayQuantity quantity, float value,
+                                     DisplayFormatState& state,
+                                     bool showSign,
+                                     char* valueBuffer, size_t valueBufferSize,
+                                     char* unitBuffer, size_t unitBufferSize)
+{
+    const float absValue = fabsf(value);
+    state._unitIndex = ResolveUnitIndex(quantity, absValue, state._unitIndex);
+
+    const float scaledValue = ScaleValue(quantity, value, state._unitIndex);
+    snprintf(valueBuffer, valueBufferSize, showSign ? "%+09.4f" : "%08.4f", scaledValue);
+    snprintf(unitBuffer, unitBufferSize, "%s", GetUnitText(quantity, state._unitIndex));
+}
+
 int8_t DisplayFormat::ResolveUnitIndex(DisplayQuantity quantity, float absValue, int8_t currentIndex)
 {
     switch (quantity)

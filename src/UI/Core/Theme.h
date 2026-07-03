@@ -29,6 +29,12 @@ public:
     static constexpr uint32_t ButtonBackgroundDisabled = 0x404040;
     static constexpr uint32_t ButtonTextColor = ToolbarText;
     static constexpr uint32_t ButtonTextDisabledColor = 0x404040;
+    static constexpr uint32_t BooleanOnTrack = 0x237A45;
+    static constexpr uint32_t BooleanOffTrack = 0x2F4354;
+    static constexpr uint32_t BooleanThumb = 0xF2F2F2;
+    static constexpr uint32_t BooleanThumbPressed = 0xD8E0E8;
+    static constexpr uint32_t BooleanOnText = ToolbarText;
+    static constexpr uint32_t BooleanOffText = 0xC8D0D8;
 
     static constexpr uint32_t PopupBackdrop = 0x101010;
     static constexpr uint32_t PopupBackground = 0x1A3857;
@@ -55,7 +61,7 @@ public:
     static constexpr uint8_t FontPopupButton = 27;
     static constexpr uint8_t FontPopupTitle = 29;
     static constexpr uint8_t FontPopupInput = 31;
-    static constexpr uint8_t FontValue = 1;
+    static constexpr uint8_t FontValue = 2;
 
     static constexpr int16_t ButtonHeight = 47;
     static constexpr int16_t HeaderTopPadding = 12;

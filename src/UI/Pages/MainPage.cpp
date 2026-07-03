@@ -12,6 +12,7 @@ MainPage::MainPage()
 
     AddChild(&_headerPanel);
     AddChild(&_sourcePanel);
+    AddChild(&_measurePanel);
     AddChild(&_configPanel);
 
     UpdateLayout();
@@ -29,6 +30,7 @@ void MainPage::SetSystem(SystemClass* system)
     _system = (system != nullptr) ? system : &System;
     _headerPanel.SetSystem(_system);
     _sourcePanel.SetSystem(_system);
+    _measurePanel.SetSystem(_system);
     _configPanel.SetSystem(_system);
 }
 
@@ -40,6 +42,11 @@ SystemClass* MainPage::GetSystem() const
 SourcePanel& MainPage::GetSourcePanel()
 {
     return _sourcePanel;
+}
+
+MeasurePanel& MainPage::GetMeasurePanel()
+{
+    return _measurePanel;
 }
 
 MainConfigPanel& MainPage::GetConfigPanel()
@@ -72,10 +79,14 @@ void MainPage::UpdateLayout()
     const int16_t configHeight = 78;
     const int16_t configY = GetY() + GetHeight() - configHeight - 4;
     const int16_t sourceY = top + headerHeight - 1;
-    const int16_t sourceHeight = configY - sourceY;
+    const int16_t contentHeight = configY - sourceY;
+    const int16_t sourceHeight = 170;
+    const int16_t measureY = sourceY + sourceHeight + Theme::PanelGap;
+    const int16_t measureHeight = contentHeight - sourceHeight - Theme::PanelGap;
 
     _headerPanel.SetBounds(left, top, width, headerHeight);
     _sourcePanel.SetBounds(left, sourceY, width, sourceHeight);
     _sourcePanel.SetExpanded(true);
+    _measurePanel.SetBounds(left, measureY, width, measureHeight);
     _configPanel.SetBounds(left, configY, width, configHeight);
 }

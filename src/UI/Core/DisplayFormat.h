@@ -30,6 +30,11 @@ public:
                             bool showSign,
                             char* valueBuffer, size_t valueBufferSize,
                             char* unitBuffer, size_t unitBufferSize);
+    static void FormatFixedValue(DisplayQuantity quantity, float value,
+                                 DisplayFormatState& state,
+                                 bool showSign,
+                                 char* valueBuffer, size_t valueBufferSize,
+                                 char* unitBuffer, size_t unitBufferSize);
     static uint8_t GetDecimalsFor(DisplayQuantity quantity, int8_t unitIndex);
 
 private:

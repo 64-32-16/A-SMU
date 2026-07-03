@@ -35,10 +35,14 @@ MeasurePanel::MeasurePanel()
     _rangeValueLabel.SetTextColor(Theme::LabelGreen);
 
     _rangeButton.SetFont(Theme::FontButton);
+    _rangeButton.SetBackgroundColor(Theme::ButtonBackground);
+    _rangeButton.SetTextColor(Theme::ButtonTextColor);
     _rangeButton.SetTextOptions(OPT_CENTER);
     _rangeButton.SetText("--");
 
     _functionButton.SetFont(Theme::FontButton);
+    _functionButton.SetBackgroundColor(Theme::ButtonBackground);
+    _functionButton.SetTextColor(Theme::ButtonTextColor);
     _functionButton.SetTextOptions(OPT_CENTER);
     _functionButton.SetText("Function");
 
@@ -84,10 +88,14 @@ MeasurePanel::MeasurePanel(int16_t x, int16_t y, int16_t w, int16_t h)
     _rangeValueLabel.SetTextColor(Theme::LabelGreen);
 
     _rangeButton.SetFont(Theme::FontButton);
+    _rangeButton.SetBackgroundColor(Theme::ButtonBackground);
+    _rangeButton.SetTextColor(Theme::ButtonTextColor);
     _rangeButton.SetTextOptions(OPT_CENTER);
     _rangeButton.SetText("--");
 
     _functionButton.SetFont(Theme::FontButton);
+    _functionButton.SetBackgroundColor(Theme::ButtonBackground);
+    _functionButton.SetTextColor(Theme::ButtonTextColor);
     _functionButton.SetTextOptions(OPT_CENTER);
     _functionButton.SetText("Function");
 
@@ -153,17 +161,22 @@ void MeasurePanel::UpdateLayout()
     const int16_t x = GetX();
     const int16_t y = GetY();
     const int16_t w = GetWidth();
-    const int16_t valueTop = y + Theme::PanelValueTopY;
-    const int16_t controlsTop = y + Theme::PanelControlsTopY;
+    const int16_t valueTop = y + 34;
+    const int16_t controlsTop = y + 104;
+    const int16_t buttonH = Theme::ButtonHeight;
+    const int16_t labelOffsetY = (buttonH - 24) / 2;
+    const int16_t rangeButtonX = x + 176;
 
     _topDivider.SetBounds(x + 8, y + 8, w - 16, 1);
-    _titleLabel.SetBounds(x + 12, y + 16, 300, 28);
-    _valueLabel.SetBounds(x + 14, valueTop, 600, 56);
+    _titleLabel.SetBounds(x + 14, y + 18, 300, 28);
+    _valueLabel.SetBounds(x + 42, valueTop, 430, 64);
 
-    _rangeLabel.SetBounds(x + 14, controlsTop + 2, 80, 24);
+    _rangeLabel.SetVisible(false);
+    _rangeValueLabel.SetVisible(false);
+    _rangeLabel.SetBounds(rangeButtonX - 88, controlsTop + labelOffsetY, 80, 24);
     _rangeValueLabel.SetBounds(x + 14, controlsTop + 26, 120, 24);
-    _rangeButton.SetBounds(x + 112, controlsTop, 116, 42);
-    _functionButton.SetBounds(x + w - 170, controlsTop, 156, 42);
+    _rangeButton.SetBounds(rangeButtonX, controlsTop, 150, buttonH);
+    _functionButton.SetBounds(x + w - 170, controlsTop, 154, buttonH);
 
     const bool showRangeButton = (_system != nullptr) &&
                                  (_system->GetMeasureMode() != MeasureMode::Power);
@@ -214,16 +227,16 @@ void MeasurePanel::FormatMainValue(char* valueBuffer, size_t valueBufferSize,
     switch (_system->GetMeasureMode())
     {
         case MeasureMode::Voltage:
-            DisplayFormat::FormatValue(DisplayQuantity::Voltage, _system->GetVoltage(),
-                                       _voltageFormatState,
-                                       true,
-                                       valueBuffer, valueBufferSize, unitBuffer, unitBufferSize);
+            DisplayFormat::FormatFixedValue(DisplayQuantity::Voltage, _system->GetVoltage(),
+                                            _voltageFormatState,
+                                            true,
+                                            valueBuffer, valueBufferSize, unitBuffer, unitBufferSize);
             break;
         case MeasureMode::Current:
-            DisplayFormat::FormatValue(DisplayQuantity::Current, _system->GetCurrent(),
-                                       _currentFormatState,
-                                       true,
-                                       valueBuffer, valueBufferSize, unitBuffer, unitBufferSize);
+            DisplayFormat::FormatFixedValue(DisplayQuantity::Current, _system->GetCurrent(),
+                                            _currentFormatState,
+                                            true,
+                                            valueBuffer, valueBufferSize, unitBuffer, unitBufferSize);
             break;
         case MeasureMode::Resistance:
             if (fabsf(_system->GetCurrent()) < 1e-9f)
@@ -236,17 +249,17 @@ void MeasurePanel::FormatMainValue(char* valueBuffer, size_t valueBufferSize,
             }
             else
             {
-                DisplayFormat::FormatValue(DisplayQuantity::Resistance, _system->GetResistance(),
-                                           _resistanceFormatState,
-                                           false,
-                                           valueBuffer, valueBufferSize, unitBuffer, unitBufferSize);
+                DisplayFormat::FormatFixedValue(DisplayQuantity::Resistance, _system->GetResistance(),
+                                                _resistanceFormatState,
+                                                true,
+                                                valueBuffer, valueBufferSize, unitBuffer, unitBufferSize);
             }
             break;
         case MeasureMode::Power:
-            DisplayFormat::FormatValue(DisplayQuantity::Power, _system->GetPower(),
-                                       _powerFormatState,
-                                       true,
-                                       valueBuffer, valueBufferSize, unitBuffer, unitBufferSize);
+            DisplayFormat::FormatFixedValue(DisplayQuantity::Power, _system->GetPower(),
+                                            _powerFormatState,
+                                            true,
+                                            valueBuffer, valueBufferSize, unitBuffer, unitBufferSize);
             break;
         default:
             snprintf(valueBuffer, valueBufferSize, "+0.000");

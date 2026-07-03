@@ -2,10 +2,27 @@
 
 #include "../Core/Theme.h"
 
+namespace
+{
+MainConfigPanel* g_mainConfigPanel = nullptr;
+
+void OnOutputSwitchChanged(BooleanButton* sender, bool value)
+{
+    if (g_mainConfigPanel == nullptr || sender != &g_mainConfigPanel->GetOutputSwitch())
+    {
+        return;
+    }
+
+    g_mainConfigPanel->GetSystem()->SetOutputOn(value);
+}
+}
+
 MainConfigPanel::MainConfigPanel()
     : Panel(),
       _system(&System)
 {
+    g_mainConfigPanel = this;
+
     SetShowBackground(false);
     SetShowBorder(false);
     SetShowTitle(false);
@@ -16,13 +33,15 @@ MainConfigPanel::MainConfigPanel()
     SetupButton(_configButton, "CONFIG");
     SetupButton(_awgButton, "AWG");
     SetupButton(_traceButton, "TRACE");
-    SetupButton(_outputButton, "ON");
+    _outputSwitch.SetCaption("");
+    _outputSwitch.SetValue(_system->GetOutputOn());
+    _outputSwitch.SetOnChange(OnOutputSwitchChanged);
 
     AddChild(&_topDivider);
     AddChild(&_configButton);
     AddChild(&_awgButton);
     AddChild(&_traceButton);
-    AddChild(&_outputButton);
+    AddChild(&_outputSwitch);
 
     UpdateLayout();
 }
@@ -37,6 +56,7 @@ MainConfigPanel::MainConfigPanel(int16_t x, int16_t y, int16_t w, int16_t h)
 void MainConfigPanel::SetSystem(SystemClass* system)
 {
     _system = (system != nullptr) ? system : &System;
+    _outputSwitch.SetValue(_system->GetOutputOn());
 }
 
 SystemClass* MainConfigPanel::GetSystem() const
@@ -59,9 +79,9 @@ Button& MainConfigPanel::GetTraceButton()
     return _traceButton;
 }
 
-Button& MainConfigPanel::GetOutputButton()
+BooleanButton& MainConfigPanel::GetOutputSwitch()
 {
-    return _outputButton;
+    return _outputSwitch;
 }
 
 void MainConfigPanel::Draw()
@@ -72,6 +92,7 @@ void MainConfigPanel::Draw()
     }
 
     UpdateLayout();
+    _outputSwitch.SetValue(_system->GetOutputOn());
     Panel::Draw();
 }
 
@@ -82,6 +103,9 @@ void MainConfigPanel::UpdateLayout()
     const int16_t w = GetWidth();
     const int16_t buttonY = y + 18;
     const int16_t buttonH = Theme::ButtonHeight;
+    const int16_t outputSwitchH = Theme::ButtonHeight - 10;
+    const int16_t outputSwitchY = buttonY + ((buttonH - outputSwitchH) / 2);
+    const int16_t outputSwitchW = 104;
     const int16_t buttonW = 118;
     const int16_t gap = 10;
 
@@ -89,7 +113,7 @@ void MainConfigPanel::UpdateLayout()
     _configButton.SetBounds(x + 8, buttonY, buttonW, buttonH);
     _awgButton.SetBounds(x + 8 + buttonW + gap, buttonY, buttonW, buttonH);
     _traceButton.SetBounds(x + 8 + ((buttonW + gap) * 2), buttonY, buttonW, buttonH);
-    _outputButton.SetBounds(x + w - 134, buttonY, 126, buttonH);
+    _outputSwitch.SetBounds(x + w - outputSwitchW - 8, outputSwitchY, outputSwitchW, outputSwitchH);
 }
 
 void MainConfigPanel::SetupButton(Button& button, const char* text)

@@ -212,16 +212,17 @@ void CurrentSourcePanel::UpdateLayout()
     const int16_t sourceModeButtonX = setupButtonX - 170;
     const int16_t limitLabelX = setupButtonX - 72;
     const int16_t rangeButtonX = x + 176;
-    const int16_t topButtonY = y + 34;
-    const int16_t limitButtonY = y + 112;
+    const int16_t controlOffsetY = -10;
+    const int16_t topButtonY = y + 34 + controlOffsetY;
+    const int16_t limitButtonY = y + 112 + controlOffsetY;
     const int16_t buttonH = Theme::ButtonHeight;
     const int16_t labelOffsetY = (buttonH - 24) / 2;
 
     _topDivider.SetBounds(x + 8, y + 8, w - 16, 1);
-    _titleLabel.SetBounds(x + 14, y + 48, 150, 28);
-    _modeLabel.SetBounds(x + 14, y + 76, 150, 28);
-    _valueLabel.SetBounds(x + 42, y + 92, 430, 90);
-    _measLabel.SetBounds(x + w - 72, y + 160, 60, 24);
+    _titleLabel.SetBounds(x + 14, y + 48 + controlOffsetY, 150, 28);
+    _modeLabel.SetBounds(x + 14, y + 76 + controlOffsetY, 150, 28);
+    _valueLabel.SetBounds(x + 42, y + 92 + controlOffsetY, 430, 90);
+    _measLabel.SetBounds(x + w - 72, y + 160 + controlOffsetY, 60, 24);
 
     _rangeLabel.SetBounds(rangeButtonX - 88, topButtonY + labelOffsetY, 80, 24);
     _rangeButton.SetBounds(rangeButtonX, topButtonY, 150, buttonH);
@@ -247,10 +248,10 @@ void CurrentSourcePanel::UpdateTexts()
     char valueText[32];
     char unitText[16];
 
-    DisplayFormat::FormatValue(DisplayQuantity::Current, _system->GetCurrent(),
-                               _measFormatState,
-                               true,
-                               valueText, sizeof(valueText), unitText, sizeof(unitText));
+    DisplayFormat::FormatFixedValue(DisplayQuantity::Current, _system->GetCurrent(),
+                                    _measFormatState,
+                                    true,
+                                    valueText, sizeof(valueText), unitText, sizeof(unitText));
     snprintf(_readingTextBuffer, sizeof(_readingTextBuffer), "%s %s", valueText, unitText);
 
     DisplayFormat::FormatValue(DisplayQuantity::Current, _system->GetCurrentSourceValue(),
