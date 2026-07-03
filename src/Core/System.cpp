@@ -19,7 +19,9 @@ void SystemClass::Reset()
     _measureMode = MeasureMode::Voltage;
     _senseMode = SenseMode::Local;
 
+    _voltageRangeMode = RangeMode::Manual;
     _voltageRange = VoltageRange::Range5V;
+    _currentRangeMode = RangeMode::Manual;
     _currentRange = CurrentRange::Range100mA;
     _resistanceRange = ResistanceRange::Auto;
     _sourceMode = SourceMode::Voltage;
@@ -97,6 +99,21 @@ void SystemClass::SetSenseMode(SenseMode mode)
     _senseMode = mode;
 }
 
+RangeMode SystemClass::GetVoltageRangeMode() const
+{
+    return _voltageRangeMode;
+}
+
+void SystemClass::SetVoltageRangeMode(RangeMode mode)
+{
+    _voltageRangeMode = mode;
+    if (_voltageRangeMode == RangeMode::Auto)
+    {
+        RecalculateAutoVoltageRange();
+    }
+    MarkDacDirty();
+}
+
 VoltageRange SystemClass::GetVoltageRange() const
 {
     return _voltageRange;
@@ -105,6 +122,10 @@ VoltageRange SystemClass::GetVoltageRange() const
 void SystemClass::SetVoltageRange(VoltageRange range)
 {
     _voltageRange = range;
+    if (_voltageRangeMode == RangeMode::Auto)
+    {
+        RecalculateAutoVoltageRange();
+    }
     MarkDacDirty();
 
     if (_voltageSourceValue < GetVoltageSourceMin() ||
@@ -122,6 +143,21 @@ void SystemClass::SetVoltageRange(VoltageRange range)
     }
 }
 
+RangeMode SystemClass::GetCurrentRangeMode() const
+{
+    return _currentRangeMode;
+}
+
+void SystemClass::SetCurrentRangeMode(RangeMode mode)
+{
+    _currentRangeMode = mode;
+    if (_currentRangeMode == RangeMode::Auto)
+    {
+        RecalculateAutoCurrentRange();
+    }
+    MarkDacDirty();
+}
+
 CurrentRange SystemClass::GetCurrentRange() const
 {
     return _currentRange;
@@ -130,6 +166,10 @@ CurrentRange SystemClass::GetCurrentRange() const
 void SystemClass::SetCurrentRange(CurrentRange range)
 {
     _currentRange = range;
+    if (_currentRangeMode == RangeMode::Auto)
+    {
+        RecalculateAutoCurrentRange();
+    }
     MarkDacDirty();
 
     if (_currentSourceValue < GetCurrentSourceMin() ||
@@ -249,6 +289,7 @@ float SystemClass::GetVoltage() const
 void SystemClass::SetVoltage(float value)
 {
     _voltage = value;
+    AutoAdjustVoltageRangeForValue(value);
     UpdateDerivedValues();
 }
 
@@ -260,6 +301,7 @@ float SystemClass::GetCurrent() const
 void SystemClass::SetCurrent(float value)
 {
     _current = value;
+    AutoAdjustCurrentRangeForValue(value);
     UpdateDerivedValues();
 }
 
@@ -295,6 +337,12 @@ float SystemClass::GetVoltageSourceValue() const
 
 void SystemClass::SetVoltageSourceValue(float value)
 {
+    if (value < GetVoltageSourceMin() || value > GetVoltageSourceMax())
+    {
+        return;
+    }
+
+    AutoAdjustVoltageRangeForValue(value);
     _voltageSourceValue = value;
     MarkDacDirty();
 }
@@ -306,14 +354,18 @@ float SystemClass::GetVoltageSourceMin() const
 
 float SystemClass::GetVoltageSourceMax() const
 {
+    if (_voltageRangeMode == RangeMode::Auto)
+    {
+        return GetVoltageRangeMax(VoltageRange::Range30V);
+    }
+
     switch (_voltageRange)
     {
         case VoltageRange::Range5V:
-            return 5.0f;
-        case VoltageRange::Auto:
+            return GetVoltageRangeMax(VoltageRange::Range5V);
         case VoltageRange::Range30V:
         default:
-            return 30.0f;
+            return GetVoltageRangeMax(VoltageRange::Range30V);
     }
 }
 
@@ -324,6 +376,12 @@ float SystemClass::GetVoltageLimitValue() const
 
 void SystemClass::SetVoltageLimitValue(float value)
 {
+    if (value < GetVoltageLimitMin() || value > GetVoltageLimitMax())
+    {
+        return;
+    }
+
+    AutoAdjustVoltageRangeForValue(value);
     _voltageLimitValue = value;
     MarkDacDirty();
 }
@@ -335,14 +393,18 @@ float SystemClass::GetVoltageLimitMin() const
 
 float SystemClass::GetVoltageLimitMax() const
 {
+    if (_voltageRangeMode == RangeMode::Auto)
+    {
+        return GetVoltageRangeMax(VoltageRange::Range30V);
+    }
+
     switch (_voltageRange)
     {
         case VoltageRange::Range5V:
-            return 5.0f;
-        case VoltageRange::Auto:
+            return GetVoltageRangeMax(VoltageRange::Range5V);
         case VoltageRange::Range30V:
         default:
-            return 30.0f;
+            return GetVoltageRangeMax(VoltageRange::Range30V);
     }
 }
 
@@ -353,6 +415,12 @@ float SystemClass::GetCurrentSourceValue() const
 
 void SystemClass::SetCurrentSourceValue(float value)
 {
+    if (value < GetCurrentSourceMin() || value > GetCurrentSourceMax())
+    {
+        return;
+    }
+
+    AutoAdjustCurrentRangeForValue(value);
     _currentSourceValue = value;
     MarkDacDirty();
 }
@@ -364,14 +432,18 @@ float SystemClass::GetCurrentSourceMin() const
 
 float SystemClass::GetCurrentSourceMax() const
 {
+    if (_currentRangeMode == RangeMode::Auto)
+    {
+        return GetCurrentRangeMax(CurrentRange::Range1A);
+    }
+
     switch (_currentRange)
     {
         case CurrentRange::Range100mA:
-            return 0.1f;
-        case CurrentRange::Auto:
+            return GetCurrentRangeMax(CurrentRange::Range100mA);
         case CurrentRange::Range1A:
         default:
-            return 1.0f;
+            return GetCurrentRangeMax(CurrentRange::Range1A);
     }
 }
 
@@ -382,6 +454,12 @@ float SystemClass::GetCurrentLimitValue() const
 
 void SystemClass::SetCurrentLimitValue(float value)
 {
+    if (value < GetCurrentLimitMin() || value > GetCurrentLimitMax())
+    {
+        return;
+    }
+
+    AutoAdjustCurrentRangeForValue(value);
     _currentLimitValue = value;
     MarkDacDirty();
 }
@@ -393,14 +471,18 @@ float SystemClass::GetCurrentLimitMin() const
 
 float SystemClass::GetCurrentLimitMax() const
 {
+    if (_currentRangeMode == RangeMode::Auto)
+    {
+        return GetCurrentRangeMax(CurrentRange::Range1A);
+    }
+
     switch (_currentRange)
     {
         case CurrentRange::Range100mA:
-            return 0.1f;
-        case CurrentRange::Auto:
+            return GetCurrentRangeMax(CurrentRange::Range100mA);
         case CurrentRange::Range1A:
         default:
-            return 1.0f;
+            return GetCurrentRangeMax(CurrentRange::Range1A);
     }
 }
 
@@ -451,7 +533,6 @@ const char* SystemClass::GetVoltageRangeText() const
 {
     switch (_voltageRange)
     {
-        case VoltageRange::Auto: return "AUTO";
         case VoltageRange::Range5V: return "5 V";
         case VoltageRange::Range30V: return "30 V";
         default: return "--";
@@ -462,7 +543,6 @@ const char* SystemClass::GetCurrentRangeText() const
 {
     switch (_currentRange)
     {
-        case CurrentRange::Auto: return "AUTO";
         case CurrentRange::Range100mA: return "100 mA";
         case CurrentRange::Range1A: return "1 A";
         default: return "--";
@@ -523,6 +603,8 @@ const char* SystemClass::GetSweepSettingText() const
 void SystemClass::ApplyResolvedResistanceRange(ResistanceRange range)
 {
     _sourceMode = SourceMode::Voltage;
+    _voltageRangeMode = RangeMode::Manual;
+    _currentRangeMode = RangeMode::Manual;
 
     switch (range)
     {
@@ -597,6 +679,92 @@ void SystemClass::UpdateDerivedValues()
     }
 }
 
+void SystemClass::AutoAdjustVoltageRangeForValue(float value)
+{
+    if (_voltageRangeMode != RangeMode::Auto)
+    {
+        return;
+    }
+
+    const VoltageRange range = (fabsf(value) <= GetVoltageRangeMax(VoltageRange::Range5V))
+        ? VoltageRange::Range5V
+        : VoltageRange::Range30V;
+
+    if (_voltageRange != range)
+    {
+        _voltageRange = range;
+        MarkDacDirty();
+    }
+}
+
+void SystemClass::AutoAdjustCurrentRangeForValue(float value)
+{
+    if (_currentRangeMode != RangeMode::Auto)
+    {
+        return;
+    }
+
+    const CurrentRange range = (fabsf(value) <= GetCurrentRangeMax(CurrentRange::Range100mA))
+        ? CurrentRange::Range100mA
+        : CurrentRange::Range1A;
+
+    if (_currentRange != range)
+    {
+        _currentRange = range;
+        MarkDacDirty();
+    }
+}
+
+void SystemClass::RecalculateAutoVoltageRange()
+{
+    if (_voltageRangeMode != RangeMode::Auto)
+    {
+        return;
+    }
+
+    const float maxValue = fmaxf(fmaxf(fabsf(_voltage), fabsf(_voltageSourceValue)),
+                                fabsf(_voltageLimitValue));
+    AutoAdjustVoltageRangeForValue(maxValue);
+}
+
+void SystemClass::RecalculateAutoCurrentRange()
+{
+    if (_currentRangeMode != RangeMode::Auto)
+    {
+        return;
+    }
+
+    const float maxValue = fmaxf(fmaxf(fabsf(_current), fabsf(_currentSourceValue)),
+                                fabsf(_currentLimitValue));
+    AutoAdjustCurrentRangeForValue(maxValue);
+}
+
+float SystemClass::GetVoltageRangeMax(VoltageRange range) const
+{
+    switch (range)
+    {
+        case VoltageRange::Range5V:
+            return 5.0f;
+
+        case VoltageRange::Range30V:
+        default:
+            return 30.0f;
+    }
+}
+
+float SystemClass::GetCurrentRangeMax(CurrentRange range) const
+{
+    switch (range)
+    {
+        case CurrentRange::Range100mA:
+            return 0.1f;
+
+        case CurrentRange::Range1A:
+        default:
+            return 1.0f;
+    }
+}
+
 void SystemClass::ExecuteSimulation()
 {
     const uint32_t now = millis();
@@ -661,20 +829,20 @@ float SystemClass::ResolveDacVSetControl() const
         const float signedVoltageLimit = (_currentSourceValue < 0.0f)
             ? -_voltageLimitValue
             : _voltageLimitValue;
-        return ScaleToDacControl(signedVoltageLimit, GetVoltageLimitMax());
+        return ScaleToDacControl(signedVoltageLimit, GetVoltageRangeMax(_voltageRange));
     }
 
-    return ScaleToDacControl(_voltageSourceValue, GetVoltageSourceMax());
+    return ScaleToDacControl(_voltageSourceValue, GetVoltageRangeMax(_voltageRange));
 }
 
 float SystemClass::ResolveDacILimitControl() const
 {
     if (_sourceMode == SourceMode::Current)
     {
-        return ScaleToDacControl(fabsf(_currentSourceValue), GetCurrentSourceMax());
+        return ScaleToDacControl(fabsf(_currentSourceValue), GetCurrentRangeMax(_currentRange));
     }
 
-    return ScaleToDacControl(_currentLimitValue, GetCurrentLimitMax());
+    return ScaleToDacControl(_currentLimitValue, GetCurrentRangeMax(_currentRange));
 }
 
 void SystemClass::MarkDacDirty()

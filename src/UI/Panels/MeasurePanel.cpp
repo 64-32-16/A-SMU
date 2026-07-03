@@ -274,44 +274,52 @@ void MeasurePanel::FormatRangeButtonText(char* buffer, size_t bufferSize)
     switch (_system->GetMeasureMode())
     {
         case MeasureMode::Voltage:
-            switch (_system->GetVoltageRange())
+            if (_system->GetVoltageRangeMode() == RangeMode::Auto)
             {
-                case VoltageRange::Auto:
-                    snprintf(buffer, bufferSize, "AUTO\n5 V");
-                    break;
+                snprintf(buffer, bufferSize, "AUTO\n%s", _system->GetVoltageRangeText());
+            }
+            else
+            {
+                switch (_system->GetVoltageRange())
+                {
 
-                case VoltageRange::Range5V:
-                    snprintf(buffer, bufferSize, "RANGE\n5 V");
-                    break;
+                    case VoltageRange::Range5V:
+                        snprintf(buffer, bufferSize, "RANGE\n5 V");
+                        break;
 
-                case VoltageRange::Range30V:
-                    snprintf(buffer, bufferSize, "RANGE\n30 V");
-                    break;
+                    case VoltageRange::Range30V:
+                        snprintf(buffer, bufferSize, "RANGE\n30 V");
+                        break;
 
-                default:
-                    snprintf(buffer, bufferSize, "--");
-                    break;
+                    default:
+                        snprintf(buffer, bufferSize, "--");
+                        break;
+                }
             }
             break;
 
         case MeasureMode::Current:
-            switch (_system->GetCurrentRange())
+            if (_system->GetCurrentRangeMode() == RangeMode::Auto)
             {
-                case CurrentRange::Auto:
-                    snprintf(buffer, bufferSize, "AUTO\n100 mA");
-                    break;
+                snprintf(buffer, bufferSize, "AUTO\n%s", _system->GetCurrentRangeText());
+            }
+            else
+            {
+                switch (_system->GetCurrentRange())
+                {
 
-                case CurrentRange::Range100mA:
-                    snprintf(buffer, bufferSize, "RANGE\n100 mA");
-                    break;
+                    case CurrentRange::Range100mA:
+                        snprintf(buffer, bufferSize, "RANGE\n100 mA");
+                        break;
 
-                case CurrentRange::Range1A:
-                    snprintf(buffer, bufferSize, "RANGE\n1 A");
-                    break;
+                    case CurrentRange::Range1A:
+                        snprintf(buffer, bufferSize, "RANGE\n1 A");
+                        break;
 
-                default:
-                    snprintf(buffer, bufferSize, "--");
-                    break;
+                    default:
+                        snprintf(buffer, bufferSize, "--");
+                        break;
+                }
             }
             break;
 

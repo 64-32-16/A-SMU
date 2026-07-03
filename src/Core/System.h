@@ -19,16 +19,20 @@ enum class SenseMode : uint8_t
     Remote
 };
 
-enum class VoltageRange : uint8_t
+enum class RangeMode : uint8_t
 {
     Auto,
+    Manual
+};
+
+enum class VoltageRange : uint8_t
+{
     Range5V,
     Range30V
 };
 
 enum class CurrentRange : uint8_t
 {
-    Auto,
     Range100mA,
     Range1A
 };
@@ -84,9 +88,13 @@ public:
     SenseMode GetSenseMode() const;
     void SetSenseMode(SenseMode mode);
 
+    RangeMode GetVoltageRangeMode() const;
+    void SetVoltageRangeMode(RangeMode mode);
     VoltageRange GetVoltageRange() const;
     void SetVoltageRange(VoltageRange range);
 
+    RangeMode GetCurrentRangeMode() const;
+    void SetCurrentRangeMode(RangeMode mode);
     CurrentRange GetCurrentRange() const;
     void SetCurrentRange(CurrentRange range);
 
@@ -166,6 +174,12 @@ public:
 private:
     void ApplyResolvedResistanceRange(ResistanceRange range);
     ResistanceRange ResolveAutoResistanceRange() const;
+    void AutoAdjustVoltageRangeForValue(float value);
+    void AutoAdjustCurrentRangeForValue(float value);
+    void RecalculateAutoVoltageRange();
+    void RecalculateAutoCurrentRange();
+    float GetVoltageRangeMax(VoltageRange range) const;
+    float GetCurrentRangeMax(CurrentRange range) const;
     void UpdateDerivedValues();
     void ExecuteSimulation();
     float ScaleToDacControl(float value, float fullScale) const;
@@ -179,7 +193,9 @@ private:
     SenseMode _senseMode;
 
     VoltageRange _voltageRange;
+    RangeMode _voltageRangeMode;
     CurrentRange _currentRange;
+    RangeMode _currentRangeMode;
     ResistanceRange _resistanceRange;
     SourceMode _sourceMode;
     OutputOffState _outputOffState;

@@ -270,23 +270,27 @@ void VoltageSourcePanel::UpdateTexts()
     snprintf(_limitTextBuffer, sizeof(_limitTextBuffer), "%s%s", valueText, unitText);
 
     _valueLabel.SetText(_readingTextBuffer);
-    switch (_system->GetVoltageRange())
+    if (_system->GetVoltageRangeMode() == RangeMode::Auto)
     {
-        case VoltageRange::Auto:
-            snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "AUTO\n5 V");
-            break;
+        snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "AUTO\n%s", _system->GetVoltageRangeText());
+    }
+    else
+    {
+        switch (_system->GetVoltageRange())
+        {
 
-        case VoltageRange::Range5V:
-            snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "RANGE\n5 V");
-            break;
+            case VoltageRange::Range5V:
+                snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "RANGE\n5 V");
+                break;
 
-        case VoltageRange::Range30V:
-            snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "RANGE\n30 V");
-            break;
+            case VoltageRange::Range30V:
+                snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "RANGE\n30 V");
+                break;
 
-        default:
-            snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "--");
-            break;
+            default:
+                snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "--");
+                break;
+        }
     }
 
     _rangeButton.SetText(_rangeTextBuffer);

@@ -270,23 +270,27 @@ void CurrentSourcePanel::UpdateTexts()
     snprintf(_limitTextBuffer, sizeof(_limitTextBuffer), "%s%s", valueText, unitText);
 
     _valueLabel.SetText(_readingTextBuffer);
-    switch (_system->GetCurrentRange())
+    if (_system->GetCurrentRangeMode() == RangeMode::Auto)
     {
-        case CurrentRange::Auto:
-            snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "AUTO\n100 mA");
-            break;
+        snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "AUTO\n%s", _system->GetCurrentRangeText());
+    }
+    else
+    {
+        switch (_system->GetCurrentRange())
+        {
 
-        case CurrentRange::Range100mA:
-            snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "RANGE\n100 mA");
-            break;
+            case CurrentRange::Range100mA:
+                snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "RANGE\n100 mA");
+                break;
 
-        case CurrentRange::Range1A:
-            snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "RANGE\n1 A");
-            break;
+            case CurrentRange::Range1A:
+                snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "RANGE\n1 A");
+                break;
 
-        default:
-            snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "--");
-            break;
+            default:
+                snprintf(_rangeTextBuffer, sizeof(_rangeTextBuffer), "--");
+                break;
+        }
     }
 
     _rangeButton.SetText(_rangeTextBuffer);

@@ -158,14 +158,14 @@ Button* SourceRangePopup::GetSelectedButton() const
 
     if (_mode == SourceMode::Voltage)
     {
+        if (_system->GetVoltageRangeMode() == RangeMode::Auto) return const_cast<Button*>(&_autoButton);
         const VoltageRange range = _system->GetVoltageRange();
-        if (range == VoltageRange::Auto) return const_cast<Button*>(&_autoButton);
         if (range == VoltageRange::Range5V) return const_cast<Button*>(&_option1Button);
         return const_cast<Button*>(&_option2Button);
     }
 
+    if (_system->GetCurrentRangeMode() == RangeMode::Auto) return const_cast<Button*>(&_autoButton);
     const CurrentRange range = _system->GetCurrentRange();
-    if (range == CurrentRange::Auto) return const_cast<Button*>(&_autoButton);
     if (range == CurrentRange::Range100mA) return const_cast<Button*>(&_option1Button);
     return const_cast<Button*>(&_option2Button);
 }
@@ -244,14 +244,16 @@ void SourceRangePopup::HandleOptionClick(Button* sender)
     {
         if (sender == &_autoButton)
         {
-            _system->SetVoltageRange(VoltageRange::Auto);
+            _system->SetVoltageRangeMode(RangeMode::Auto);
         }
         else if (sender == &_option1Button)
         {
+            _system->SetVoltageRangeMode(RangeMode::Manual);
             _system->SetVoltageRange(VoltageRange::Range5V);
         }
         else if (sender == &_option2Button)
         {
+            _system->SetVoltageRangeMode(RangeMode::Manual);
             _system->SetVoltageRange(VoltageRange::Range30V);
         }
     }
@@ -259,14 +261,16 @@ void SourceRangePopup::HandleOptionClick(Button* sender)
     {
         if (sender == &_autoButton)
         {
-            _system->SetCurrentRange(CurrentRange::Auto);
+            _system->SetCurrentRangeMode(RangeMode::Auto);
         }
         else if (sender == &_option1Button)
         {
+            _system->SetCurrentRangeMode(RangeMode::Manual);
             _system->SetCurrentRange(CurrentRange::Range100mA);
         }
         else if (sender == &_option2Button)
         {
+            _system->SetCurrentRangeMode(RangeMode::Manual);
             _system->SetCurrentRange(CurrentRange::Range1A);
         }
     }
