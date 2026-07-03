@@ -29,14 +29,16 @@ public:
 
 private:
     void UpdateTexts();
+    const char* GetModeCaption() const;
+    const char* GetModeButtonText() const;
     void FormatMainValue(char* valueBuffer, size_t valueBufferSize,
                          char* unitBuffer, size_t unitBufferSize);
+    void FormatRangeButtonText(char* buffer, size_t bufferSize);
 
 private:
     SystemClass* _system;
-    const char* _caption;
-    char _titleTextBuffer[48];
     char _readingTextBuffer[48];
+    char _rangeTextBuffer[48];
     DisplayFormatState _voltageFormatState;
     DisplayFormatState _currentFormatState;
     DisplayFormatState _resistanceFormatState;
@@ -44,6 +46,7 @@ private:
 
     Divider _topDivider;
     Label _titleLabel;
+    Label _modeLabel;
     Label _valueLabel;
     Label _azeroLabel;
     Label _rangeLabel;

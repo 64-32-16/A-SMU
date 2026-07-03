@@ -46,17 +46,16 @@ CurrentSourcePanel::CurrentSourcePanel()
     _limitLabel.SetTextColor(Theme::SourceBlue);
     _limitLabel.SetText("Limit");
 
-    _rangeButton.SetFont(Theme::FontPopupButton);
+    _rangeButton.SetFont(Theme::FontButton);
     _rangeButton.SetBackgroundColor(Theme::ButtonBackground);
     _rangeButton.SetTextColor(Theme::ButtonTextColor);
     _rangeButton.SetTextOptions(OPT_CENTER);
 
-    _sourceModeButton.SetFont(Theme::FontPopupButton);
+    _sourceModeButton.SetFont(Theme::FontButton);
     _sourceModeButton.SetBackgroundColor(Theme::ButtonBackground);
     _sourceModeButton.SetTextColor(Theme::ButtonTextColor);
     _sourceModeButton.SetTextOptions(OPT_CENTER);
     _sourceModeButton.SetText("Source:\nCURRENT(I)");
-    _sourceModeButton.SetBeepOnClick(false);
 
     _sourceButton.SetFont(Theme::FontButton);
     _sourceButton.SetBackgroundColor(Theme::ButtonBackground);
@@ -126,17 +125,16 @@ CurrentSourcePanel::CurrentSourcePanel(int16_t x, int16_t y, int16_t w, int16_t 
     _limitLabel.SetTextColor(Theme::SourceBlue);
     _limitLabel.SetText("Limit");
 
-    _rangeButton.SetFont(Theme::FontPopupButton);
+    _rangeButton.SetFont(Theme::FontButton);
     _rangeButton.SetBackgroundColor(Theme::ButtonBackground);
     _rangeButton.SetTextColor(Theme::ButtonTextColor);
     _rangeButton.SetTextOptions(OPT_CENTER);
 
-    _sourceModeButton.SetFont(Theme::FontPopupButton);
+    _sourceModeButton.SetFont(Theme::FontButton);
     _sourceModeButton.SetBackgroundColor(Theme::ButtonBackground);
     _sourceModeButton.SetTextColor(Theme::ButtonTextColor);
     _sourceModeButton.SetTextOptions(OPT_CENTER);
     _sourceModeButton.SetText("Source:\nCURRENT(I)");
-    _sourceModeButton.SetBeepOnClick(false);
 
     _sourceButton.SetFont(Theme::FontButton);
     _sourceButton.SetBackgroundColor(Theme::ButtonBackground);
@@ -180,6 +178,11 @@ Button& CurrentSourcePanel::GetRangeButton()
     return _rangeButton;
 }
 
+Button& CurrentSourcePanel::GetSourceModeButton()
+{
+    return _sourceModeButton;
+}
+
 Button& CurrentSourcePanel::GetSourceButton()
 {
     return _sourceButton;
@@ -219,8 +222,8 @@ void CurrentSourcePanel::UpdateLayout()
     const int16_t labelOffsetY = (buttonH - 24) / 2;
 
     _topDivider.SetBounds(x + 8, y + 8, w - 16, 1);
-    _titleLabel.SetBounds(x + 14, y + 48 + controlOffsetY, 150, 28);
-    _modeLabel.SetBounds(x + 14, y + 76 + controlOffsetY, 150, 28);
+    _titleLabel.SetBounds(x + 14, y + 38 + controlOffsetY, 150, 28);
+    _modeLabel.SetBounds(x + 14, y + 66 + controlOffsetY, 150, 28);
     _valueLabel.SetBounds(x + 42, y + 92 + controlOffsetY, 430, 90);
     _measLabel.SetBounds(x + w - 72, y + 160 + controlOffsetY, 60, 24);
 

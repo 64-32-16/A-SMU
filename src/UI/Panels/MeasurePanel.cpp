@@ -7,11 +7,10 @@
 
 MeasurePanel::MeasurePanel()
     : Panel(),
-      _system(&System),
-      _caption("VOLTAGE")
+      _system(&System)
 {
-    _titleTextBuffer[0] = '\0';
     _readingTextBuffer[0] = '\0';
+    _rangeTextBuffer[0] = '\0';
 
     SetShowBackground(false);
     SetShowBorder(false);
@@ -22,6 +21,11 @@ MeasurePanel::MeasurePanel()
 
     _titleLabel.SetFont(Theme::FontLabel);
     _titleLabel.SetTextColor(Theme::LabelGreen);
+    _titleLabel.SetText("MEASURE");
+
+    _modeLabel.SetFont(Theme::FontLabel);
+    _modeLabel.SetTextColor(Theme::LabelGreen);
+    _modeLabel.SetText("VOLTAGE");
 
     _valueLabel.SetFont(Theme::FontValue);
     _valueLabel.SetTextColor(Theme::ValueGreen);
@@ -48,6 +52,7 @@ MeasurePanel::MeasurePanel()
 
     AddChild(&_topDivider);
     AddChild(&_titleLabel);
+    AddChild(&_modeLabel);
     AddChild(&_valueLabel);
     AddChild(&_rangeLabel);
     AddChild(&_rangeValueLabel);
@@ -60,11 +65,10 @@ MeasurePanel::MeasurePanel()
 
 MeasurePanel::MeasurePanel(int16_t x, int16_t y, int16_t w, int16_t h)
     : Panel(x, y, w, h),
-      _system(&System),
-      _caption("VOLTAGE")
+      _system(&System)
 {
-    _titleTextBuffer[0] = '\0';
     _readingTextBuffer[0] = '\0';
+    _rangeTextBuffer[0] = '\0';
 
     SetShowBackground(false);
     SetShowBorder(false);
@@ -75,6 +79,11 @@ MeasurePanel::MeasurePanel(int16_t x, int16_t y, int16_t w, int16_t h)
 
     _titleLabel.SetFont(Theme::FontLabel);
     _titleLabel.SetTextColor(Theme::LabelGreen);
+    _titleLabel.SetText("MEASURE");
+
+    _modeLabel.SetFont(Theme::FontLabel);
+    _modeLabel.SetTextColor(Theme::LabelGreen);
+    _modeLabel.SetText("VOLTAGE");
 
     _valueLabel.SetFont(Theme::FontValue);
     _valueLabel.SetTextColor(Theme::ValueGreen);
@@ -101,6 +110,7 @@ MeasurePanel::MeasurePanel(int16_t x, int16_t y, int16_t w, int16_t h)
 
     AddChild(&_topDivider);
     AddChild(&_titleLabel);
+    AddChild(&_modeLabel);
     AddChild(&_valueLabel);
     AddChild(&_rangeLabel);
     AddChild(&_rangeValueLabel);
@@ -124,13 +134,13 @@ SystemClass* MeasurePanel::GetSystem() const
 
 void MeasurePanel::SetCaption(const char* caption)
 {
-    _caption = (caption != nullptr) ? caption : "";
+    (void)caption;
     UpdateTexts();
 }
 
 const char* MeasurePanel::GetCaption() const
 {
-    return _caption;
+    return GetModeCaption();
 }
 
 Button& MeasurePanel::GetRangeButton()
@@ -161,14 +171,18 @@ void MeasurePanel::UpdateLayout()
     const int16_t x = GetX();
     const int16_t y = GetY();
     const int16_t w = GetWidth();
-    const int16_t valueTop = y + 34;
-    const int16_t controlsTop = y + 104;
+    const int16_t controlOffsetY = -10;
+    const int16_t valueTop = y + 92 + controlOffsetY;
+    const int16_t controlsTop = y + 34 + controlOffsetY;
     const int16_t buttonH = Theme::ButtonHeight;
     const int16_t labelOffsetY = (buttonH - 24) / 2;
+    const int16_t setupButtonX = x + w - 170;
+    const int16_t measureModeButtonX = setupButtonX - 170;
     const int16_t rangeButtonX = x + 176;
 
     _topDivider.SetBounds(x + 8, y + 8, w - 16, 1);
-    _titleLabel.SetBounds(x + 14, y + 18, 300, 28);
+    _titleLabel.SetBounds(x + 14, y + 38 + controlOffsetY, 150, 28);
+    _modeLabel.SetBounds(x + 14, y + 66 + controlOffsetY, 150, 28);
     _valueLabel.SetBounds(x + 42, valueTop, 430, 64);
 
     _rangeLabel.SetVisible(false);
@@ -176,7 +190,7 @@ void MeasurePanel::UpdateLayout()
     _rangeLabel.SetBounds(rangeButtonX - 88, controlsTop + labelOffsetY, 80, 24);
     _rangeValueLabel.SetBounds(x + 14, controlsTop + 26, 120, 24);
     _rangeButton.SetBounds(rangeButtonX, controlsTop, 150, buttonH);
-    _functionButton.SetBounds(x + w - 170, controlsTop, 154, buttonH);
+    _functionButton.SetBounds(measureModeButtonX, controlsTop, 154, buttonH);
 
     const bool showRangeButton = (_system != nullptr) &&
                                  (_system->GetMeasureMode() != MeasureMode::Power);
@@ -196,9 +210,10 @@ void MeasurePanel::UpdateTexts()
     {
         snprintf(_readingTextBuffer, sizeof(_readingTextBuffer), "%s", valueText);
     }
-    snprintf(_titleTextBuffer, sizeof(_titleTextBuffer), "MEASURE %s", _caption);
+    FormatRangeButtonText(_rangeTextBuffer, sizeof(_rangeTextBuffer));
 
-    _titleLabel.SetText(_titleTextBuffer);
+    _titleLabel.SetText("MEASURE");
+    _modeLabel.SetText(GetModeCaption());
     _valueLabel.SetText(_readingTextBuffer);
 
     if (_system == nullptr)
@@ -210,8 +225,133 @@ void MeasurePanel::UpdateTexts()
     }
 
     _rangeValueLabel.SetText(_system->GetRangeText());
-    _rangeButton.SetText(_system->GetRangeText());
-    _functionButton.SetText(_caption);
+    _rangeButton.SetText(_rangeTextBuffer);
+    _functionButton.SetText(GetModeButtonText());
+}
+
+const char* MeasurePanel::GetModeCaption() const
+{
+    if (_system == nullptr)
+    {
+        return "MEASURE";
+    }
+
+    switch (_system->GetMeasureMode())
+    {
+        case MeasureMode::Voltage: return "VOLTAGE";
+        case MeasureMode::Current: return "CURRENT";
+        case MeasureMode::Resistance: return "RESISTANCE";
+        case MeasureMode::Power: return "POWER";
+        default: return "MEASURE";
+    }
+}
+
+const char* MeasurePanel::GetModeButtonText() const
+{
+    if (_system == nullptr)
+    {
+        return "Measure:\n--";
+    }
+
+    switch (_system->GetMeasureMode())
+    {
+        case MeasureMode::Voltage: return "Measure:\nVOLTS(V)";
+        case MeasureMode::Current: return "Measure:\nCURRENT(I)";
+        case MeasureMode::Resistance: return "Measure:\nRES(Ohm)";
+        case MeasureMode::Power: return "Measure:\nPOWER(W)";
+        default: return "Measure:\n--";
+    }
+}
+
+void MeasurePanel::FormatRangeButtonText(char* buffer, size_t bufferSize)
+{
+    if (_system == nullptr)
+    {
+        snprintf(buffer, bufferSize, "--");
+        return;
+    }
+
+    switch (_system->GetMeasureMode())
+    {
+        case MeasureMode::Voltage:
+            switch (_system->GetVoltageRange())
+            {
+                case VoltageRange::Auto:
+                    snprintf(buffer, bufferSize, "AUTO\n5 V");
+                    break;
+
+                case VoltageRange::Range5V:
+                    snprintf(buffer, bufferSize, "RANGE\n5 V");
+                    break;
+
+                case VoltageRange::Range30V:
+                    snprintf(buffer, bufferSize, "RANGE\n30 V");
+                    break;
+
+                default:
+                    snprintf(buffer, bufferSize, "--");
+                    break;
+            }
+            break;
+
+        case MeasureMode::Current:
+            switch (_system->GetCurrentRange())
+            {
+                case CurrentRange::Auto:
+                    snprintf(buffer, bufferSize, "AUTO\n100 mA");
+                    break;
+
+                case CurrentRange::Range100mA:
+                    snprintf(buffer, bufferSize, "RANGE\n100 mA");
+                    break;
+
+                case CurrentRange::Range1A:
+                    snprintf(buffer, bufferSize, "RANGE\n1 A");
+                    break;
+
+                default:
+                    snprintf(buffer, bufferSize, "--");
+                    break;
+            }
+            break;
+
+        case MeasureMode::Resistance:
+            switch (_system->GetResistanceRange())
+            {
+                case ResistanceRange::Auto:
+                    snprintf(buffer, bufferSize, "AUTO\nOhm");
+                    break;
+
+                case ResistanceRange::Range10Ohm:
+                    snprintf(buffer, bufferSize, "RANGE\n10 Ohm");
+                    break;
+
+                case ResistanceRange::Range100Ohm:
+                    snprintf(buffer, bufferSize, "RANGE\n100 Ohm");
+                    break;
+
+                case ResistanceRange::Range1kOhm:
+                    snprintf(buffer, bufferSize, "RANGE\n1 kOhm");
+                    break;
+
+                case ResistanceRange::Range100kOhm:
+                    snprintf(buffer, bufferSize, "RANGE\n100 kOhm");
+                    break;
+
+                default:
+                    snprintf(buffer, bufferSize, "--");
+                    break;
+            }
+            break;
+
+        case MeasureMode::Power:
+            snprintf(buffer, bufferSize, "AUTO\nW");
+            break;
+
+        default:
+            snprintf(buffer, bufferSize, "--");
+            break;
+    }
 }
 
 void MeasurePanel::FormatMainValue(char* valueBuffer, size_t valueBufferSize,

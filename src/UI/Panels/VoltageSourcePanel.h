@@ -19,6 +19,7 @@ public:
     SystemClass* GetSystem() const;
 
     Button& GetRangeButton();
+    Button& GetSourceModeButton();
     Button& GetSourceButton();
     Button& GetLimitButton();
 

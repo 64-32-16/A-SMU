@@ -109,7 +109,7 @@ void MainConfigPanel::UpdateLayout()
     const int16_t buttonW = 118;
     const int16_t gap = 10;
 
-    _topDivider.SetBounds(x, y, w, 1);
+    _topDivider.SetBounds(x, y + 3, w, 1);
     _configButton.SetBounds(x + 8, buttonY, buttonW, buttonH);
     _awgButton.SetBounds(x + 8 + buttonW + gap, buttonY, buttonW, buttonH);
     _traceButton.SetBounds(x + 8 + ((buttonW + gap) * 2), buttonY, buttonW, buttonH);

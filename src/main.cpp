@@ -7,11 +7,12 @@
 #include "UI/Core/GDClass.h"
 #include "UI/Core/Theme.h"
 #include "UI/Pages/MainPage.h"
-#include "UI/Panels/MeasureFunctionPopup.h"
+#include "UI/Panels/MeasureModePopup.h"
 #include "UI/Panels/NumberPadPopup.h"
 #include "UI/Panels/OutputOffStatePopup.h"
 #include "UI/Panels/ResistanceRangePopup.h"
 #include "UI/Panels/SourcePanel.h"
+#include "UI/Panels/SourceModePopup.h"
 #include "UI/Panels/SourceRangePopup.h"
 #include "UI/Panels/XYGraphPopup.h"
 
@@ -21,9 +22,10 @@ constexpr uint8_t BEEPER_PIN = 9;
 Container root(0, 0, 800, 480);
 MainPage mainPage(0, 0, 800, 480);
 SourceRangePopup sourceRangePopup(0, 0, 800, 480);
+SourceModePopup sourceModePopup(0, 0, 800, 480);
 ResistanceRangePopup resistanceRangePopup(0, 0, 800, 480);
 NumberPadPopup numberPadPopup(0, 0, 800, 480);
-MeasureFunctionPopup measureFunctionPopup(0, 0, 800, 480);
+MeasureModePopup measureModePopup(0, 0, 800, 480);
 OutputOffStatePopup outputOffStatePopup(0, 0, 800, 480);
 XYGraphPopup xyGraphPopup(0, 0, 800, 480);
 Ltc2602 prototypeDac;
@@ -42,43 +44,22 @@ void ApplyLayout()
 
 void UpdateCaptionFromMode()
 {
-    switch (System.GetMeasureMode())
-    {
-        case MeasureMode::Voltage:
-            mainPage.GetMeasurePanel().SetCaption("Voltage");
-            break;
-
-        case MeasureMode::Current:
-            mainPage.GetMeasurePanel().SetCaption("Current");
-            break;
-
-        case MeasureMode::Resistance:
-            mainPage.GetMeasurePanel().SetCaption("Resistance");
-            break;
-
-        case MeasureMode::Power:
-            mainPage.GetMeasurePanel().SetCaption("Power");
-            break;
-
-        default:
-            mainPage.GetMeasurePanel().SetCaption("Measure");
-            break;
-    }
+    mainPage.GetMeasurePanel().SetCaption(nullptr);
 }
 
-void OpenMeasureFunctionPopup(Button* sender)
+void OpenMeasureModePopup(Button* sender)
 {
     if (sender != &mainPage.GetMeasurePanel().GetFunctionButton())
     {
         return;
     }
 
-    measureFunctionPopup.Open();
+    measureModePopup.Open();
 }
 
-void OnMeasureFunctionPopupClosed(MeasureFunctionPopup* sender, bool accepted)
+void OnMeasureModePopupClosed(MeasureModePopup* sender, bool accepted)
 {
-    if (sender != &measureFunctionPopup)
+    if (sender != &measureModePopup)
     {
         return;
     }
@@ -159,6 +140,18 @@ void OpenNumberPadPopup(Button* sender)
     }
 }
 
+void OpenSourceModePopup(Button* sender)
+{
+    SourcePanel& sourcePanel = mainPage.GetSourcePanel();
+    if (sender != &sourcePanel.GetVoltagePanel().GetSourceModeButton() &&
+        sender != &sourcePanel.GetCurrentPanel().GetSourceModeButton())
+    {
+        return;
+    }
+
+    sourceModePopup.Open();
+}
+
 void OpenOutputOffStatePopup(Button* sender)
 {
     SourcePanel& sourcePanel = mainPage.GetSourcePanel();
@@ -212,18 +205,21 @@ void setup()
 
     mainPage.SetSystem(&System);
     sourceRangePopup.SetSystem(&System);
+    sourceModePopup.SetSystem(&System);
     resistanceRangePopup.SetSystem(&System);
     numberPadPopup.SetSystem(&System);
-    measureFunctionPopup.SetSystem(&System);
+    measureModePopup.SetSystem(&System);
     outputOffStatePopup.SetSystem(&System);
     xyGraphPopup.SetSystem(&System);
-    measureFunctionPopup.SetOnClose(OnMeasureFunctionPopupClosed);
+    measureModePopup.SetOnClose(OnMeasureModePopupClosed);
     SourcePanel& sourcePanel = mainPage.GetSourcePanel();
     sourcePanel.SetOnExpandChanged(OnSourceExpandChanged);
     mainPage.GetMeasurePanel().GetRangeButton().SetOnClick(OpenSourceRangePopup);
-    mainPage.GetMeasurePanel().GetFunctionButton().SetOnClick(OpenMeasureFunctionPopup);
+    mainPage.GetMeasurePanel().GetFunctionButton().SetOnClick(OpenMeasureModePopup);
     sourcePanel.GetVoltagePanel().GetRangeButton().SetOnClick(OpenSourceRangePopup);
     sourcePanel.GetCurrentPanel().GetRangeButton().SetOnClick(OpenSourceRangePopup);
+    sourcePanel.GetVoltagePanel().GetSourceModeButton().SetOnClick(OpenSourceModePopup);
+    sourcePanel.GetCurrentPanel().GetSourceModeButton().SetOnClick(OpenSourceModePopup);
     sourcePanel.GetVoltagePanel().GetSourceButton().SetOnClick(OpenNumberPadPopup);
     sourcePanel.GetVoltagePanel().GetLimitButton().SetOnClick(OpenNumberPadPopup);
     sourcePanel.GetCurrentPanel().GetSourceButton().SetOnClick(OpenNumberPadPopup);
@@ -236,12 +232,13 @@ void setup()
     root.AddChild(&mainPage);
 
     root.AddChild(&sourceRangePopup);
+    root.AddChild(&sourceModePopup);
     root.AddChild(&numberPadPopup);
     root.AddChild(&outputOffStatePopup);
     root.AddChild(&xyGraphPopup);
 
     root.AddChild(&resistanceRangePopup);
-    root.AddChild(&measureFunctionPopup);
+    root.AddChild(&measureModePopup);
 
     Serial.println("Setup done");
 }
