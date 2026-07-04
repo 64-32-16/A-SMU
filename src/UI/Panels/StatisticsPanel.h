@@ -21,6 +21,7 @@ public:
     void UpdateLayout();
 
 private:
+    void DrawTable() const;
     void UpdateTexts();
     void FormatStat(DisplayQuantity quantity, float value, bool showSign,
                     DisplayFormatState& state, char* buffer, size_t bufferSize);

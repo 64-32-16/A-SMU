@@ -16,6 +16,9 @@ public:
     void SetSystem(SystemClass* system);
     SystemClass* GetSystem() const;
 
+    Button& GetHomeButton();
+    Button& GetMenuButton();
+
     virtual void Draw() override;
     void UpdateLayout();
 

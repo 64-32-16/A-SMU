@@ -1,5 +1,69 @@
 # A-SMU System Rules
 
+## Output-Off Hardware-Verhalten
+
+Der Output-Off-Zustand beschreibt, wie sich die A-SMU elektrisch verhält, wenn der Benutzer den Ausgang ausschaltet.
+
+Output-Off ist nicht gleichbedeutend mit Power-Off oder SMU-Shutdown. Die SMU bleibt eingeschaltet, die Regelung und Messung können weiterhin vorbereitet oder aktiv sein. Der Ausgang wird jedoch in einen definierten sicheren Zustand gebracht.
+
+Es werden drei Output-Off-Modes vorgesehen:
+
+| Mode      | Hardware-Verhalten                                                    | Ziel                          |
+| --------- | --------------------------------------------------------------------- | ----------------------------- |
+| `Z-HIGH`  | Ausgang wird hochohmig geschaltet, Ausgangsrelais offen, Z-HIGH aktiv | DUT sicher trennen            |
+| `ZERO`    | Ausgang bleibt verbunden, Sollwert wird aktiv auf 0 V / 0 A geregelt  | DUT definiert auf Null führen |
+| `STANDBY` | Endstufe/Regler deaktiviert, DAC auf Safe-Wert, Ausgang nicht aktiv   | interner Ruhezustand          |
+
+### Z-HIGH
+
+`Z-HIGH` ist der sichere Standardzustand.
+
+Hardware-Verhalten:
+
+- Ausgangsrelais öffnen
+- Z-HIGH-Schalter aktivieren
+- FORCE-Ausgang hochohmig
+- DAC auf sicheren Wert setzen
+- Integratoren halten oder zurücksetzen
+- keine aktive Energieabgabe an den DUT
+
+Dieser Zustand wird verwendet bei:
+
+- Power-On
+- Fault
+- Range-Wechsel
+- Open-Sense-Fehler
+- Benutzer schaltet Output OFF
+- SMU-Shutdown
+
+### ZERO
+
+`ZERO` ist ein aktiver Regelzustand.
+
+Hardware-Verhalten:
+
+- Ausgang bleibt mit DUT verbunden
+- Regler bleibt aktiv
+- Sollwert wird auf 0 gesetzt
+- Limits bleiben aktiv
+- Ausgang wird kontrolliert gegen 0 V / 0 A geregelt
+
+Wichtig: `ZERO` ist kein vollständig sicherer Trennzustand. Bei unbekanntem DUT, externer Energiequelle oder Fehlerzustand ist `Z-HIGH` zu verwenden.
+
+### STANDBY
+
+`STANDBY` ist ein interner Ruhezustand.
+
+Hardware-Verhalten:
+
+- Endstufe gesperrt
+- DAC auf Safe-Wert
+- Regler deaktiviert oder Integratoren Reset
+- Ausgang nicht aktiv
+- Z-HIGH je nach Sicherheitsanforderung aktiv
+
+Für V1 kann `STANDBY` zunächst intern bleiben. Sichtbar für den Benutzer sind zuerst `Z-HIGH` und optional `ZERO`.
+
 ## State Ownership
 
 - `SystemClass` is the single source of truth for domain values and settings.

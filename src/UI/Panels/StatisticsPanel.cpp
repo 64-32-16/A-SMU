@@ -1,6 +1,7 @@
 #include "StatisticsPanel.h"
 
 #include <stdio.h>
+#include "../Core/GDClass.h"
 #include "../Core/Theme.h"
 
 StatisticsPanel::StatisticsPanel()
@@ -13,15 +14,17 @@ StatisticsPanel::StatisticsPanel()
 
     auto setupLegend = [](Label& label, const char* text)
     {
-        label.SetFont(Theme::FontLabel);
+        label.SetFont(Theme::FontPopupTitle);
         label.SetTextColor(Theme::SourceBlue);
+        label.SetTextOptions(OPT_CENTERY);
         label.SetText(text);
     };
 
     auto setupValue = [](Label& label)
     {
-        label.SetFont(Theme::FontLabel);
+        label.SetFont(Theme::FontPopupTitle);
         label.SetTextColor(Theme::HeaderText);
+        label.SetTextOptions(OPT_CENTERY);
     };
 
     setupLegend(_legendValue, "Value:");
@@ -30,12 +33,14 @@ StatisticsPanel::StatisticsPanel()
     setupLegend(_legendMin, "Min:");
     setupLegend(_legendMax, "Max:");
 
-    _currentHeader.SetFont(Theme::FontLabel);
+    _currentHeader.SetFont(Theme::FontPopupTitle);
     _currentHeader.SetTextColor(Theme::LabelGreen);
+    _currentHeader.SetTextOptions(OPT_CENTERY);
     _currentHeader.SetText("Current");
 
-    _voltageHeader.SetFont(Theme::FontLabel);
+    _voltageHeader.SetFont(Theme::FontPopupTitle);
     _voltageHeader.SetTextColor(Theme::SourceBlue);
+    _voltageHeader.SetTextOptions(OPT_CENTERY);
     _voltageHeader.SetText("Voltage");
 
     setupValue(_currentValue);
@@ -109,6 +114,7 @@ void StatisticsPanel::Draw()
 
     UpdateLayout();
     UpdateTexts();
+    DrawTable();
     Panel::Draw();
 }
 
@@ -116,36 +122,104 @@ void StatisticsPanel::UpdateLayout()
 {
     const int16_t x = GetX();
     const int16_t y = GetY();
-    const int16_t leftX = x + 18;
-    const int16_t voltageX = x + 170;
-    const int16_t currentX = x + 400;
-    const int16_t row0 = y + 16;
-    const int16_t rowStep = 30;
+    const int16_t tableX = x + 20;
+    const int16_t tableY = y + 24;
+    const int16_t rowH = 42;
+    const int16_t statX = tableX + 16;
+    const int16_t voltageX = tableX + 178;
+    const int16_t currentX = tableX + 404;
+    const int16_t labelH = 34;
+    const int16_t headerCenterY = tableY + (rowH / 2);
+    const int16_t statusX = x + GetWidth() - 160;
 
-    _voltageHeader.SetBounds(voltageX, row0, 160, 24);
-    _currentHeader.SetBounds(currentX, row0, 160, 24);
+    _voltageHeader.SetBounds(voltageX, headerCenterY, 190, labelH);
+    _currentHeader.SetBounds(currentX, headerCenterY, 190, labelH);
 
-    _legendValue.SetBounds(leftX, row0 + rowStep, 110, 24);
-    _legendPeak.SetBounds(leftX, row0 + (rowStep * 2), 110, 24);
-    _legendAverage.SetBounds(leftX, row0 + (rowStep * 3), 110, 24);
-    _legendMin.SetBounds(leftX, row0 + (rowStep * 4), 110, 24);
-    _legendMax.SetBounds(leftX, row0 + (rowStep * 5), 110, 24);
+    _legendValue.SetBounds(statX, tableY + rowH + (rowH / 2), 140, labelH);
+    _legendPeak.SetBounds(statX, tableY + (rowH * 2) + (rowH / 2), 140, labelH);
+    _legendAverage.SetBounds(statX, tableY + (rowH * 3) + (rowH / 2), 140, labelH);
+    _legendMin.SetBounds(statX, tableY + (rowH * 4) + (rowH / 2), 140, labelH);
+    _legendMax.SetBounds(statX, tableY + (rowH * 5) + (rowH / 2), 140, labelH);
 
-    _voltageValue.SetBounds(voltageX, row0 + rowStep, 190, 24);
-    _voltagePeak.SetBounds(voltageX, row0 + (rowStep * 2), 190, 24);
-    _voltageAverage.SetBounds(voltageX, row0 + (rowStep * 3), 190, 24);
-    _voltageMin.SetBounds(voltageX, row0 + (rowStep * 4), 190, 24);
-    _voltageMax.SetBounds(voltageX, row0 + (rowStep * 5), 190, 24);
+    _voltageValue.SetBounds(voltageX, tableY + rowH + (rowH / 2), 210, labelH);
+    _voltagePeak.SetBounds(voltageX, tableY + (rowH * 2) + (rowH / 2), 210, labelH);
+    _voltageAverage.SetBounds(voltageX, tableY + (rowH * 3) + (rowH / 2), 210, labelH);
+    _voltageMin.SetBounds(voltageX, tableY + (rowH * 4) + (rowH / 2), 210, labelH);
+    _voltageMax.SetBounds(voltageX, tableY + (rowH * 5) + (rowH / 2), 210, labelH);
 
-    _currentValue.SetBounds(currentX, row0 + rowStep, 190, 24);
-    _currentPeak.SetBounds(currentX, row0 + (rowStep * 2), 190, 24);
-    _currentAverage.SetBounds(currentX, row0 + (rowStep * 3), 190, 24);
-    _currentMin.SetBounds(currentX, row0 + (rowStep * 4), 190, 24);
-    _currentMax.SetBounds(currentX, row0 + (rowStep * 5), 190, 24);
+    _currentValue.SetBounds(currentX, tableY + rowH + (rowH / 2), 210, labelH);
+    _currentPeak.SetBounds(currentX, tableY + (rowH * 2) + (rowH / 2), 210, labelH);
+    _currentAverage.SetBounds(currentX, tableY + (rowH * 3) + (rowH / 2), 210, labelH);
+    _currentMin.SetBounds(currentX, tableY + (rowH * 4) + (rowH / 2), 210, labelH);
+    _currentMax.SetBounds(currentX, tableY + (rowH * 5) + (rowH / 2), 210, labelH);
 
-    _bufferInfoLabel.SetBounds(x + 560, row0 + 2, 100, 24);
-    _bufferInfoValue.SetBounds(x + 660, row0 + 2, 80, 24);
-    _clearButton.SetBounds(x + 586, row0 + 96, 144, 42);
+    _bufferInfoLabel.SetBounds(statusX, tableY + 34, 116, labelH);
+    _bufferInfoValue.SetBounds(statusX + 108, tableY + 34, 48, labelH);
+    _clearButton.SetBounds(statusX, tableY + 92, 144, 46);
+}
+
+void StatisticsPanel::DrawTable() const
+{
+    const int16_t x = GetX();
+    const int16_t y = GetY();
+    const int16_t tableX = x + 20;
+    const int16_t tableY = y + 24;
+    const int16_t tableW = GetWidth() - 200;
+    const int16_t rowH = 42;
+    const int16_t rows = 6;
+    const int16_t tableH = rowH * rows;
+    const int16_t statColW = 162;
+    const int16_t voltageColW = 226;
+    const int16_t statusX = x + GetWidth() - 174;
+    const int16_t statusW = 154;
+
+    GD.SaveContext();
+
+    GD.ColorRGB(Theme::PanelBackground);
+    GD.Begin(RECTS);
+    GD.Vertex2f(tableX, tableY);
+    GD.Vertex2f(tableX + tableW, tableY + tableH);
+    GD.Vertex2f(statusX, tableY);
+    GD.Vertex2f(statusX + statusW, tableY + tableH);
+
+    GD.ColorRGB(Theme::ToolbarButtonBackground);
+    GD.Begin(RECTS);
+    GD.Vertex2f(tableX, tableY);
+    GD.Vertex2f(tableX + tableW, tableY + rowH);
+
+    GD.ColorRGB(Theme::PanelBorder);
+    GD.LineWidth(8);
+    GD.Begin(LINES);
+
+    for (int16_t i = 0; i <= rows; ++i)
+    {
+        const int16_t lineY = tableY + (rowH * i);
+        GD.Vertex2f(tableX, lineY);
+        GD.Vertex2f(tableX + tableW, lineY);
+    }
+
+    const int16_t voltageDividerX = tableX + statColW;
+    const int16_t currentDividerX = voltageDividerX + voltageColW;
+
+    GD.Vertex2f(tableX, tableY);
+    GD.Vertex2f(tableX, tableY + tableH);
+    GD.Vertex2f(voltageDividerX, tableY);
+    GD.Vertex2f(voltageDividerX, tableY + tableH);
+    GD.Vertex2f(currentDividerX, tableY);
+    GD.Vertex2f(currentDividerX, tableY + tableH);
+    GD.Vertex2f(tableX + tableW, tableY);
+    GD.Vertex2f(tableX + tableW, tableY + tableH);
+
+    GD.Vertex2f(statusX, tableY);
+    GD.Vertex2f(statusX + statusW, tableY);
+    GD.Vertex2f(statusX + statusW, tableY);
+    GD.Vertex2f(statusX + statusW, tableY + tableH);
+    GD.Vertex2f(statusX + statusW, tableY + tableH);
+    GD.Vertex2f(statusX, tableY + tableH);
+    GD.Vertex2f(statusX, tableY + tableH);
+    GD.Vertex2f(statusX, tableY);
+
+    GD.RestoreContext();
 }
 
 void StatisticsPanel::UpdateTexts()

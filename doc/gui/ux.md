@@ -266,3 +266,17 @@ Regeln:
 - Format für große Hauptwerte: Vorzeichen, drei Stellen vor dem Dezimaltrenner, vier Nachkommastellen.
 - Dieses feste Format gilt nur für die großen Source-/Measure-Hauptwerte.
 - Buttons, Popups, NumberPad, Statistik und Graph-Achsen dürfen weiterhin kompakter formatiert werden.
+
+
+### 6.1 TRACE
+
+
+Aufbau
+
+A.) Toolbar wie bei Main
+B.) Graph
+C.) Config ( GRAPH | STATIC | ) 
+
+
+
+#### 6.1.1 Graph

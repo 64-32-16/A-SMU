@@ -30,6 +30,16 @@ SystemClass* HeaderPanel::GetSystem() const
     return _system;
 }
 
+Button& HeaderPanel::GetHomeButton()
+{
+    return _homeButton;
+}
+
+Button& HeaderPanel::GetMenuButton()
+{
+    return _menuButton;
+}
+
 void HeaderPanel::Draw()
 {
     if (!IsVisible())

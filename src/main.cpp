@@ -7,6 +7,7 @@
 #include "UI/Core/GDClass.h"
 #include "UI/Core/Theme.h"
 #include "UI/Pages/MainPage.h"
+#include "UI/Pages/TracePage.h"
 #include "UI/Panels/MeasureModePopup.h"
 #include "UI/Panels/NumberPadPopup.h"
 #include "UI/Panels/OutputOffStatePopup.h"
@@ -21,6 +22,7 @@ constexpr uint8_t BEEPER_PIN = 9;
 
 Container root(0, 0, 800, 480);
 MainPage mainPage(0, 0, 800, 480);
+TracePage tracePage(0, 0, 800, 480);
 SourceRangePopup sourceRangePopup(0, 0, 800, 480);
 SourceModePopup sourceModePopup(0, 0, 800, 480);
 ResistanceRangePopup resistanceRangePopup(0, 0, 800, 480);
@@ -40,11 +42,47 @@ void ApplyLayout()
 {
     mainPage.SetBounds(0, 0, 800, 480);
     mainPage.UpdateLayout();
+    tracePage.SetBounds(0, 0, 800, 480);
+    tracePage.UpdateLayout();
 }
 
 void UpdateCaptionFromMode()
 {
     mainPage.GetMeasurePanel().SetCaption(nullptr);
+}
+
+void ShowMainPage()
+{
+    mainPage.SetVisible(true);
+    tracePage.SetVisible(false);
+}
+
+void ShowTracePage()
+{
+    mainPage.SetVisible(false);
+    tracePage.SetVisible(true);
+    tracePage.SetActiveView(TraceConfigView::Graph);
+}
+
+void OpenMainPage(Button* sender)
+{
+    if (sender != &mainPage.GetHeaderPanel().GetHomeButton() &&
+        sender != &tracePage.GetHeaderPanel().GetHomeButton())
+    {
+        return;
+    }
+
+    ShowMainPage();
+}
+
+void OpenTracePage(Button* sender)
+{
+    if (sender != &mainPage.GetConfigPanel().GetTraceButton())
+    {
+        return;
+    }
+
+    ShowTracePage();
 }
 
 void OpenMeasureModePopup(Button* sender)
@@ -204,6 +242,7 @@ void setup()
     System.SetDacOutput(&prototypeDac);
 
     mainPage.SetSystem(&System);
+    tracePage.SetSystem(&System);
     sourceRangePopup.SetSystem(&System);
     sourceModePopup.SetSystem(&System);
     resistanceRangePopup.SetSystem(&System);
@@ -213,6 +252,9 @@ void setup()
     xyGraphPopup.SetSystem(&System);
     measureModePopup.SetOnClose(OnMeasureModePopupClosed);
     SourcePanel& sourcePanel = mainPage.GetSourcePanel();
+    mainPage.GetHeaderPanel().GetHomeButton().SetOnClick(OpenMainPage);
+    tracePage.GetHeaderPanel().GetHomeButton().SetOnClick(OpenMainPage);
+    mainPage.GetConfigPanel().GetTraceButton().SetOnClick(OpenTracePage);
     sourcePanel.SetOnExpandChanged(OnSourceExpandChanged);
     mainPage.GetMeasurePanel().GetRangeButton().SetOnClick(OpenSourceRangePopup);
     mainPage.GetMeasurePanel().GetFunctionButton().SetOnClick(OpenMeasureModePopup);
@@ -227,9 +269,11 @@ void setup()
     sourcePanel.GetMenuPanel().GetOutputOffStateButton().SetOnClick(OpenOutputOffStatePopup);
     sourcePanel.GetMenuPanel().GetGraphButton().SetOnClick(OpenXYGraphPopup);
     UpdateCaptionFromMode();
+    ShowMainPage();
     ApplyLayout();
 
     root.AddChild(&mainPage);
+    root.AddChild(&tracePage);
 
     root.AddChild(&sourceRangePopup);
     root.AddChild(&sourceModePopup);
