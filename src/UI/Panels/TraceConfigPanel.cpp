@@ -15,27 +15,21 @@ TraceConfigPanel::TraceConfigPanel()
 {
     g_traceConfigPanel = this;
 
-    SetShowBackground(false);
+    SetShowBackground(true);
+    SetBackgroundColor(Theme::MainScreenBackground);
     SetShowBorder(false);
     SetShowTitle(false);
 
-    _topDivider.SetColor(Theme::SourceBlue);
-    _topDivider.SetThickness(16);
 
-    SetupButton(_graphButton, "GRAPH");
-    SetupButton(_statisticsButton, "STATISTICS");
+    SetupButton(_graphButton, "Graph");
+    SetupButton(_statisticsButton, "Statistics");
 
     _graphButton.SetOnClick(OnGraphClick);
     _statisticsButton.SetOnClick(OnStatisticsClick);
 
-    _outputSwitch.SetCaption("");
-    _outputSwitch.SetValue(_system->GetOutputOn());
-    _outputSwitch.SetOnChange(OnOutputSwitchChanged);
 
-    AddChild(&_topDivider);
     AddChild(&_graphButton);
     AddChild(&_statisticsButton);
-    AddChild(&_outputSwitch);
 
     UpdateButtonStyles();
     UpdateLayout();
@@ -51,7 +45,6 @@ TraceConfigPanel::TraceConfigPanel(int16_t x, int16_t y, int16_t w, int16_t h)
 void TraceConfigPanel::SetSystem(SystemClass* system)
 {
     _system = (system != nullptr) ? system : &System;
-    _outputSwitch.SetValue(_system->GetOutputOn());
 }
 
 SystemClass* TraceConfigPanel::GetSystem() const
@@ -96,11 +89,6 @@ Button& TraceConfigPanel::GetStatisticsButton()
     return _statisticsButton;
 }
 
-BooleanButton& TraceConfigPanel::GetOutputSwitch()
-{
-    return _outputSwitch;
-}
-
 void TraceConfigPanel::Draw()
 {
     if (!IsVisible())
@@ -109,28 +97,26 @@ void TraceConfigPanel::Draw()
     }
 
     UpdateLayout();
-    _outputSwitch.SetValue(_system->GetOutputOn());
+    GD.SaveContext();
+    // Rectangle coordinates are pixels, independent of preceding EVE widgets.
+    GD.VertexFormat(0);
+    GD.ColorA(255);
+    GD.LineWidth(1);
     Panel::Draw();
+    GD.RestoreContext();
 }
 
 void TraceConfigPanel::UpdateLayout()
 {
     const int16_t x = GetX();
     const int16_t y = GetY();
-    const int16_t w = GetWidth();
-    const int16_t buttonY = y + 18;
-    const int16_t buttonH = Theme::ButtonHeight;
-    const int16_t outputSwitchH = Theme::ButtonHeight - 10;
-    const int16_t outputSwitchY = buttonY + ((buttonH - outputSwitchH) / 2);
-    const int16_t outputSwitchW = 104;
+    const int16_t buttonH = GetHeight();
     const int16_t graphButtonW = 132;
     const int16_t statisticsButtonW = 178;
-    const int16_t gap = 10;
+    const int16_t gap = 4;
 
-    _topDivider.SetBounds(x, y + 3, w, 1);
-    _graphButton.SetBounds(x + 8, buttonY, graphButtonW, buttonH);
-    _statisticsButton.SetBounds(x + 8 + graphButtonW + gap, buttonY, statisticsButtonW, buttonH);
-    _outputSwitch.SetBounds(x + w - outputSwitchW - 8, outputSwitchY, outputSwitchW, outputSwitchH);
+    _graphButton.SetBounds(x, y, graphButtonW, buttonH);
+    _statisticsButton.SetBounds(x + graphButtonW + gap, y, statisticsButtonW, buttonH);
 }
 
 void TraceConfigPanel::SetupButton(Button& button, const char* text)
@@ -144,9 +130,9 @@ void TraceConfigPanel::SetupButton(Button& button, const char* text)
 void TraceConfigPanel::UpdateButtonStyles()
 {
     _graphButton.SetBackgroundColor(
-        _activeView == TraceConfigView::Graph ? Theme::SourceBlue : Theme::ToolbarButtonBackground);
+        _activeView == TraceConfigView::Graph ? Theme::SourceBlue : Theme::FlatToolbarBackground);
     _statisticsButton.SetBackgroundColor(
-        _activeView == TraceConfigView::Statistics ? Theme::SourceBlue : Theme::ToolbarButtonBackground);
+        _activeView == TraceConfigView::Statistics ? Theme::SourceBlue : Theme::FlatToolbarBackground);
 }
 
 void TraceConfigPanel::OnGraphClick(Button* sender)
@@ -167,14 +153,4 @@ void TraceConfigPanel::OnStatisticsClick(Button* sender)
     }
 
     g_traceConfigPanel->SetActiveView(TraceConfigView::Statistics);
-}
-
-void TraceConfigPanel::OnOutputSwitchChanged(BooleanButton* sender, bool value)
-{
-    if (g_traceConfigPanel == nullptr || sender != &g_traceConfigPanel->GetOutputSwitch())
-    {
-        return;
-    }
-
-    g_traceConfigPanel->GetSystem()->SetOutputOn(value);
 }

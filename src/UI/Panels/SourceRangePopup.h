@@ -46,8 +46,7 @@ private:
 
     Label _titleLabel;
     Button _autoButton;
-    Button _option1Button;
-    Button _option2Button;
+    Button _rangeButtons[SystemClass::CurrentRangeCount];
     Button _cancelButton;
 };
 

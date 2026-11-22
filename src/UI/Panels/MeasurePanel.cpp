@@ -39,14 +39,16 @@ MeasurePanel::MeasurePanel()
     _rangeValueLabel.SetTextColor(Theme::LabelGreen);
 
     _rangeButton.SetFont(Theme::FontButton);
-    _rangeButton.SetBackgroundColor(Theme::ButtonBackground);
-    _rangeButton.SetTextColor(Theme::ButtonTextColor);
+    _rangeButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _rangeButton.SetCornerRadius(0);
+    _rangeButton.SetTextColor(Theme::MainButtonText);
     _rangeButton.SetTextOptions(OPT_CENTER);
     _rangeButton.SetText("--");
 
     _functionButton.SetFont(Theme::FontButton);
-    _functionButton.SetBackgroundColor(Theme::ButtonBackground);
-    _functionButton.SetTextColor(Theme::ButtonTextColor);
+    _functionButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _functionButton.SetCornerRadius(0);
+    _functionButton.SetTextColor(Theme::MainButtonText);
     _functionButton.SetTextOptions(OPT_CENTER);
     _functionButton.SetText("Function");
 
@@ -97,14 +99,16 @@ MeasurePanel::MeasurePanel(int16_t x, int16_t y, int16_t w, int16_t h)
     _rangeValueLabel.SetTextColor(Theme::LabelGreen);
 
     _rangeButton.SetFont(Theme::FontButton);
-    _rangeButton.SetBackgroundColor(Theme::ButtonBackground);
-    _rangeButton.SetTextColor(Theme::ButtonTextColor);
+    _rangeButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _rangeButton.SetCornerRadius(0);
+    _rangeButton.SetTextColor(Theme::MainButtonText);
     _rangeButton.SetTextOptions(OPT_CENTER);
     _rangeButton.SetText("--");
 
     _functionButton.SetFont(Theme::FontButton);
-    _functionButton.SetBackgroundColor(Theme::ButtonBackground);
-    _functionButton.SetTextColor(Theme::ButtonTextColor);
+    _functionButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _functionButton.SetCornerRadius(0);
+    _functionButton.SetTextColor(Theme::MainButtonText);
     _functionButton.SetTextOptions(OPT_CENTER);
     _functionButton.SetText("Function");
 
@@ -171,30 +175,18 @@ void MeasurePanel::UpdateLayout()
     const int16_t x = GetX();
     const int16_t y = GetY();
     const int16_t w = GetWidth();
-    const int16_t controlOffsetY = -10;
-    const int16_t valueTop = y + 92 + controlOffsetY;
-    const int16_t controlsTop = y + 34 + controlOffsetY;
-    const int16_t buttonH = Theme::ButtonHeight;
-    const int16_t labelOffsetY = (buttonH - 24) / 2;
-    const int16_t setupButtonX = x + w - 170;
-    const int16_t measureModeButtonX = setupButtonX - 170;
-    const int16_t rangeButtonX = x + 176;
-
-    _topDivider.SetBounds(x + 8, y + 8, w - 16, 1);
-    _titleLabel.SetBounds(x + 14, y + 38 + controlOffsetY, 150, 28);
-    _modeLabel.SetBounds(x + 14, y + 66 + controlOffsetY, 150, 28);
-    _valueLabel.SetBounds(x + 42, valueTop, 430, 64);
-
-    _rangeLabel.SetVisible(false);
+    _topDivider.SetVisible(false);
+    _titleLabel.SetBounds(x + 12, y + 4, 150, 28);
+    _modeLabel.SetBounds(x + 162, y + 4, 200, 28);
+    _valueLabel.SetBounds(x + 20, y + 38, w - 40, 72);
+    _rangeLabel.SetVisible(true);
+    _rangeLabel.SetBounds(x + 12, y + 140, 80, 24);
     _rangeValueLabel.SetVisible(false);
-    _rangeLabel.SetBounds(rangeButtonX - 88, controlsTop + labelOffsetY, 80, 24);
-    _rangeValueLabel.SetBounds(x + 14, controlsTop + 26, 120, 24);
-    _rangeButton.SetBounds(rangeButtonX, controlsTop, 150, buttonH);
-    _functionButton.SetBounds(measureModeButtonX, controlsTop, 154, buttonH);
-
-    const bool showRangeButton = (_system != nullptr) &&
-                                 (_system->GetMeasureMode() != MeasureMode::Power);
-    _rangeButton.SetVisible(showRangeButton);
+    _rangeButton.SetBounds(x + 100, y + 128, 150, 47);
+    _functionButton.SetBounds(x + w - 170, y + 128, 158, 47);
+    const bool showRange = _system->GetMeasureMode() != MeasureMode::Power;
+    _rangeButton.SetVisible(showRange);
+    _rangeLabel.SetVisible(showRange);
 }
 
 void MeasurePanel::UpdateTexts()
@@ -305,21 +297,7 @@ void MeasurePanel::FormatRangeButtonText(char* buffer, size_t bufferSize)
             }
             else
             {
-                switch (_system->GetCurrentRange())
-                {
-
-                    case CurrentRange::Range100mA:
-                        snprintf(buffer, bufferSize, "RANGE\n100 mA");
-                        break;
-
-                    case CurrentRange::Range1A:
-                        snprintf(buffer, bufferSize, "RANGE\n1 A");
-                        break;
-
-                    default:
-                        snprintf(buffer, bufferSize, "--");
-                        break;
-                }
+                snprintf(buffer, bufferSize, "RANGE\n%s", _system->GetCurrentRangeText());
             }
             break;
 
@@ -372,6 +350,9 @@ void MeasurePanel::FormatMainValue(char* valueBuffer, size_t valueBufferSize,
         return;
     }
 
+    if(_system->GetMeasurement().Fault!=Hardware::Error::None) {
+        snprintf(valueBuffer,valueBufferSize,"---");if(unitBufferSize) unitBuffer[0]='\0';return;
+    }
     switch (_system->GetMeasureMode())
     {
         case MeasureMode::Voltage:
@@ -387,7 +368,7 @@ void MeasurePanel::FormatMainValue(char* valueBuffer, size_t valueBufferSize,
                                             valueBuffer, valueBufferSize, unitBuffer, unitBufferSize);
             break;
         case MeasureMode::Resistance:
-            if (fabsf(_system->GetCurrent()) < 1e-9f)
+            if (!_system->GetMeasurement().HasValidResistance())
             {
                 snprintf(valueBuffer, valueBufferSize, "---");
                 if (unitBufferSize > 0)

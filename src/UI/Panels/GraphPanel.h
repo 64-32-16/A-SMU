@@ -1,40 +1,36 @@
 #ifndef _GRAPH_PANEL_H_INCLUDED
 #define _GRAPH_PANEL_H_INCLUDED
 
-#include <Arduino.h>
 #include "../Core/Panel.h"
-#include "../Core/DisplayFormat.h"
+#include "../Core/GraphState.h"
+#include "../Core/TouchFrame.h"
 #include "../../Core/System.h"
 
+// Compact live view using the same data preparation and GD renderer as GraphPage.
+// Navigation and buttons remain the responsibility of the parent MainPage.
 class GraphPanel : public Panel
 {
 public:
     GraphPanel();
-    GraphPanel(int16_t x, int16_t y, int16_t w, int16_t h);
-
+    GraphPanel(int16_t x,int16_t y,int16_t w,int16_t h);
     void SetSystem(SystemClass* system);
     SystemClass* GetSystem() const;
-
-    virtual void Draw() override;
-
-private:
-    void DrawGrid(int16_t plotX, int16_t plotY, int16_t plotW, int16_t plotH) const;
-    void DrawLabels(int16_t plotX, int16_t plotY, int16_t plotH, float minValue, float maxValue, DisplayQuantity quantity, bool showSign);
-    void DrawTrace(int16_t plotX, int16_t plotY, int16_t plotW, int16_t plotH, float minValue, float maxValue, MeasureMode mode);
-    float GetSampleValue(const BufferSample& sample, MeasureMode mode, bool* valid = nullptr) const;
-    DisplayQuantity GetDisplayQuantity(MeasureMode mode) const;
-    bool GetShowSign(MeasureMode mode) const;
+    void Draw() override;
+    bool InPlot(int x,int y) const;
+    void TouchStart(int16_t x,int16_t y) override;
+    void TouchMove(int16_t x,int16_t y) override;
+    void TouchEnd(int16_t x,int16_t y) override;
+    void CancelTouch();
+    bool HandleMultiTouch(const TouchFrame& frame,bool allowStart=true);
+    const GraphState& GetGraphState() const {return _state;}
 
 private:
-    static const uint16_t MaxPlotSamples = 200;
-
     SystemClass* _system;
-    BufferSample _plotSamples[MaxPlotSamples];
-    DisplayFormatState _voltageAxisState;
-    DisplayFormatState _currentAxisState;
-    DisplayFormatState _resistanceAxisState;
-    DisplayFormatState _powerAxisState;
-    char _labelBuffers[7][24];
+    GraphState _state;
+    uint16_t _previousCount=0;
+    bool _drag=false,_moved=false,_multiBlocked=false,_hasTap=false;
+    int16_t _lastX=0,_lastY=0,_tapX=0,_tapY=0;
+    uint32_t _lastTapMs=0;
+    BufferSample _samples[BufferClass::Capacity];
 };
-
 #endif

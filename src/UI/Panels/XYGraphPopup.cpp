@@ -348,11 +348,11 @@ float XYGraphPopup::GetAxisValue(const BufferSample& sample, XYGraphAxis axis, b
             value = sample.Current;
             break;
         case XYGraphAxis::Resistance:
-            isValid = sample.ResistanceValid;
-            value = sample.Resistance;
+            isValid = sample.HasValidResistance();
+            value = sample.GetResistance();
             break;
         case XYGraphAxis::Power:
-            value = sample.Power;
+            value = sample.GetPower();
             break;
         default:
             value = 0.0f;

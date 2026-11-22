@@ -3,9 +3,7 @@
 
 #include <Arduino.h>
 #include "../Core/Panel.h"
-#include "../Controls/BooleanButton.h"
-#include "../Controls/Button.h"
-#include "../Controls/Divider.h"
+#include "../Controls/ToolbarButton.h"
 #include "../../Core/System.h"
 
 class MainConfigPanel : public Panel
@@ -20,7 +18,6 @@ public:
     Button& GetConfigButton();
     Button& GetAwgButton();
     Button& GetTraceButton();
-    BooleanButton& GetOutputSwitch();
 
     virtual void Draw() override;
     void UpdateLayout();
@@ -30,11 +27,9 @@ private:
 
 private:
     SystemClass* _system;
-    Divider _topDivider;
-    Button _configButton;
-    Button _awgButton;
-    Button _traceButton;
-    BooleanButton _outputSwitch;
+    ToolbarButton _configButton;
+    ToolbarButton _awgButton;
+    ToolbarButton _traceButton;
 };
 
 #endif

@@ -2,12 +2,13 @@
 #define _BEEPER_H_INCLUDED
 
 #include <Arduino.h>
+#include <drivers/Timeout.h>
 
 /**
  * @brief Einfache nicht-blockierende Beeper-Klasse.
  *
  * Die Klasse schaltet einen aktiven Beeper für eine definierte Zeit ein
- * und beendet den Ton automatisch wieder in Update().
+ * und beendet den Ton durch einen Mbed-Timer-Interrupt, unabhängig von der GUI.
  */
 class BeeperClass
 {
@@ -24,13 +25,6 @@ public:
      * @param activeHigh true = HIGH schaltet ein, false = LOW schaltet ein
      */
     void Begin(uint8_t pin, bool activeHigh = true);
-
-    /**
-     * @brief Muss zyklisch aufgerufen werden.
-     *
-     * Beendet laufende Beeps automatisch, wenn die Dauer abgelaufen ist.
-     */
-    void Update();
 
     /**
      * @brief Startet einen Beep mit beliebiger Dauer.
@@ -61,13 +55,14 @@ public:
 
 private:
     void SetOutput(bool on);
+    void OnTimeout();
 
 private:
     uint8_t _pin;
     bool _activeHigh;
     bool _initialized;
-    bool _active;
-    uint32_t _endTimeMs;
+    volatile bool _active;
+    mbed::Timeout _timeout;
 };
 
 extern BeeperClass Beeper;

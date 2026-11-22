@@ -25,6 +25,8 @@ private:
 class DisplayFormat
 {
 public:
+    // No printf long-long support required (embedded libc may omit it).
+    static void FormatUnsigned(uint64_t value,char* text,size_t size,unsigned minDigits=1);
     static void FormatValue(DisplayQuantity quantity, float value,
                             DisplayFormatState& state,
                             bool showSign,

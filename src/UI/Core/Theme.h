@@ -6,14 +6,21 @@
 class Theme
 {
 public:
-    static constexpr uint32_t MainScreenBackground = 0x0B1016;
+    static constexpr uint32_t MainScreenBackground = 0x000000;
     static constexpr uint32_t PanelBackground = 0x101820;
     static constexpr uint32_t PanelBorder = 0x2F4354;
-    static constexpr uint32_t PrototypeFrame = 0xFF4040;
+    static constexpr uint32_t ScreenFrame = 0xFF4040;
 
+    static constexpr uint32_t TabActive = 0x1086A8;
+    static constexpr uint32_t TabInactive = 0x124858;
+    static constexpr uint32_t TabPressed = 0x26B6D4;
     static constexpr uint32_t ToolbarText = 0xF2F2F2;
     static constexpr uint32_t ToolbarAccent = 0x3FCF72;
     static constexpr uint32_t ToolbarButtonBackground = 0x1B2836;
+    static constexpr uint32_t FlatToolbarBackground = 0x404040;
+    static constexpr uint32_t ToolbarButtonPressed = 0x606060;
+    static constexpr uint32_t ToolbarButtonSeparator = 0x202020;
+    static constexpr int16_t ToolbarHeight = 60;
     static constexpr uint32_t ToolbarButtonText = ToolbarText;
     static constexpr uint32_t StatusMuted = 0x45525E;
     static constexpr uint32_t ErrorText = 0xFF000E;
@@ -24,6 +31,10 @@ public:
     static constexpr uint32_t SourceValue = 0x52D0FF;
     static constexpr uint32_t SourcePanelHeaderBackground = 0x1B2836;
     static constexpr uint32_t SourcePanelHeaderText = ToolbarText;
+
+    static constexpr uint32_t MainButtonBackground = 0x7A7A7A;
+    static constexpr uint16_t MainButtonRadius = 6;
+    static constexpr uint32_t MainButtonText = 0x000000;
 
     static constexpr uint32_t ButtonBackground = 0x565656;
     static constexpr uint32_t ButtonBackgroundDisabled = 0x404040;
@@ -58,6 +69,8 @@ public:
     static constexpr uint8_t FontHeader = 28;
     static constexpr uint8_t FontLabel = 28;
     static constexpr uint8_t FontButton = 28;
+    static constexpr int16_t NumericPopupWidth = 600;
+    static constexpr int16_t NumericPopupHeight = 430;
     static constexpr uint8_t FontPopupButton = 27;
     static constexpr uint8_t FontPopupTitle = 29;
     static constexpr uint8_t FontPopupInput = 31;

@@ -36,11 +36,22 @@ public:
     virtual void TouchMove(int16_t x, int16_t y) override;
     virtual void TouchEnd(int16_t x, int16_t y) override;
     void UpdateLayout();
+    void ShowSource();
+    bool HandleMultiTouch(const TouchFrame& frame,bool allowStart=true);
+    void ShowMenu();
 
 private:
     void UpdateSourcePage();
+    void DrawNavigation();
 
 private:
+    // Presentation state only: Source / Statistics / Graph.
+    uint8_t _view = 0;
+    bool _menuVisible = false;
+    bool _tracking = false;
+    bool _moved = false;
+    int16_t _touchX = 0;
+    int16_t _touchY = 0;
     SystemClass* _system;
     bool _expanded;
     SourcePanelExpandHandler _onExpandChanged;

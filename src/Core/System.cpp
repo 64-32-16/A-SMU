@@ -5,8 +5,21 @@
 namespace
 {
 constexpr uint32_t kSimulationPeriodMs = 100;
-constexpr float kMinResistanceCurrent = 1e-9f;
-constexpr float kDacControlFullScaleVolts = 2.5f;
+struct CurrentRangeDefinition
+{
+    CurrentRange range;
+    float maximum;
+    const char* label;
+};
+// User-confirmed ranges, 2026-11-20; supersedes the stale I_Shunt note.
+constexpr CurrentRangeDefinition kCurrentRanges[] = {
+    {CurrentRange::Range10uA, 10e-6f, "10 uA"},
+    {CurrentRange::Range1mA, 1e-3f, "1 mA"},
+    {CurrentRange::Range100mA, 100e-3f, "100 mA"},
+    {CurrentRange::Range1A, 1.0f, "1 A"}
+};
+static_assert(sizeof(kCurrentRanges) / sizeof(kCurrentRanges[0]) == SystemClass::CurrentRangeCount,
+              "Current range metadata must cover all GUI options");
 }
 
 SystemClass::SystemClass()
@@ -16,6 +29,9 @@ SystemClass::SystemClass()
 
 void SystemClass::Reset()
 {
+    if(_backend) {Hardware::Request off;_backend->Apply(off);}
+    _graphSettings=GraphSettings();
+    _histogramSettings=HistogramSettings();
     _measureMode = MeasureMode::Voltage;
     _senseMode = SenseMode::Local;
 
@@ -33,44 +49,51 @@ void SystemClass::Reset()
     _measureAutoUnit = true;
     _outputOn = false;
     _simulationEnabled = false;
-    _dacOutput = nullptr;
-    _dacDirty = true;
 
-    _voltage = 0.0f;
-    _current = 0.0f;
-    _resistance = 0.0f;
-    _power = 0.0f;
+    _measurement.Voltage = 0.0f;
+    _measurement.Current = 0.0f;
     _voltageSourceValue = 0.0f;
     _voltageLimitValue = 0.0f;
     _currentSourceValue = 0.0f;
     _currentLimitValue = 0.0f;
     _lastSimulationMs = 0;
-    _simulationPhase = 0.0f;
+    _simulationSettings=Hardware::SimulationSettings();
+    _backend=nullptr;_measurement=Hardware::Measurement();
+    _measurement.Fault=Hardware::Error::Unavailable;_hardwareDirty=true;
 
     Buffer.Reset();
-    UpdateDerivedValues();
 }
 
-void SystemClass::Execute()
+void SystemClass::Execute() {ExecuteAt(millis());}
+void SystemClass::ExecuteAt(uint32_t now)
 {
-    ApplyDacOutputs();
-
-    if (_simulationEnabled)
-    {
-        ExecuteSimulation();
+    if(!_hardwareDirty && now-_lastSimulationMs<kSimulationPeriodMs) return;
+    _lastSimulationMs=now;_hardwareDirty=false;
+    if(!_backend) {
+        _measurement=Hardware::Measurement();_measurement.TimeMs=now;
+        _measurement.Fault=Hardware::Error::Unavailable;
+        _measurement.Voltage=_measurement.Current=0;return;
     }
+    _simulator.Configure(_simulationSettings);
+    _backend->Apply(MakeHardwareRequest());
+    Hardware::Measurement sample;
+    if(!_backend->Read(now,sample)) return;
+    // Auto range uses the actual shared measurement; it never changes compliance.
+    AutoAdjustVoltageRangeForValue(fmaxf(fabsf(sample.Voltage),fabsf(_voltageSourceValue)));
+    AutoAdjustCurrentRangeForValue(fabsf(sample.Current));
+    // The ideal simulator can immediately re-evaluate after an auto-range change.
+    // A real ADC must retain its first completed sample and use the new range next cycle.
+    if(_backend==&_simulator) {_backend->Apply(MakeHardwareRequest());_backend->Read(now,sample);}
+    _measurement=sample;
+    Buffer.AddSample(sample);
 }
-
-void SystemClass::SetDacOutput(DacOutput* dacOutput)
+Hardware::Request SystemClass::MakeHardwareRequest() const
 {
-    _dacOutput = dacOutput;
-    _dacDirty = true;
-
-    if (_dacOutput != nullptr)
-    {
-        _dacOutput->Begin();
-        ApplyDacOutputs();
-    }
+    Hardware::Request request;
+    request.voltage=_voltageSourceValue;request.compliance=_currentLimitValue;
+    request.voltageRange=GetVoltageRangeMax(_voltageRange);request.currentRange=GetCurrentRangeMax(_currentRange);
+    request.output=_outputOn;request.voltageMode=_sourceMode==SourceMode::Voltage;
+    return request;
 }
 
 MeasureMode SystemClass::GetMeasureMode() const
@@ -106,12 +129,12 @@ RangeMode SystemClass::GetVoltageRangeMode() const
 
 void SystemClass::SetVoltageRangeMode(RangeMode mode)
 {
+    _hardwareDirty=true;
     _voltageRangeMode = mode;
     if (_voltageRangeMode == RangeMode::Auto)
     {
         RecalculateAutoVoltageRange();
     }
-    MarkDacDirty();
 }
 
 VoltageRange SystemClass::GetVoltageRange() const
@@ -121,25 +144,24 @@ VoltageRange SystemClass::GetVoltageRange() const
 
 void SystemClass::SetVoltageRange(VoltageRange range)
 {
+    if(!IsVoltageRangeAvailable(range)) return;
+    _hardwareDirty=true;
     _voltageRange = range;
     if (_voltageRangeMode == RangeMode::Auto)
     {
         RecalculateAutoVoltageRange();
     }
-    MarkDacDirty();
 
     if (_voltageSourceValue < GetVoltageSourceMin() ||
         _voltageSourceValue > GetVoltageSourceMax())
     {
         _voltageSourceValue = 0.0f;
-        MarkDacDirty();
     }
 
     if (_voltageLimitValue < GetVoltageLimitMin() ||
         _voltageLimitValue > GetVoltageLimitMax())
     {
         _voltageLimitValue = 0.0f;
-        MarkDacDirty();
     }
 }
 
@@ -150,12 +172,12 @@ RangeMode SystemClass::GetCurrentRangeMode() const
 
 void SystemClass::SetCurrentRangeMode(RangeMode mode)
 {
+    _hardwareDirty=true;
     _currentRangeMode = mode;
     if (_currentRangeMode == RangeMode::Auto)
     {
         RecalculateAutoCurrentRange();
     }
-    MarkDacDirty();
 }
 
 CurrentRange SystemClass::GetCurrentRange() const
@@ -165,26 +187,21 @@ CurrentRange SystemClass::GetCurrentRange() const
 
 void SystemClass::SetCurrentRange(CurrentRange range)
 {
+    if(!IsCurrentRangeAvailable(range)) return;
+    _hardwareDirty=true;
     _currentRange = range;
     if (_currentRangeMode == RangeMode::Auto)
     {
         RecalculateAutoCurrentRange();
     }
-    MarkDacDirty();
 
     if (_currentSourceValue < GetCurrentSourceMin() ||
         _currentSourceValue > GetCurrentSourceMax())
     {
         _currentSourceValue = 0.0f;
-        MarkDacDirty();
     }
 
-    if (_currentLimitValue < GetCurrentLimitMin() ||
-        _currentLimitValue > GetCurrentLimitMax())
-    {
-        _currentLimitValue = 0.0f;
-        MarkDacDirty();
-    }
+
 }
 
 ResistanceRange SystemClass::GetResistanceRange() const
@@ -194,6 +211,7 @@ ResistanceRange SystemClass::GetResistanceRange() const
 
 void SystemClass::SetResistanceRange(ResistanceRange range)
 {
+    _hardwareDirty=true;
     _resistanceRange = range;
     ApplyResolvedResistanceRange(
         _resistanceRange == ResistanceRange::Auto ? ResolveAutoResistanceRange() : _resistanceRange);
@@ -206,8 +224,8 @@ SourceMode SystemClass::GetSourceMode() const
 
 void SystemClass::SetSourceMode(SourceMode mode)
 {
+    _hardwareDirty=true;
     _sourceMode = mode;
-    MarkDacDirty();
 }
 
 OutputOffState SystemClass::GetOutputOffState() const
@@ -262,12 +280,13 @@ void SystemClass::SetMeasureAutoUnit(bool enabled)
 
 bool SystemClass::GetOutputOn() const
 {
-    return _outputOn;
+    return _outputOn && (_measurement.Flags&Hardware::OutputOn);
 }
 
 void SystemClass::SetOutputOn(bool enabled)
 {
-    _outputOn = enabled;
+    _outputOn = enabled && _backend!=nullptr;
+    _hardwareDirty=true;
 }
 
 bool SystemClass::GetSimulationEnabled() const
@@ -277,58 +296,51 @@ bool SystemClass::GetSimulationEnabled() const
 
 void SystemClass::SetSimulationEnabled(bool enabled)
 {
-    _simulationEnabled = enabled;
-    _lastSimulationMs = 0;
+    if(enabled==_simulationEnabled) return;
+    // Disable the previous backend before changing ownership; no real driver yet.
+    _outputOn=false;
+    if(_backend) _backend->Apply(MakeHardwareRequest());
+    _backend=nullptr;_simulationEnabled=enabled;
+    _measurement=Hardware::Measurement();_measurement.Voltage=_measurement.Current=0;
+    if(enabled) {_backend=&_simulator;_outputOn=true;}
+    else _measurement.Fault=Hardware::Error::Unavailable;
+    _hardwareDirty=true;
+    ExecuteAt(millis());
 }
 
 float SystemClass::GetVoltage() const
 {
-    return _voltage;
+    return _measurement.Voltage;
 }
 
 void SystemClass::SetVoltage(float value)
 {
-    _voltage = value;
+    _measurement.Voltage = value;
     AutoAdjustVoltageRangeForValue(value);
-    UpdateDerivedValues();
 }
 
 float SystemClass::GetCurrent() const
 {
-    return _current;
+    return _measurement.Current;
 }
 
 void SystemClass::SetCurrent(float value)
 {
-    _current = value;
-    AutoAdjustCurrentRangeForValue(value);
-    UpdateDerivedValues();
+    _measurement.Current = value;
+    RecalculateAutoCurrentRange();
 }
 
 float SystemClass::GetResistance() const
 {
-    return _resistance;
+    return _measurement.GetResistance();
 }
 
-void SystemClass::SetResistance(float value)
-{
-    _resistance = value;
-
-    if (_resistanceRange == ResistanceRange::Auto)
-    {
-        ApplyResolvedResistanceRange(ResolveAutoResistanceRange());
-    }
-}
 
 float SystemClass::GetPower() const
 {
-    return _power;
+    return _measurement.GetPower();
 }
 
-void SystemClass::SetPower(float value)
-{
-    _power = value;
-}
 
 float SystemClass::GetVoltageSourceValue() const
 {
@@ -337,6 +349,8 @@ float SystemClass::GetVoltageSourceValue() const
 
 void SystemClass::SetVoltageSourceValue(float value)
 {
+    if(!isfinite(value)) return;
+    _hardwareDirty=true;
     if (value < GetVoltageSourceMin() || value > GetVoltageSourceMax())
     {
         return;
@@ -344,7 +358,6 @@ void SystemClass::SetVoltageSourceValue(float value)
 
     AutoAdjustVoltageRangeForValue(value);
     _voltageSourceValue = value;
-    MarkDacDirty();
 }
 
 float SystemClass::GetVoltageSourceMin() const
@@ -356,7 +369,7 @@ float SystemClass::GetVoltageSourceMax() const
 {
     if (_voltageRangeMode == RangeMode::Auto)
     {
-        return GetVoltageRangeMax(VoltageRange::Range30V);
+        return IsVoltageRangeAvailable(VoltageRange::Range30V)?30.0f:5.0f;
     }
 
     switch (_voltageRange)
@@ -365,7 +378,7 @@ float SystemClass::GetVoltageSourceMax() const
             return GetVoltageRangeMax(VoltageRange::Range5V);
         case VoltageRange::Range30V:
         default:
-            return GetVoltageRangeMax(VoltageRange::Range30V);
+            return IsVoltageRangeAvailable(VoltageRange::Range30V)?30.0f:5.0f;
     }
 }
 
@@ -376,6 +389,8 @@ float SystemClass::GetVoltageLimitValue() const
 
 void SystemClass::SetVoltageLimitValue(float value)
 {
+    if(!isfinite(value)) return;
+    _hardwareDirty=true;
     if (value < GetVoltageLimitMin() || value > GetVoltageLimitMax())
     {
         return;
@@ -383,7 +398,6 @@ void SystemClass::SetVoltageLimitValue(float value)
 
     AutoAdjustVoltageRangeForValue(value);
     _voltageLimitValue = value;
-    MarkDacDirty();
 }
 
 float SystemClass::GetVoltageLimitMin() const
@@ -395,7 +409,7 @@ float SystemClass::GetVoltageLimitMax() const
 {
     if (_voltageRangeMode == RangeMode::Auto)
     {
-        return GetVoltageRangeMax(VoltageRange::Range30V);
+        return IsVoltageRangeAvailable(VoltageRange::Range30V)?30.0f:5.0f;
     }
 
     switch (_voltageRange)
@@ -404,7 +418,7 @@ float SystemClass::GetVoltageLimitMax() const
             return GetVoltageRangeMax(VoltageRange::Range5V);
         case VoltageRange::Range30V:
         default:
-            return GetVoltageRangeMax(VoltageRange::Range30V);
+            return IsVoltageRangeAvailable(VoltageRange::Range30V)?30.0f:5.0f;
     }
 }
 
@@ -415,14 +429,15 @@ float SystemClass::GetCurrentSourceValue() const
 
 void SystemClass::SetCurrentSourceValue(float value)
 {
+    if(!isfinite(value)) return;
+    _hardwareDirty=true;
     if (value < GetCurrentSourceMin() || value > GetCurrentSourceMax())
     {
         return;
     }
 
-    AutoAdjustCurrentRangeForValue(value);
     _currentSourceValue = value;
-    MarkDacDirty();
+    RecalculateAutoCurrentRange();
 }
 
 float SystemClass::GetCurrentSourceMin() const
@@ -434,17 +449,12 @@ float SystemClass::GetCurrentSourceMax() const
 {
     if (_currentRangeMode == RangeMode::Auto)
     {
-        return GetCurrentRangeMax(CurrentRange::Range1A);
+        for(int i=CurrentRangeCount-1;i>=0;--i)
+            if(IsCurrentRangeAvailable(GetCurrentRangeAt(i))) return GetCurrentRangeMax(GetCurrentRangeAt(i));
+        return 0;
     }
 
-    switch (_currentRange)
-    {
-        case CurrentRange::Range100mA:
-            return GetCurrentRangeMax(CurrentRange::Range100mA);
-        case CurrentRange::Range1A:
-        default:
-            return GetCurrentRangeMax(CurrentRange::Range1A);
-    }
+    return GetCurrentRangeMax(_currentRange);
 }
 
 float SystemClass::GetCurrentLimitValue() const
@@ -454,14 +464,15 @@ float SystemClass::GetCurrentLimitValue() const
 
 void SystemClass::SetCurrentLimitValue(float value)
 {
+    if(!isfinite(value)) return;
+    _hardwareDirty=true;
     if (value < GetCurrentLimitMin() || value > GetCurrentLimitMax())
     {
         return;
     }
 
-    AutoAdjustCurrentRangeForValue(value);
     _currentLimitValue = value;
-    MarkDacDirty();
+    RecalculateAutoCurrentRange();
 }
 
 float SystemClass::GetCurrentLimitMin() const
@@ -469,22 +480,7 @@ float SystemClass::GetCurrentLimitMin() const
     return 0.0f;
 }
 
-float SystemClass::GetCurrentLimitMax() const
-{
-    if (_currentRangeMode == RangeMode::Auto)
-    {
-        return GetCurrentRangeMax(CurrentRange::Range1A);
-    }
-
-    switch (_currentRange)
-    {
-        case CurrentRange::Range100mA:
-            return GetCurrentRangeMax(CurrentRange::Range100mA);
-        case CurrentRange::Range1A:
-        default:
-            return GetCurrentRangeMax(CurrentRange::Range1A);
-    }
-}
+float SystemClass::GetCurrentLimitMax() const {return 1.0f;}
 
 const char* SystemClass::GetMeasureModeText() const
 {
@@ -539,14 +535,23 @@ const char* SystemClass::GetVoltageRangeText() const
     }
 }
 
+CurrentRange SystemClass::GetCurrentRangeAt(uint8_t index)
+{
+    return kCurrentRanges[index < CurrentRangeCount ? index : 0].range;
+}
+
+const char* SystemClass::GetCurrentRangeText(CurrentRange range)
+{
+    for (const auto& definition : kCurrentRanges)
+    {
+        if (definition.range == range) return definition.label;
+    }
+    return "--";
+}
+
 const char* SystemClass::GetCurrentRangeText() const
 {
-    switch (_currentRange)
-    {
-        case CurrentRange::Range100mA: return "100 mA";
-        case CurrentRange::Range1A: return "1 A";
-        default: return "--";
-    }
+    return GetCurrentRangeText(_currentRange);
 }
 
 const char* SystemClass::GetResistanceRangeText() const
@@ -602,6 +607,10 @@ const char* SystemClass::GetSweepSettingText() const
 
 void SystemClass::ApplyResolvedResistanceRange(ResistanceRange range)
 {
+    const auto vr=range==ResistanceRange::Range100kOhm?VoltageRange::Range30V:VoltageRange::Range5V;
+    const auto ir=(range==ResistanceRange::Range10Ohm || range==ResistanceRange::Range100Ohm)?CurrentRange::Range100mA:CurrentRange::Range1mA;
+    if(!IsVoltageRangeAvailable(vr) || !IsCurrentRangeAvailable(ir)) return;
+    _hardwareDirty=true;
     _sourceMode = SourceMode::Voltage;
     _voltageRangeMode = RangeMode::Manual;
     _currentRangeMode = RangeMode::Manual;
@@ -613,7 +622,6 @@ void SystemClass::ApplyResolvedResistanceRange(ResistanceRange range)
             _currentRange = CurrentRange::Range100mA;
             _voltageSourceValue = 1.0f;
             _currentLimitValue = 0.1f;
-            MarkDacDirty();
             break;
 
         case ResistanceRange::Range100Ohm:
@@ -621,31 +629,28 @@ void SystemClass::ApplyResolvedResistanceRange(ResistanceRange range)
             _currentRange = CurrentRange::Range100mA;
             _voltageSourceValue = 1.0f;
             _currentLimitValue = 0.01f;
-            MarkDacDirty();
             break;
 
         case ResistanceRange::Range1kOhm:
             _voltageRange = VoltageRange::Range5V;
-            _currentRange = CurrentRange::Range100mA;
+            _currentRange = CurrentRange::Range1mA;
             _voltageSourceValue = 1.0f;
             _currentLimitValue = 0.001f;
-            MarkDacDirty();
             break;
 
         case ResistanceRange::Range100kOhm:
         default:
             _voltageRange = VoltageRange::Range30V;
-            _currentRange = CurrentRange::Range100mA;
+            _currentRange = CurrentRange::Range1mA;
             _voltageSourceValue = 10.0f;
             _currentLimitValue = 0.0001f;
-            MarkDacDirty();
             break;
     }
 }
 
 ResistanceRange SystemClass::ResolveAutoResistanceRange() const
 {
-    const float absResistance = (_resistance < 0.0f) ? -_resistance : _resistance;
+    const float absResistance = (_measurement.GetResistance() < 0.0f) ? -_measurement.GetResistance() : _measurement.GetResistance();
 
     if (absResistance <= 12.0f)
     {
@@ -665,19 +670,6 @@ ResistanceRange SystemClass::ResolveAutoResistanceRange() const
     return ResistanceRange::Range100kOhm;
 }
 
-void SystemClass::UpdateDerivedValues()
-{
-    _power = _voltage * _current;
-
-    if (fabsf(_current) >= kMinResistanceCurrent)
-    {
-        _resistance = _voltage / _current;
-    }
-    else
-    {
-        _resistance = 0.0f;
-    }
-}
 
 void SystemClass::AutoAdjustVoltageRangeForValue(float value)
 {
@@ -686,14 +678,13 @@ void SystemClass::AutoAdjustVoltageRangeForValue(float value)
         return;
     }
 
-    const VoltageRange range = (fabsf(value) <= GetVoltageRangeMax(VoltageRange::Range5V))
-        ? VoltageRange::Range5V
-        : VoltageRange::Range30V;
+    const VoltageRange range = IsVoltageRangeAvailable(VoltageRange::Range5V) &&
+        (fabsf(value)<=5 || !IsVoltageRangeAvailable(VoltageRange::Range30V))
+        ? VoltageRange::Range5V : VoltageRange::Range30V;
 
     if (_voltageRange != range)
     {
         _voltageRange = range;
-        MarkDacDirty();
     }
 }
 
@@ -704,15 +695,18 @@ void SystemClass::AutoAdjustCurrentRangeForValue(float value)
         return;
     }
 
-    const CurrentRange range = (fabsf(value) <= GetCurrentRangeMax(CurrentRange::Range100mA))
-        ? CurrentRange::Range100mA
-        : CurrentRange::Range1A;
-
-    if (_currentRange != range)
+    CurrentRange range = CurrentRange::Range1A;
+    for (const auto& definition : kCurrentRanges)
     {
-        _currentRange = range;
-        MarkDacDirty();
+        if (!IsCurrentRangeAvailable(definition.range)) continue;
+        range=definition.range;
+        if (fabsf(value) <= definition.maximum)
+        {
+            range = definition.range;
+            break;
+        }
     }
+    _currentRange = range;
 }
 
 void SystemClass::RecalculateAutoVoltageRange()
@@ -722,7 +716,7 @@ void SystemClass::RecalculateAutoVoltageRange()
         return;
     }
 
-    const float maxValue = fmaxf(fmaxf(fabsf(_voltage), fabsf(_voltageSourceValue)),
+    const float maxValue = fmaxf(fmaxf(fabsf(_measurement.Voltage), fabsf(_voltageSourceValue)),
                                 fabsf(_voltageLimitValue));
     AutoAdjustVoltageRangeForValue(maxValue);
 }
@@ -734,7 +728,7 @@ void SystemClass::RecalculateAutoCurrentRange()
         return;
     }
 
-    const float maxValue = fmaxf(fmaxf(fabsf(_current), fabsf(_currentSourceValue)),
+    const float maxValue = fmaxf(fmaxf(fabsf(_measurement.Current), fabsf(_currentSourceValue)),
                                 fabsf(_currentLimitValue));
     AutoAdjustCurrentRangeForValue(maxValue);
 }
@@ -754,122 +748,78 @@ float SystemClass::GetVoltageRangeMax(VoltageRange range) const
 
 float SystemClass::GetCurrentRangeMax(CurrentRange range) const
 {
-    switch (range)
+    for (const auto& definition : kCurrentRanges)
     {
-        case CurrentRange::Range100mA:
-            return 0.1f;
-
-        case CurrentRange::Range1A:
-        default:
-            return 1.0f;
+        if (definition.range == range) return definition.maximum;
     }
-}
-
-void SystemClass::ExecuteSimulation()
-{
-    const uint32_t now = millis();
-    if ((now - _lastSimulationMs) < kSimulationPeriodMs)
-    {
-        return;
-    }
-
-    _lastSimulationMs = now;
-    _simulationPhase += 0.2f;
-
-    const float resistance = 47.0f + (18.0f * sinf(_simulationPhase * 0.35f));
-
-    float sourceVoltage = (_sourceMode == SourceMode::Voltage) ? _voltageSourceValue : 1.2f;
-    if (fabsf(sourceVoltage) < 0.001f)
-    {
-        sourceVoltage = 1.2f;
-    }
-
-    const float ripple = 0.004f * sinf(_simulationPhase * 1.7f);
-    const float measuredVoltage = sourceVoltage + ripple;
-    const float measuredCurrent = measuredVoltage / resistance;
-
-    _voltage = measuredVoltage;
-    _current = measuredCurrent;
-    UpdateDerivedValues();
-
-    Buffer.AddSample(now, _voltage, _current);
-}
-
-float SystemClass::ScaleToDacControl(float value, float fullScale) const
-{
-    if (fullScale <= 0.0f)
-    {
-        return 0.0f;
-    }
-
-    float control = (value / fullScale) * kDacControlFullScaleVolts;
-
-    if (control < -kDacControlFullScaleVolts)
-    {
-        return -kDacControlFullScaleVolts;
-    }
-
-    if (control > kDacControlFullScaleVolts)
-    {
-        return kDacControlFullScaleVolts;
-    }
-
-    return control;
-}
-
-float SystemClass::ResolveDacVSetControl() const
-{
-    if (_sourceMode == SourceMode::Current)
-    {
-        if (fabsf(_currentSourceValue) < kMinResistanceCurrent)
-        {
-            return 0.0f;
-        }
-
-        const float signedVoltageLimit = (_currentSourceValue < 0.0f)
-            ? -_voltageLimitValue
-            : _voltageLimitValue;
-        return ScaleToDacControl(signedVoltageLimit, GetVoltageRangeMax(_voltageRange));
-    }
-
-    return ScaleToDacControl(_voltageSourceValue, GetVoltageRangeMax(_voltageRange));
-}
-
-float SystemClass::ResolveDacILimitControl() const
-{
-    if (_sourceMode == SourceMode::Current)
-    {
-        return ScaleToDacControl(fabsf(_currentSourceValue), GetCurrentRangeMax(_currentRange));
-    }
-
-    return ScaleToDacControl(_currentLimitValue, GetCurrentRangeMax(_currentRange));
-}
-
-void SystemClass::MarkDacDirty()
-{
-    _dacDirty = true;
-}
-
-void SystemClass::ApplyDacOutputs()
-{
-    if (!_dacDirty || _dacOutput == nullptr)
-    {
-        return;
-    }
-
-    const float vSetControl = ResolveDacVSetControl();
-    const float iLimitControl = ResolveDacILimitControl();
-
-    _dacOutput->SetVSet(vSetControl);
-    _dacOutput->SetILimit(iLimitControl);
-
-    Serial.print("DAC V_SET_CTRL=");
-    Serial.print(vSetControl, 6);
-    Serial.print(" V, I_LIMIT_CTRL=");
-    Serial.print(iLimitControl, 6);
-    Serial.println(" V");
-
-    _dacDirty = false;
+    return 0.0f;
 }
 
 SystemClass System;
+
+BufferStatistics SystemClass::GetMeasurementStatistics() const
+{
+    switch (GetMeasureMode())
+    {
+        case MeasureMode::Voltage: return Buffer.GetStatistics(BufferQuantity::Voltage);
+        case MeasureMode::Current: return Buffer.GetStatistics(BufferQuantity::Current);
+        case MeasureMode::Power: return Buffer.GetStatistics(BufferQuantity::Power);
+        case MeasureMode::Resistance: return Buffer.GetStatistics(BufferQuantity::Resistance);
+        default: return BufferStatistics{};
+    }
+}
+
+void SystemClass::ClearMeasurementBuffer()
+{
+    Buffer.Reset();
+}
+
+bool SystemClass::SetGraphStyle(GraphStyle style)
+{
+    if(style!=GraphStyle::Lines && style!=GraphStyle::Points && style!=GraphStyle::Both) return false;
+    _graphSettings.style=style;return true;
+}
+
+bool SystemClass::SetHistogramSettings(const HistogramSettings& settings)
+{
+    if(!ValidHistogramSettings(settings)) return false;
+    _histogramSettings=settings;return true;
+}
+
+bool SystemClass::IsVoltageRangeAvailable(VoltageRange range) const {
+    const auto i=static_cast<unsigned>(range);return i<2 && (_simulationSettings.voltageRanges&(1u<<i));
+}
+bool SystemClass::IsCurrentRangeAvailable(CurrentRange range) const {
+    const auto i=static_cast<unsigned>(range);return i<4 && (_simulationSettings.currentRanges&(1u<<i));
+}
+bool SystemClass::SetVoltageRangeAvailable(VoltageRange range,bool enabled) {
+    const auto i=static_cast<unsigned>(range);if(i>=2 || (!enabled && range==_voltageRange)) return false;
+    if(enabled) _simulationSettings.voltageRanges|=1u<<i;else _simulationSettings.voltageRanges&=~(1u<<i);
+    _hardwareDirty=true;return true;
+}
+bool SystemClass::SetCurrentRangeAvailable(CurrentRange range,bool enabled) {
+    const auto i=static_cast<unsigned>(range);if(i>=4 || (!enabled && range==_currentRange)) return false;
+    if(enabled) _simulationSettings.currentRanges|=1u<<i;else _simulationSettings.currentRanges&=~(1u<<i);
+    _hardwareDirty=true;return true;
+}
+bool SystemClass::SetSimulationLoad(Hardware::LoadType load) {
+    if(static_cast<unsigned>(load)>2) return false;
+    _simulationSettings.load=load;_hardwareDirty=true;return true;
+}
+bool SystemClass::SetSimulationResistance(double ohms) {
+    if(!isfinite(ohms) || ohms<=0) return false;
+    _simulationSettings.resistance=ohms;_hardwareDirty=true;return true;
+}
+const char* SystemClass::GetBackendText() const {return _simulationEnabled?"SIM":"NO HW";}
+const char* SystemClass::GetHardwareStatusText() const {
+    switch(_measurement.Fault) {
+        case Hardware::Error::Unavailable:return "NO HARDWARE";
+        case Hardware::Error::UnsupportedMode:return "MODE UNSUPPORTED";
+        case Hardware::Error::InvalidConfiguration:return "CONFIG ERROR";
+        case Hardware::Error::NumericOverflow:return "NUMERIC ERROR";
+        default:break;
+    }
+    if(_measurement.Flags&(Hardware::VoltageOverrange|Hardware::CurrentOverrange)) return "OVERRANGE";
+    if(!(_measurement.Flags&Hardware::OutputOn)) return "OUTPUT OFF";
+    return _measurement.Mode==Hardware::Regulation::CC?"CC":"CV";
+}

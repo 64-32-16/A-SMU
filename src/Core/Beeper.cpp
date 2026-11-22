@@ -1,4 +1,6 @@
 #include "Beeper.h"
+#include <mbed.h>
+#include <chrono>
 
 /**
  * @brief Globale Beeper-Instanz.
@@ -12,8 +14,7 @@ BeeperClass::BeeperClass()
     : _pin(255),
       _activeHigh(true),
       _initialized(false),
-      _active(false),
-      _endTimeMs(0)
+      _active(false)
 {
 }
 
@@ -22,32 +23,21 @@ BeeperClass::BeeperClass()
  */
 void BeeperClass::Begin(uint8_t pin, bool activeHigh)
 {
+    Stop(); // Cancel any previous timer and silence the old pin before reinitializing.
     _pin = pin;
     _activeHigh = activeHigh;
     _initialized = true;
     _active = false;
-    _endTimeMs = 0;
 
     pinMode(_pin, OUTPUT);
     SetOutput(false);
 }
 
-/**
- * @brief Muss zyklisch aufgerufen werden und beendet abgelaufene Beeps.
- */
-void BeeperClass::Update()
+// Runs in interrupt context: only write the already-initialized GPIO and state.
+void BeeperClass::OnTimeout()
 {
-    if (!_initialized || !_active)
-    {
-        return;
-    }
-
-    const uint32_t now = millis();
-
-    if ((int32_t)(now - _endTimeMs) >= 0)
-    {
-        Stop();
-    }
+    SetOutput(false);
+    _active=false;
 }
 
 /**
@@ -55,14 +45,18 @@ void BeeperClass::Update()
  */
 void BeeperClass::Beep(uint16_t durationMs)
 {
-    if (!_initialized)
+    mbed::CriticalSectionLock lock;
+    if (!_initialized) return;
+    _timeout.detach();
+    if(durationMs==0)
     {
-        return;
+        SetOutput(false);_active=false;return;
     }
-
     SetOutput(true);
-    _active = true;
-    _endTimeMs = millis() + durationMs;
+    _active=true;
+    // A new request restarts the duration. Cancellation and rearming are atomic
+    // with respect to the timeout interrupt, so an old timeout cannot cut it short.
+    _timeout.attach(mbed::callback(this,&BeeperClass::OnTimeout),std::chrono::milliseconds(durationMs));
 }
 
 /**
@@ -86,6 +80,8 @@ void BeeperClass::Error()
  */
 void BeeperClass::Stop()
 {
+    mbed::CriticalSectionLock lock;
+    _timeout.detach();
     if (!_initialized)
     {
         return;

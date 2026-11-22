@@ -33,15 +33,13 @@ SourceRangePopup::SourceRangePopup()
     _autoButton.SetTextOptions(OPT_CENTER);
     _autoButton.SetOnClick(OnOptionClick);
 
-    _option1Button.SetFont(Theme::FontButton);
-    ApplyDialogButtonTheme(_option1Button);
-    _option1Button.SetTextOptions(OPT_CENTER);
-    _option1Button.SetOnClick(OnOptionClick);
-
-    _option2Button.SetFont(Theme::FontButton);
-    ApplyDialogButtonTheme(_option2Button);
-    _option2Button.SetTextOptions(OPT_CENTER);
-    _option2Button.SetOnClick(OnOptionClick);
+    for (Button& button : _rangeButtons)
+    {
+        button.SetFont(Theme::FontButton);
+        ApplyDialogButtonTheme(button);
+        button.SetTextOptions(OPT_CENTER);
+        button.SetOnClick(OnOptionClick);
+    }
 
     _cancelButton.SetFont(Theme::FontButton);
     ApplyDialogButtonTheme(_cancelButton);
@@ -51,8 +49,7 @@ SourceRangePopup::SourceRangePopup()
 
     AddChild(&_titleLabel);
     AddChild(&_autoButton);
-    AddChild(&_option1Button);
-    AddChild(&_option2Button);
+    for (Button& button : _rangeButtons) AddChild(&button);
     AddChild(&_cancelButton);
 }
 
@@ -125,8 +122,8 @@ void SourceRangePopup::Draw()
     UpdateLayout();
     Button* selected = GetSelectedButton();
     _autoButton.SetTextColor(selected == &_autoButton ? Theme::FocusYellow : Theme::ButtonText);
-    _option1Button.SetTextColor(selected == &_option1Button ? Theme::FocusYellow : Theme::ButtonText);
-    _option2Button.SetTextColor(selected == &_option2Button ? Theme::FocusYellow : Theme::ButtonText);
+    for (Button& button : _rangeButtons)
+        button.SetTextColor(selected == &button ? Theme::FocusYellow : Theme::ButtonText);
     Container::Draw();
     DrawSelectedButton();
 }
@@ -136,16 +133,23 @@ void SourceRangePopup::UpdateLayout()
     const int16_t x = GetWindowX();
     const int16_t y = GetWindowY();
     const int16_t w = GetWindowWidth();
-    const int16_t buttonW = 120;
+    const bool current = (_mode == SourceMode::Current);
+    const int16_t buttonW = current ? 96 : 120;
     const int16_t buttonH = 58;
-    const int16_t gap = 14;
-    const int16_t rowWidth = (buttonW * 3) + (gap * 2);
+    const int16_t gap = current ? 12 : 14;
+    const uint8_t count = current ? SystemClass::CurrentRangeCount : 2;
+    const int16_t rowWidth = buttonW * (count + 1) + gap * count;
     const int16_t startX = x + ((w - rowWidth) / 2);
 
     _titleLabel.SetBounds(x + 36, y + 28, w - 72, 24);
     _autoButton.SetBounds(startX, y + 86, buttonW, buttonH);
-    _option1Button.SetBounds(startX + buttonW + gap, y + 86, buttonW, buttonH);
-    _option2Button.SetBounds(startX + ((buttonW + gap) * 2), y + 86, buttonW, buttonH);
+    for (uint8_t i = 0; i < SystemClass::CurrentRangeCount; ++i)
+    {
+        _rangeButtons[i].SetVisible(i < count);
+        _rangeButtons[i].SetEnabled(current?_system->IsCurrentRangeAvailable(SystemClass::GetCurrentRangeAt(i)):
+            _system->IsVoltageRangeAvailable(static_cast<VoltageRange>(i)));
+        _rangeButtons[i].SetBounds(startX + (i + 1) * (buttonW + gap), y + 86, buttonW, buttonH);
+    }
     _cancelButton.SetBounds(x + ((w - 160) / 2), y + 198, 160, 48);
 }
 
@@ -160,14 +164,17 @@ Button* SourceRangePopup::GetSelectedButton() const
     {
         if (_system->GetVoltageRangeMode() == RangeMode::Auto) return const_cast<Button*>(&_autoButton);
         const VoltageRange range = _system->GetVoltageRange();
-        if (range == VoltageRange::Range5V) return const_cast<Button*>(&_option1Button);
-        return const_cast<Button*>(&_option2Button);
+        if (range == VoltageRange::Range5V) return const_cast<Button*>(&_rangeButtons[0]);
+        return const_cast<Button*>(&_rangeButtons[1]);
     }
 
     if (_system->GetCurrentRangeMode() == RangeMode::Auto) return const_cast<Button*>(&_autoButton);
-    const CurrentRange range = _system->GetCurrentRange();
-    if (range == CurrentRange::Range100mA) return const_cast<Button*>(&_option1Button);
-    return const_cast<Button*>(&_option2Button);
+    for (uint8_t i = 0; i < SystemClass::CurrentRangeCount; ++i)
+    {
+        if (_system->GetCurrentRange() == SystemClass::GetCurrentRangeAt(i))
+            return const_cast<Button*>(&_rangeButtons[i]);
+    }
+    return nullptr;
 }
 
 void SourceRangePopup::DrawSelectedButton() const
@@ -246,12 +253,12 @@ void SourceRangePopup::HandleOptionClick(Button* sender)
         {
             _system->SetVoltageRangeMode(RangeMode::Auto);
         }
-        else if (sender == &_option1Button)
+        else if (sender == &_rangeButtons[0])
         {
             _system->SetVoltageRangeMode(RangeMode::Manual);
             _system->SetVoltageRange(VoltageRange::Range5V);
         }
-        else if (sender == &_option2Button)
+        else if (sender == &_rangeButtons[1])
         {
             _system->SetVoltageRangeMode(RangeMode::Manual);
             _system->SetVoltageRange(VoltageRange::Range30V);
@@ -263,15 +270,17 @@ void SourceRangePopup::HandleOptionClick(Button* sender)
         {
             _system->SetCurrentRangeMode(RangeMode::Auto);
         }
-        else if (sender == &_option1Button)
+        else
         {
-            _system->SetCurrentRangeMode(RangeMode::Manual);
-            _system->SetCurrentRange(CurrentRange::Range100mA);
-        }
-        else if (sender == &_option2Button)
-        {
-            _system->SetCurrentRangeMode(RangeMode::Manual);
-            _system->SetCurrentRange(CurrentRange::Range1A);
+            for (uint8_t i = 0; i < SystemClass::CurrentRangeCount; ++i)
+            {
+                if (sender == &_rangeButtons[i])
+                {
+                    _system->SetCurrentRangeMode(RangeMode::Manual);
+                    _system->SetCurrentRange(SystemClass::GetCurrentRangeAt(i));
+                    break;
+                }
+            }
         }
     }
 
@@ -302,14 +311,14 @@ void SourceRangePopup::UpdateTexts()
     {
         _titleLabel.SetText("SELECT SOURCE VOLTAGE RANGE");
         _autoButton.SetText("Auto");
-        _option1Button.SetText("5V");
-        _option2Button.SetText("30V");
+        _rangeButtons[0].SetText("5V");
+        _rangeButtons[1].SetText("30V");
     }
     else
     {
         _titleLabel.SetText("SELECT SOURCE CURRENT RANGE");
         _autoButton.SetText("Auto");
-        _option1Button.SetText("100mA");
-        _option2Button.SetText("1A");
+        for (uint8_t i = 0; i < SystemClass::CurrentRangeCount; ++i)
+            _rangeButtons[i].SetText(SystemClass::GetCurrentRangeText(SystemClass::GetCurrentRangeAt(i)));
     }
 }

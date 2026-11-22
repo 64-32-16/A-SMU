@@ -13,6 +13,7 @@ Button::Button()
       _text(""),
       _font(27),
       _textOptions(OPT_CENTER),
+      _cornerRadius(0),
       _pressed(false),
       _trackingTouch(false),
       _beepOnClick(true),
@@ -32,6 +33,7 @@ Button::Button(int16_t x, int16_t y, int16_t w, int16_t h, const char* text)
       _text(text),
       _font(27),
       _textOptions(OPT_CENTER),
+      _cornerRadius(0),
       _pressed(false),
       _trackingTouch(false),
       _beepOnClick(true),
@@ -55,12 +57,30 @@ void Button::Draw()
 
     uint16_t options = _textOptions;
 
-    if (_pressed)
+    if (_pressed || _nativeFlat)
     {
         options |= OPT_FLAT;
     }
 
-    GD.cmd_fgcolor(_enabled ? _backgroundColor : _disabledBackgroundColor);
+    const bool customRounded = !_nativeFlat && _cornerRadius > 0;
+    if (customRounded)
+    {
+        const uint32_t base = _enabled ? _backgroundColor : _disabledBackgroundColor;
+        uint32_t top = base;
+        if (_enabled && !_pressed)
+        {
+            // Lighten each channel toward white for the reference-style gradient.
+            top = 0;
+            for (uint8_t shift = 0; shift < 24; shift += 8)
+            {
+                const uint32_t channel = (base >> shift) & 255;
+                top |= (channel + (255 - channel) * 3 / 5) << shift;
+            }
+        }
+        GD.DrawRoundedGradientRect(_x, _y, _w, _h, _cornerRadius, top, base);
+    }
+    const uint32_t base = _enabled ? _backgroundColor : _disabledBackgroundColor;
+    GD.cmd_fgcolor(_nativeFlat && _enabled && _pressed ? ((base >> 1) & 0x7F7F7F) : base);
     GD.ColorRGB(_enabled ? _textColor : _disabledTextColor);
 
     const char* newline = strchr(_text, '\n');
@@ -77,14 +97,15 @@ void Button::Draw()
         strncpy(line2, newline + 1, sizeof(line2) - 1);
         line2[sizeof(line2) - 1] = '\0';
 
-        GD.cmd_button(_x, _y, _w, _h, _font, options, "");
+        if (!customRounded) GD.cmd_button(_x, _y, _w, _h, _font, options, "");
         GD.ColorRGB(_enabled ? _textColor : _disabledTextColor);
         GD.cmd_text(_x + (_w / 2), _y + (_h / 2) - 12, _font, OPT_CENTER, line1);
         GD.cmd_text(_x + (_w / 2), _y + (_h / 2) + 12, _font, OPT_CENTER, line2);
         return;
     }
 
-    GD.cmd_button(_x, _y, _w, _h, _font, options, _text);
+    if (!customRounded) GD.cmd_button(_x, _y, _w, _h, _font, options, _text);
+    else GD.cmd_text(_x + _w / 2, _y + _h / 2, _font, OPT_CENTER, _text);
 }
 
 bool Button::IsFocusable() const
@@ -286,3 +307,6 @@ void Button::Click()
         _onClick(this);
     }
 }
+
+void Button::SetCornerRadius(uint16_t radius) { _cornerRadius = radius; }
+uint16_t Button::GetCornerRadius() const { return _cornerRadius; }

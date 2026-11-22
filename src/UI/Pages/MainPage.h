@@ -4,7 +4,6 @@
 #include <Arduino.h>
 #include "../Core/Panel.h"
 #include "../Panels/HeaderPanel.h"
-#include "../Panels/MainConfigPanel.h"
 #include "../Panels/MeasurePanel.h"
 #include "../Panels/SourcePanel.h"
 #include "../../Core/System.h"
@@ -20,7 +19,6 @@ public:
 
     SourcePanel& GetSourcePanel();
     MeasurePanel& GetMeasurePanel();
-    MainConfigPanel& GetConfigPanel();
     HeaderPanel& GetHeaderPanel();
 
     virtual void Draw() override;
@@ -31,7 +29,6 @@ private:
     HeaderPanel _headerPanel;
     SourcePanel _sourcePanel;
     MeasurePanel _measurePanel;
-    MainConfigPanel _configPanel;
 };
 
 #endif

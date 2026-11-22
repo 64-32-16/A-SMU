@@ -1,252 +1,114 @@
 #include "GraphPanel.h"
-
-#include <math.h>
-#include <stdio.h>
 #include "../Core/GDClass.h"
 #include "../Core/Theme.h"
+#include <stdlib.h>
 
-GraphPanel::GraphPanel()
-    : Panel(),
-      _system(&System)
+GraphPanel::GraphPanel():Panel(),_system(&System)
 {
-    SetShowBackground(false);
-    SetShowBorder(false);
-    SetShowTitle(false);
+    SetShowBackground(false);SetShowBorder(false);SetShowTitle(false);
 }
-
-GraphPanel::GraphPanel(int16_t x, int16_t y, int16_t w, int16_t h)
-    : GraphPanel()
-{
-    SetBounds(x, y, w, h);
-}
-
+GraphPanel::GraphPanel(int16_t x,int16_t y,int16_t w,int16_t h):GraphPanel()
+{ SetBounds(x,y,w,h); }
 void GraphPanel::SetSystem(SystemClass* system)
 {
-    _system = (system != nullptr) ? system : &System;
+    _system=system?system:&System;
+    _state=GraphState();_previousCount=0;
 }
-
-SystemClass* GraphPanel::GetSystem() const
-{
-    return _system;
-}
+SystemClass* GraphPanel::GetSystem() const {return _system;}
 
 void GraphPanel::Draw()
 {
-    if (!IsVisible())
+    if(!IsVisible()) return;
+    const int16_t plotX=GetX()+116,plotY=GetY()+14;
+    const int16_t plotW=GetWidth()-136,plotH=GetHeight()-48;
+    if(plotW<=0 || plotH<=0) return;
+    switch(_system->GetMeasureMode())
     {
-        return;
+        case MeasureMode::Voltage: _state.selected=GraphState::Voltage;break;
+        case MeasureMode::Current: _state.selected=GraphState::Current;break;
+        case MeasureMode::Power: _state.selected=GraphState::Power;break;
+        case MeasureMode::Resistance: _state.selected=GraphState::Resistance;break;
     }
-
-    const int16_t x = GetX();
-    const int16_t y = GetY();
-    const int16_t w = GetWidth();
-    const int16_t h = GetHeight();
-    const int16_t plotX = x + 96;
-    const int16_t plotY = y + 12;
-    const int16_t plotW = w - 114;
-    const int16_t plotH = h - 24;
-    const MeasureMode mode = (_system != nullptr) ? _system->GetMeasureMode() : MeasureMode::Current;
-    const DisplayQuantity quantity = GetDisplayQuantity(mode);
-    const bool showSign = GetShowSign(mode);
-
-    DrawGrid(plotX, plotY, plotW, plotH);
-
-    float minValue = -1.0f;
-    float maxValue = 1.0f;
-    if (_system != nullptr && !_system->Buffer.IsEmpty())
+    const uint16_t count=_system->Buffer.CopyLatest(_samples,BufferClass::Capacity);
+    if(count==0 || count<_previousCount)
     {
-        const uint16_t count = _system->Buffer.CopyLatest(_plotSamples, MaxPlotSamples);
-        bool haveValue = false;
-
-        for (uint16_t i = 0; i < count; ++i)
-        {
-            bool valid = false;
-            const float value = GetSampleValue(_plotSamples[i], mode, &valid);
-            if (!valid)
-            {
-                continue;
-            }
-
-            if (!haveValue)
-            {
-                minValue = value;
-                maxValue = value;
-                haveValue = true;
-            }
-            else
-            {
-                if (value < minValue) minValue = value;
-                if (value > maxValue) maxValue = value;
-            }
-        }
-
-        if (!haveValue)
-        {
-            minValue = -1.0f;
-            maxValue = 1.0f;
-        }
-
-        if (fabsf(maxValue - minValue) < 1e-9f)
-        {
-            maxValue += 0.001f;
-            minValue -= 0.001f;
-        }
+        const auto selected=_state.selected;_state=GraphState();_state.selected=selected;
     }
-
-    DrawLabels(plotX, plotY, plotH, minValue, maxValue, quantity, showSign);
-    DrawTrace(plotX, plotY, plotW, plotH, minValue, maxValue, mode);
+    _previousCount=count;
+    for(unsigned q=0;q<4;++q) _state.enabled[q]=q==_state.selected;
+    _state.tightYAxis=true;
+    _state.Resolve(_samples,count);
+    const auto& xr=_state.X();const auto& yr=_state.y[_state.selected];
+    const char* units[]={"V","A","W","Ohm"};
+    constexpr uint32_t curveColor=0x40FF60;
+    GD.SaveContext();GD.VertexFormat(0);GD.ColorA(255);
+    GD.ColorRGB(Theme::MainScreenBackground);GD.LineWidth(8);GD.Begin(RECTS);
+    GD.Vertex2f(GetX(),GetY());GD.Vertex2f(GetX()+GetWidth()-1,GetY()+GetHeight()-1);
+    GD.DrawPlotGrid(plotX,plotY,plotW,plotH,GraphState::XDivisions,GraphState::YDivisions,0x303030);
+    char label[40];
+    for(unsigned i=0;i<=GraphState::YDivisions;i+=2)
+    {
+        GraphState::FormatAxis(yr,GraphState::YDivisions,i,units[_state.selected],label,sizeof(label));
+        GD.ColorRGB(curveColor);
+        GD.cmd_text(GetX()+4,plotY+plotH-i*plotH/GraphState::YDivisions,26,OPT_CENTERY,label);
+    }
+    for(unsigned i=0;i<=GraphState::XDivisions;i+=2)
+    {
+        GraphState::FormatTime(xr.start+xr.division*i,xr.division*2,label,sizeof(label));
+        GD.ColorRGB(Theme::ToolbarText);
+        GD.cmd_text(plotX+plotW*i/GraphState::XDivisions,plotY+plotH+17,26,
+                    i==GraphState::XDivisions?(OPT_RIGHTX|OPT_CENTERY):OPT_CENTER,label);
+    }
+    const GraphState::Trace trace{&_state,_samples,_state.selected};
+    const bool any=GD.DrawPlotTrace(plotX,plotY,plotW,plotH,trace.Source(count),xr,yr,curveColor,
+                       _system->GetGraphSettings().style!=GraphStyle::Points,
+                       _system->GetGraphSettings().style!=GraphStyle::Lines);
+    if(!any)
+    {
+        GD.ColorRGB(Theme::ToolbarText);
+        GD.cmd_text(plotX+plotW/2,plotY+plotH/2,26,OPT_CENTER,count?"No valid samples":"Buffer empty");
+    }
+    GD.RestoreContext();
 }
 
-void GraphPanel::DrawGrid(int16_t plotX, int16_t plotY, int16_t plotW, int16_t plotH) const
+bool GraphPanel::InPlot(int x,int y) const
 {
-    const int16_t rows = 6;
-    const int16_t cols = 10;
-
-    GD.ColorRGB(0x8A8A8A);
-    GD.LineWidth(4);
-    GD.Begin(LINES);
-
-    for (int16_t r = 0; r <= rows; ++r)
+    return GetWidth()>136 && GetHeight()>48 && x>=GetX()+116 && x<=GetX()+GetWidth()-20 &&
+           y>=GetY()+14 && y<=GetY()+GetHeight()-34;
+}
+void GraphPanel::CancelTouch() {_drag=false;_moved=false;_hasTap=false;}
+void GraphPanel::TouchStart(int16_t x,int16_t y)
+{
+    if(!IsVisible() || !IsEnabled() || _multiBlocked || !InPlot(x,y)) return;
+    _drag=true;_moved=false;_lastX=x;_lastY=y;
+}
+void GraphPanel::TouchMove(int16_t x,int16_t y)
+{
+    if(!_drag || _multiBlocked) return;
+    const int dx=x-_lastX,dy=y-_lastY;
+    if(!_moved && abs(dx)<3 && abs(dy)<3) return;
+    _moved=true;_hasTap=false;
+    // Never move axes or interpret a drag as a tap; SourcePanel handles page swipes.
+}
+void GraphPanel::TouchEnd(int16_t x,int16_t y)
+{
+    if(!_drag) return;
+    if(x<0 || y<0) {CancelTouch();return;}
+    TouchMove(x,y);_drag=false;
+    if(!_moved && InPlot(x,y))
     {
-        const int16_t y = plotY + ((plotH * r) / rows);
-        GD.Vertex2f(plotX, y);
-        GD.Vertex2f(plotX + plotW, y);
-    }
-
-    for (int16_t c = 0; c <= cols; ++c)
-    {
-        const int16_t x = plotX + ((plotW * c) / cols);
-        GD.Vertex2f(x, plotY);
-        GD.Vertex2f(x, plotY + plotH);
+        const uint32_t now=millis();
+        if(_hasTap && now-_lastTapMs<=350 && abs(x-_tapX)<24 && abs(y-_tapY)<24)
+        {_state.AutoScale();_hasTap=false;}
+        else {_hasTap=true;_lastTapMs=now;_tapX=x;_tapY=y;}
     }
 }
-
-void GraphPanel::DrawLabels(int16_t plotX, int16_t plotY, int16_t plotH, float minValue, float maxValue,
-                            DisplayQuantity quantity, bool showSign)
+bool GraphPanel::HandleMultiTouch(const TouchFrame& frame,bool allowStart)
 {
-    const int16_t rows = 6;
-    const float step = (maxValue - minValue) / static_cast<float>(rows);
-    DisplayFormatState* axisState = &_currentAxisState;
-
-    switch (quantity)
-    {
-        case DisplayQuantity::Voltage:
-            axisState = &_voltageAxisState;
-            break;
-        case DisplayQuantity::Current:
-            axisState = &_currentAxisState;
-            break;
-        case DisplayQuantity::Resistance:
-            axisState = &_resistanceAxisState;
-            break;
-        case DisplayQuantity::Power:
-            axisState = &_powerAxisState;
-            break;
-        default:
-            break;
-    }
-
-    axisState->Reset();
-
-    for (int16_t i = 0; i <= rows; ++i)
-    {
-        const float value = maxValue - (step * static_cast<float>(i));
-        char valueText[16];
-        char unitText[8];
-        DisplayFormat::FormatValue(quantity, value, *axisState, showSign,
-                                   valueText, sizeof(valueText), unitText, sizeof(unitText));
-        snprintf(_labelBuffers[i], sizeof(_labelBuffers[i]), "%s %s", valueText, unitText);
-        GD.ColorRGB(Theme::HeaderText);
-        GD.cmd_text(plotX - 88, plotY + ((plotH * i) / rows), Theme::FontButton, OPT_CENTERY, _labelBuffers[i]);
-    }
-}
-
-void GraphPanel::DrawTrace(int16_t plotX, int16_t plotY, int16_t plotW, int16_t plotH,
-                           float minValue, float maxValue, MeasureMode mode)
-{
-    if (_system == nullptr)
-    {
-        return;
-    }
-
-    const uint16_t count = _system->Buffer.CopyLatest(_plotSamples, MaxPlotSamples);
-    if (count < 2)
-    {
-        return;
-    }
-
-    const float range = maxValue - minValue;
-    if (range <= 0.0f)
-    {
-        return;
-    }
-
-    GD.ColorRGB(Theme::LabelGreen);
-    GD.LineWidth(12);
-    GD.Begin(LINE_STRIP);
-
-    for (uint16_t i = 0; i < count; ++i)
-    {
-        bool valid = false;
-        const float sampleValue = GetSampleValue(_plotSamples[i], mode, &valid);
-        if (!valid)
-        {
-            continue;
-        }
-
-        const int16_t x = plotX + static_cast<int16_t>((static_cast<int32_t>(plotW) * i) / (count - 1));
-        const float normalized = (sampleValue - minValue) / range;
-        const int16_t y = plotY + plotH - static_cast<int16_t>(normalized * static_cast<float>(plotH));
-        GD.Vertex2f(x, y);
-    }
-}
-
-float GraphPanel::GetSampleValue(const BufferSample& sample, MeasureMode mode, bool* valid) const
-{
-    bool isValid = true;
-    float value = 0.0f;
-
-    switch (mode)
-    {
-        case MeasureMode::Voltage:
-            value = sample.Voltage;
-            break;
-        case MeasureMode::Current:
-            value = sample.Current;
-            break;
-        case MeasureMode::Resistance:
-            isValid = sample.ResistanceValid;
-            value = sample.Resistance;
-            break;
-        case MeasureMode::Power:
-            value = sample.Power;
-            break;
-        default:
-            value = sample.Current;
-            break;
-    }
-
-    if (valid != nullptr)
-    {
-        *valid = isValid;
-    }
-
-    return value;
-}
-
-DisplayQuantity GraphPanel::GetDisplayQuantity(MeasureMode mode) const
-{
-    switch (mode)
-    {
-        case MeasureMode::Voltage: return DisplayQuantity::Voltage;
-        case MeasureMode::Current: return DisplayQuantity::Current;
-        case MeasureMode::Resistance: return DisplayQuantity::Resistance;
-        case MeasureMode::Power: return DisplayQuantity::Power;
-        default: return DisplayQuantity::Current;
-    }
-}
-
-bool GraphPanel::GetShowSign(MeasureMode mode) const
-{
-    return mode != MeasureMode::Resistance;
+    if(!_multiBlocked && (!allowStart || !IsVisible() || frame.count<2)) return false;
+    // MainPage has no pinch zoom. Consume all contacts until complete release
+    // so a rejected pinch cannot become a pan, double tap or page swipe.
+    if(!_multiBlocked) {_multiBlocked=true;CancelTouch();}
+    if(frame.count==0) _multiBlocked=false;
+    return true;
 }

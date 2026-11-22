@@ -1,5 +1,14 @@
 # A-SMU
 
+## Aktueller Entwicklungsweg – 19.11.2026
+
+Zuerst wird die gesamte GUI auf Raspberry Pi Pico / RP2040 mit dem Riverdi RVT50UQFNWC03 V2 fertiggestellt. Die SMU-Funktionen werden durch einen Hardware-Simulationslayer abgebildet; die reale SMU-Anbindung folgt danach. Aktuell läuft noch die vorhandene Demo-Messwertsimulation, der vollständige Layer ist der nächste Schritt.
+
+Komponenten und offene Abgleiche: [Hardware.md](Hardware.md). Weitere Projektdokumente: [system.md](system.md), [ux.md](ux.md), [smu_backlog.md](smu_backlog.md).
+
+Die nachfolgende ursprüngliche Architekturübersicht enthält ältere Bauteil-, Bereichs- und Potentialangaben. Für konkrete Hardwareentscheidungen gelten der aktuelle Mainboard-Schaltplan und die konsolidierte Basis in [system.md](system.md) vom 20.11.2026.
+
+
 ## Floating High-Voltage Analog Source Measure Unit (Simulation)
 
 # Was ist eine SMU?
@@ -202,7 +211,7 @@ Realisiert mit Standard-Operationsverstärkern in Diodenlogik:
 
 Der Übergang zwischen den Modi ist stufenlos und vollständig analog -- es gibt keine Schaltschwelle, keinen Komparator und kein digitales Steuersignal.
 
-  ![minmax](LTSpice/images/minmax.png)
+  <!-- Min/Max-Abbildung fehlt im Repository. -->
 
 
 

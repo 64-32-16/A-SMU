@@ -70,9 +70,9 @@ void HeaderPanel::UpdateTexts()
 {
     if (_system == nullptr)
     {
-        _triggerLabel.SetText("AUTO");
+        _triggerLabel.SetText(_system?_system->GetBackendText():"--");
         _controlLabel.SetText("--");
-        _lanLabel.SetText("LAN: Off");
+        _lanLabel.SetText(_system?_system->GetHardwareStatusText():"--");
         _timeLabel.SetText("--:--:--");
         return;
     }
@@ -87,9 +87,9 @@ void HeaderPanel::UpdateTexts()
         static_cast<unsigned int>(minutes),
         static_cast<unsigned int>(seconds));
 
-    _triggerLabel.SetText("AUTO");
+    _triggerLabel.SetText(_system?_system->GetBackendText():"--");
     _controlLabel.SetText("LOCAL");
-    _lanLabel.SetText("LAN: Off");
+    _lanLabel.SetText(_system?_system->GetHardwareStatusText():"--");
     _timeLabel.SetText(_timeTextBuffer);
 }
 
@@ -119,7 +119,7 @@ void HeaderPanel::SetupControls()
     _controlLabel.SetTextColor(Theme::ToolbarText);
     _controlLabel.SetTextOptions(OPT_CENTER);
 
-    _lanLabel.SetFont(Theme::FontHeader);
+    _lanLabel.SetFont(26);
     _lanLabel.SetTextColor(Theme::ToolbarText);
     _lanLabel.SetTextOptions(OPT_CENTER);
 

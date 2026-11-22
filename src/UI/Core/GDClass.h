@@ -1,7 +1,9 @@
+#include "TouchFrame.h"
 #ifndef _GDCLASS_H_INCLUDED
 #define _GDCLASS_H_INCLUDED
 
 #include "Arduino.h"
+#include "PlotGeometry.h"
 
 /**
  * @brief EVE/GD Primitive-Typen für DL_BEGIN.
@@ -24,6 +26,7 @@ enum Primitive {
 #define OPT_MONO     1
 #define OPT_NODL     2
 #define OPT_FLAT     256
+#define OPT_RIGHTX   2048
 #define OPT_CENTERX  512
 #define OPT_CENTERY  1024
 #define OPT_CENTER   (OPT_CENTERX | OPT_CENTERY)
@@ -181,10 +184,28 @@ public:
      * @param options EVE Textoptionen
      * @param s Nullterminierter Text
      */
+    // Column offsets are relative to x; array contains columns+1 entries.
+    void DrawTableGrid(int16_t x,int16_t y,int16_t rowHeight,uint16_t rows,
+                       const int16_t* offsets,uint8_t columns,uint32_t color);
+    // Generic bounded bar chart; counts above maximum are clipped to the plot.
+    void DrawHistogramBars(int16_t x,int16_t y,int16_t w,int16_t h,
+                           const uint16_t* counts,uint16_t count,uint16_t maximum,uint32_t color);
+    // Bounded-cost solid rounded rectangle (no coprocessor widget/gradient).
+    void DrawSolidRoundedRect(int16_t x,int16_t y,int16_t w,int16_t h,uint16_t radius,uint32_t color);
+    // Capture the displayed screen asynchronously before the next frame.
+    // Reserves RAM_G [0x40000, 0xFB800) for an 800x480 RGB565 backdrop and bitmap handle 0.
+    void RequestBackdropCapture();
+    bool DrawCapturedBackdrop();
+    // Draw a modal backdrop and bordered window, preserving graphics state.
+    void DrawModalWindow(int16_t x,int16_t y,int16_t w,int16_t h,
+                         int16_t windowX,int16_t windowY,int16_t windowW,int16_t windowH,
+                         uint32_t backdrop,uint32_t border,uint32_t background);
     void cmd_text(int16_t x, int16_t y, byte font, uint16_t options, const char* s);
 
     /// Startet eine neue Display-Liste.
     void cmd_dlstart();
+    /// Nonblocking frame admission; recover EVE faults before sending more commands.
+    bool BeginFrame();
 
     /// Setzt den Alpha-Wert für nachfolgende Zeichenoperationen.
     void ColorA(byte alpha);
@@ -236,6 +257,25 @@ public:
     /**
      * @brief Zeichnet einen EVE-Button.
      */
+    /// Rounded vertical gradient in pixel coordinates. Radius is clamped to fit.
+    /// Preserves graphics context; uses stencil bit 7 as scratch (not preserved).
+    void DrawRoundedGradientRect(int16_t x, int16_t y, int16_t w, int16_t h,
+                                 uint16_t radius, uint32_t topColor, uint32_t bottomColor);
+
+    /// Filled tab silhouette with a sloping right edge, in pixel coordinates.
+    void DrawTabShape(int16_t x,int16_t y,int16_t w,int16_t h,uint16_t slope,uint32_t color);
+
+    void DrawPlotGrid(int16_t x, int16_t y, int16_t w, int16_t h,
+                      uint8_t columns, uint8_t rows, uint32_t color);
+    bool DrawPlotTrace(int16_t x,int16_t y,int16_t w,int16_t h,
+                       const PlotPointSource& source,const PlotRange& xr,const PlotRange& yr,
+                       uint32_t color,bool lines,bool dots);
+    void DrawPlotSeries(int16_t x, int16_t y, int16_t w, int16_t h,
+                        const PlotPoint* points, uint16_t count,
+                        const PlotRange& xRange, const PlotRange& yRange,
+                        uint32_t color, bool lines, bool dots,
+                        uint8_t xDivisions = 10, uint8_t yDivisions = 6);
+
     void cmd_button(int16_t x, int16_t y, uint16_t w, uint16_t h, byte font, uint16_t options, const char* s);
 
     /// Schreibt ein Byte in einen EVE-Speicherbereich.
@@ -279,6 +319,11 @@ public:
         uint8_t ptag;
         uint8_t touching;
     } inputs;
+    TouchFrame touches;
+private:
+    uint8_t _plotBank=0,_plotSlot=0;
+    bool _captureRequested=false, _capturePending=false, _backdropReady=false;
+
 };
 
 /// Globale Displayinstanz.

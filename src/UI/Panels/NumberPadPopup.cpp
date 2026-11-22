@@ -14,6 +14,7 @@ const char* kDigitTexts[10] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
 
 void ApplyDialogButtonTheme(Button& button)
 {
+    button.SetNativeFlat(false);
     button.SetBackgroundColor(Theme::ToolbarButtonBackground);
     button.SetTextColor(Theme::ToolbarButtonText);
 }
@@ -189,22 +190,9 @@ void NumberPadPopup::Draw()
         return;
     }
 
-    GD.ColorRGB(Theme::PopupBackdrop);
-    GD.ColorA(160);
-    GD.Begin(RECTS);
-    GD.Vertex2f(GetX(), GetY());
-    GD.Vertex2f(GetX() + GetWidth(), GetY() + GetHeight());
-    GD.ColorA(255);
-
-    GD.ColorRGB(Theme::PopupBorder);
-    GD.Begin(RECTS);
-    GD.Vertex2f(GetWindowX(), GetWindowY());
-    GD.Vertex2f(GetWindowX() + GetWindowWidth(), GetWindowY() + GetWindowHeight());
-
-    GD.ColorRGB(Theme::PopupBackground);
-    GD.Begin(RECTS);
-    GD.Vertex2f(GetWindowX() + 2, GetWindowY() + 2);
-    GD.Vertex2f(GetWindowX() + GetWindowWidth() - 2, GetWindowY() + GetWindowHeight() - 2);
+    GD.DrawModalWindow(GetX(),GetY(),GetWidth(),GetHeight(),
+                       GetWindowX(),GetWindowY(),GetWindowWidth(),GetWindowHeight(),
+                       Theme::PopupBackdrop,Theme::PopupBorder,Theme::PopupBackground);
 
     GD.ColorRGB(0xF0F0E0);
     GD.Begin(RECTS);
@@ -269,22 +257,22 @@ void NumberPadPopup::UpdateLayout()
 
 int16_t NumberPadPopup::GetWindowX() const
 {
-    return GetX() + ((GetWidth() - 600) / 2);
+    return GetX() + ((GetWidth() - Theme::NumericPopupWidth) / 2);
 }
 
 int16_t NumberPadPopup::GetWindowY() const
 {
-    return GetY() + ((GetHeight() - 430) / 2);
+    return GetY() + ((GetHeight() - Theme::NumericPopupHeight) / 2);
 }
 
 int16_t NumberPadPopup::GetWindowWidth() const
 {
-    return 600;
+    return Theme::NumericPopupWidth;
 }
 
 int16_t NumberPadPopup::GetWindowHeight() const
 {
-    return 430;
+    return Theme::NumericPopupHeight;
 }
 
 Button* NumberPadPopup::GetSelectedUnitButton() const

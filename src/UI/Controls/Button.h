@@ -24,6 +24,9 @@ typedef void (*ButtonClickHandler)(Button* sender);
 class Button : public Control
 {
 public:
+    // Native flat EVE buttons, with explicit color feedback when pressed.
+    void SetNativeFlat(bool enabled) { _nativeFlat=enabled; }
+
     /**
      * @brief Erstellt einen leeren Button.
      */
@@ -77,6 +80,9 @@ public:
      * @param font EVE-Fontnummer
      */
     void SetFont(uint8_t font);
+    // Zero keeps the native EVE widget; nonzero uses the GDClass rounded fill.
+    void SetCornerRadius(uint16_t radius);
+    uint16_t GetCornerRadius() const;
 
     /**
      * @brief Liefert den Font.
@@ -165,6 +171,7 @@ private:
     const char* _text;
     uint8_t _font;
     uint16_t _textOptions;
+    uint16_t _cornerRadius;
 
     bool _pressed;
     bool _trackingTouch;
@@ -175,6 +182,7 @@ private:
     uint32_t _disabledTextColor;
 
     ButtonClickHandler _onClick;
+    bool _nativeFlat = false;
 };
 
 #endif

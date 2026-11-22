@@ -47,24 +47,28 @@ VoltageSourcePanel::VoltageSourcePanel()
     _limitLabel.SetText("Limit");
 
     _rangeButton.SetFont(Theme::FontButton);
-    _rangeButton.SetBackgroundColor(Theme::ButtonBackground);
-    _rangeButton.SetTextColor(Theme::ButtonTextColor);
+    _rangeButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _rangeButton.SetCornerRadius(0);
+    _rangeButton.SetTextColor(Theme::MainButtonText);
     _rangeButton.SetTextOptions(OPT_CENTER);
 
     _sourceModeButton.SetFont(Theme::FontButton);
-    _sourceModeButton.SetBackgroundColor(Theme::ButtonBackground);
-    _sourceModeButton.SetTextColor(Theme::ButtonTextColor);
+    _sourceModeButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _sourceModeButton.SetCornerRadius(0);
+    _sourceModeButton.SetTextColor(Theme::MainButtonText);
     _sourceModeButton.SetTextOptions(OPT_CENTER);
     _sourceModeButton.SetText("Source:\nVOLTS(V)");
 
     _sourceButton.SetFont(Theme::FontButton);
-    _sourceButton.SetBackgroundColor(Theme::ButtonBackground);
-    _sourceButton.SetTextColor(Theme::ButtonTextColor);
+    _sourceButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _sourceButton.SetCornerRadius(0);
+    _sourceButton.SetTextColor(Theme::MainButtonText);
     _sourceButton.SetTextOptions(OPT_CENTER);
 
     _limitButton.SetFont(Theme::FontButton);
-    _limitButton.SetBackgroundColor(Theme::ButtonBackground);
-    _limitButton.SetTextColor(Theme::ButtonTextColor);
+    _limitButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _limitButton.SetCornerRadius(0);
+    _limitButton.SetTextColor(Theme::MainButtonText);
     _limitButton.SetTextOptions(OPT_CENTER);
 
     AddChild(&_topDivider);
@@ -126,24 +130,28 @@ VoltageSourcePanel::VoltageSourcePanel(int16_t x, int16_t y, int16_t w, int16_t 
     _limitLabel.SetText("Limit");
 
     _rangeButton.SetFont(Theme::FontButton);
-    _rangeButton.SetBackgroundColor(Theme::ButtonBackground);
-    _rangeButton.SetTextColor(Theme::ButtonTextColor);
+    _rangeButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _rangeButton.SetCornerRadius(0);
+    _rangeButton.SetTextColor(Theme::MainButtonText);
     _rangeButton.SetTextOptions(OPT_CENTER);
 
     _sourceModeButton.SetFont(Theme::FontButton);
-    _sourceModeButton.SetBackgroundColor(Theme::ButtonBackground);
-    _sourceModeButton.SetTextColor(Theme::ButtonTextColor);
+    _sourceModeButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _sourceModeButton.SetCornerRadius(0);
+    _sourceModeButton.SetTextColor(Theme::MainButtonText);
     _sourceModeButton.SetTextOptions(OPT_CENTER);
     _sourceModeButton.SetText("Source:\nVOLTS(V)");
 
     _sourceButton.SetFont(Theme::FontButton);
-    _sourceButton.SetBackgroundColor(Theme::ButtonBackground);
-    _sourceButton.SetTextColor(Theme::ButtonTextColor);
+    _sourceButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _sourceButton.SetCornerRadius(0);
+    _sourceButton.SetTextColor(Theme::MainButtonText);
     _sourceButton.SetTextOptions(OPT_CENTER);
 
     _limitButton.SetFont(Theme::FontButton);
-    _limitButton.SetBackgroundColor(Theme::ButtonBackground);
-    _limitButton.SetTextColor(Theme::ButtonTextColor);
+    _limitButton.SetBackgroundColor(Theme::MainButtonBackground);
+    _limitButton.SetCornerRadius(0);
+    _limitButton.SetTextColor(Theme::MainButtonText);
     _limitButton.SetTextOptions(OPT_CENTER);
 
     AddChild(&_topDivider);
@@ -211,30 +219,19 @@ void VoltageSourcePanel::UpdateLayout()
     const int16_t x = GetX();
     const int16_t y = GetY();
     const int16_t w = GetWidth();
-    const int16_t setupButtonX = x + w - 170;
-    const int16_t sourceModeButtonX = setupButtonX - 170;
-    const int16_t limitLabelX = setupButtonX - 72;
-    const int16_t rangeButtonX = x + 176;
-    const int16_t controlOffsetY = -10;
-    const int16_t topButtonY = y + 34 + controlOffsetY;
-    const int16_t limitButtonY = y + 112 + controlOffsetY;
-    const int16_t buttonH = Theme::ButtonHeight;
-    const int16_t labelOffsetY = (buttonH - 24) / 2;
-
-    _topDivider.SetBounds(x + 8, y + 8, w - 16, 1);
-    _titleLabel.SetBounds(x + 14, y + 38 + controlOffsetY, 150, 28);
-    _modeLabel.SetBounds(x + 14, y + 66 + controlOffsetY, 150, 28);
-    _valueLabel.SetBounds(x + 42, y + 92 + controlOffsetY, 430, 90);
-    _measLabel.SetBounds(x + w - 72, y + 160 + controlOffsetY, 60, 24);
-
-    _rangeLabel.SetBounds(rangeButtonX - 88, topButtonY + labelOffsetY, 80, 24);
-    _rangeButton.SetBounds(rangeButtonX, topButtonY, 150, buttonH);
-
-    _sourceModeButton.SetBounds(sourceModeButtonX, topButtonY, 138, buttonH);
-    _sourceButton.SetBounds(setupButtonX, topButtonY, 154, buttonH);
-
-    _limitLabel.SetBounds(limitLabelX, limitButtonY + labelOffsetY, 64, 24);
-    _limitButton.SetBounds(setupButtonX, limitButtonY, 154, buttonH);
+    const int16_t controlsY = y + 140;
+    _topDivider.SetVisible(false);
+    _measLabel.SetVisible(false);
+    _titleLabel.SetBounds(x + 12, y + 8, 130, 28);
+    _modeLabel.SetBounds(x + 142, y + 8, 180, 28);
+    _valueLabel.SetBounds(x + 20, y + 42, w - 40, 90);
+    _sourceModeButton.SetBounds(x + w - 170, y + 2, 158, 47);
+    _rangeLabel.SetVisible(true);
+    _rangeLabel.SetBounds(x + 12, controlsY + 12, 70, 24);
+    _rangeButton.SetBounds(x + 86, controlsY, 134, 47);
+    _sourceButton.SetBounds(x + 252, controlsY, 190, 47);
+    _limitLabel.SetBounds(x + 466, controlsY + 12, 64, 24);
+    _limitButton.SetBounds(x + 542, controlsY, w - 554, 47);
 }
 
 void VoltageSourcePanel::UpdateTexts()
@@ -261,7 +258,7 @@ void VoltageSourcePanel::UpdateTexts()
                                _sourceFormatState,
                                true,
                                valueText, sizeof(valueText), unitText, sizeof(unitText));
-    snprintf(_sourceTextBuffer, sizeof(_sourceTextBuffer), "%s%s", valueText, unitText);
+    snprintf(_sourceTextBuffer, sizeof(_sourceTextBuffer), "Source\n%s%s", valueText, unitText);
 
     DisplayFormat::FormatValue(DisplayQuantity::Current, _system->GetCurrentLimitValue(),
                                _limitFormatState,

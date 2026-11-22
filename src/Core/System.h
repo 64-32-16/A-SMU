@@ -3,7 +3,8 @@
 
 #include <Arduino.h>
 #include "Buffer.h"
-#include "DacOutput.h"
+#include "GraphSettings.h"
+#include "Histogram.h"
 
 enum class MeasureMode : uint8_t
 {
@@ -33,6 +34,8 @@ enum class VoltageRange : uint8_t
 
 enum class CurrentRange : uint8_t
 {
+    Range10uA,
+    Range1mA,
     Range100mA,
     Range1A
 };
@@ -77,11 +80,29 @@ class SystemClass
 {
 public:
     SystemClass();
+    SystemClass(const SystemClass&)=delete;
+    SystemClass& operator=(const SystemClass&)=delete;
 
     void Reset();
     void Execute();
-    void SetDacOutput(DacOutput* dacOutput);
+    void ExecuteAt(uint32_t now);
+    const Hardware::Measurement& GetMeasurement() const { return _measurement; }
+    const Hardware::SimulationSettings& GetSimulationSettings() const {return _simulationSettings;}
+    bool SetSimulationLoad(Hardware::LoadType load);
+    bool SetSimulationResistance(double ohms);
+    bool IsVoltageRangeAvailable(VoltageRange range) const;
+    bool IsCurrentRangeAvailable(CurrentRange range) const;
+    bool SetVoltageRangeAvailable(VoltageRange range,bool enabled);
+    bool SetCurrentRangeAvailable(CurrentRange range,bool enabled);
+    const char* GetBackendText() const;
+    const char* GetHardwareStatusText() const;
 
+    BufferStatistics GetMeasurementStatistics() const;
+    void ClearMeasurementBuffer();
+    const GraphSettings& GetGraphSettings() const { return _graphSettings; }
+    bool SetGraphStyle(GraphStyle style);
+    const HistogramSettings& GetHistogramSettings() const { return _histogramSettings; }
+    bool SetHistogramSettings(const HistogramSettings& settings);
     MeasureMode GetMeasureMode() const;
     void SetMeasureMode(MeasureMode mode);
 
@@ -126,16 +147,15 @@ public:
     void SetSimulationEnabled(bool enabled);
 
     float GetVoltage() const;
+    // Legacy host-test injection; acquisition uses the backend record atomically.
     void SetVoltage(float value);
 
     float GetCurrent() const;
     void SetCurrent(float value);
 
     float GetResistance() const;
-    void SetResistance(float value);
 
     float GetPower() const;
-    void SetPower(float value);
 
     float GetVoltageSourceValue() const;
     void SetVoltageSourceValue(float value);
@@ -162,6 +182,9 @@ public:
     const char* GetRangeText() const;
     const char* GetVoltageRangeText() const;
     const char* GetCurrentRangeText() const;
+    static constexpr uint8_t CurrentRangeCount = 4;
+    static CurrentRange GetCurrentRangeAt(uint8_t index);
+    static const char* GetCurrentRangeText(CurrentRange range);
     const char* GetResistanceRangeText() const;
     const char* GetOutputOffStateText() const;
     const char* GetOvpSettingText() const;
@@ -180,13 +203,7 @@ private:
     void RecalculateAutoCurrentRange();
     float GetVoltageRangeMax(VoltageRange range) const;
     float GetCurrentRangeMax(CurrentRange range) const;
-    void UpdateDerivedValues();
-    void ExecuteSimulation();
-    float ScaleToDacControl(float value, float fullScale) const;
-    float ResolveDacVSetControl() const;
-    float ResolveDacILimitControl() const;
-    void MarkDacDirty();
-    void ApplyDacOutputs();
+    Hardware::Request MakeHardwareRequest() const;
 
 private:
     MeasureMode _measureMode;
@@ -206,19 +223,19 @@ private:
     bool _measureAutoUnit;
     bool _outputOn;
     bool _simulationEnabled;
-    DacOutput* _dacOutput;
-    bool _dacDirty;
 
-    float _voltage;
-    float _current;
-    float _resistance;
-    float _power;
     float _voltageSourceValue;
     float _voltageLimitValue;
     float _currentSourceValue;
     float _currentLimitValue;
     uint32_t _lastSimulationMs;
-    float _simulationPhase;
+    Hardware::SimulationSettings _simulationSettings;
+    Hardware::SimulationBackend _simulator;
+    Hardware::Backend* _backend=nullptr;
+    Hardware::Measurement _measurement;
+    bool _hardwareDirty=true;
+    GraphSettings _graphSettings;
+    HistogramSettings _histogramSettings;
 };
 
 extern SystemClass System;

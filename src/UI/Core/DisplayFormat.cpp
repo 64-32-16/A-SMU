@@ -198,3 +198,15 @@ uint8_t DisplayFormat::GetDecimalsFor(DisplayQuantity quantity, int8_t unitIndex
                                       kPowerMicroDecimals;
     }
 }
+
+void DisplayFormat::FormatUnsigned(uint64_t value,char* text,size_t size,unsigned minDigits)
+{
+    if(!text || !size) return;
+    char reverse[20];unsigned digits=0;
+    if(minDigits>20) minDigits=20;
+    do {reverse[digits++]=static_cast<char>('0'+value%10);value/=10;} while(value);
+    while(digits<minDigits) reverse[digits++]='0';
+    const size_t count=digits<size-1?digits:size-1;
+    for(size_t i=0;i<count;++i) text[i]=reverse[digits-1-i];
+    text[count]='\0';
+}

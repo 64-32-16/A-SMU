@@ -98,15 +98,15 @@ void TracePage::UpdateLayout()
     const int16_t top = GetY() + 4;
     const int16_t width = GetWidth() - 40;
     const int16_t headerHeight = 54;
-    const int16_t configHeight = 78;
-    const int16_t configY = GetY() + GetHeight() - configHeight - 4;
+    const int16_t configHeight = Theme::ToolbarHeight;
+    const int16_t configY = GetY() + GetHeight() - configHeight;
     const int16_t contentY = top + headerHeight - 1;
     const int16_t contentHeight = configY - contentY - Theme::PanelGap;
 
     _headerPanel.SetBounds(left, top, width, headerHeight);
     _graphPanel.SetBounds(left, contentY, width, contentHeight);
     _statisticsPanel.SetBounds(left, contentY, width, contentHeight);
-    _configPanel.SetBounds(left, configY, width, configHeight);
+    _configPanel.SetBounds(GetX(), configY, GetWidth(), configHeight);
 }
 
 void TracePage::UpdateVisiblePanel()

@@ -2,12 +2,15 @@
 
 #include "Core/Beeper.h"
 #include "Core/System.h"
-#include "drivers/Ltc2602.h"
 #include "UI/Core/Container.h"
 #include "UI/Core/GDClass.h"
 #include "UI/Core/Theme.h"
 #include "UI/Pages/MainPage.h"
-#include "UI/Pages/TracePage.h"
+#include "UI/Pages/MenuPage.h"
+#include "UI/Pages/SimulationPage.h"
+#include "UI/Pages/GraphPage.h"
+#include "UI/Pages/HistogramPage.h"
+#include "UI/Pages/ReadingTablePage.h"
 #include "UI/Panels/MeasureModePopup.h"
 #include "UI/Panels/NumberPadPopup.h"
 #include "UI/Panels/OutputOffStatePopup.h"
@@ -18,11 +21,16 @@
 #include "UI/Panels/XYGraphPopup.h"
 
 constexpr uint32_t FRAME_TIME_MS = 20;
+constexpr uint32_t SERIAL_WAIT_TIMEOUT_MS = 1000;
 constexpr uint8_t BEEPER_PIN = 9;
 
 Container root(0, 0, 800, 480);
 MainPage mainPage(0, 0, 800, 480);
-TracePage tracePage(0, 0, 800, 480);
+MenuPage menuPage(0, 0, 800, 480);
+SimulationPage simulationPage(0,0,800,480);
+GraphPage graphPage(0, 0, 800, 480);
+HistogramPage histogramPage(0,0,800,480);
+ReadingTablePage readingTablePage(0,0,800,480);
 SourceRangePopup sourceRangePopup(0, 0, 800, 480);
 SourceModePopup sourceModePopup(0, 0, 800, 480);
 ResistanceRangePopup resistanceRangePopup(0, 0, 800, 480);
@@ -30,20 +38,16 @@ NumberPadPopup numberPadPopup(0, 0, 800, 480);
 MeasureModePopup measureModePopup(0, 0, 800, 480);
 OutputOffStatePopup outputOffStatePopup(0, 0, 800, 480);
 XYGraphPopup xyGraphPopup(0, 0, 800, 480);
-Ltc2602 prototypeDac;
 
 uint32_t lastFrameMs = 0;
 bool lastTouching = false;
 int16_t lastTouchX = 0;
 int16_t lastTouchY = 0;
-bool sourceExpanded = false;
 
 void ApplyLayout()
 {
     mainPage.SetBounds(0, 0, 800, 480);
     mainPage.UpdateLayout();
-    tracePage.SetBounds(0, 0, 800, 480);
-    tracePage.UpdateLayout();
 }
 
 void UpdateCaptionFromMode()
@@ -53,37 +57,71 @@ void UpdateCaptionFromMode()
 
 void ShowMainPage()
 {
+    simulationPage.SetVisible(false);
+    readingTablePage.SetVisible(false);
+    histogramPage.SetVisible(false);
+    graphPage.SetVisible(false);
+    menuPage.SetVisible(false);
     mainPage.SetVisible(true);
-    tracePage.SetVisible(false);
-}
-
-void ShowTracePage()
-{
-    mainPage.SetVisible(false);
-    tracePage.SetVisible(true);
-    tracePage.SetActiveView(TraceConfigView::Graph);
+    mainPage.GetSourcePanel().ShowSource();
 }
 
 void OpenMainPage(Button* sender)
 {
-    if (sender != &mainPage.GetHeaderPanel().GetHomeButton() &&
-        sender != &tracePage.GetHeaderPanel().GetHomeButton())
-    {
-        return;
-    }
-
+    (void)sender;
     ShowMainPage();
 }
 
-void OpenTracePage(Button* sender)
+void OpenMenu(Button* sender)
 {
-    if (sender != &mainPage.GetConfigPanel().GetTraceButton())
+    if (sender == &mainPage.GetHeaderPanel().GetMenuButton())
     {
-        return;
+        mainPage.SetVisible(false);
+        menuPage.Open();
     }
-
-    ShowTracePage();
 }
+
+void OpenGraphPage(Button* sender)
+{
+    simulationPage.SetVisible(false);
+    readingTablePage.SetVisible(false);
+    (void)sender;
+    histogramPage.SetVisible(false);mainPage.SetVisible(false);menuPage.SetVisible(false);graphPage.Open();
+}
+
+void BackFromGraph(Button* sender)
+{
+    (void)sender;
+    graphPage.SetVisible(false);menuPage.Open();
+}
+
+void OpenHistogramPage(Button* sender)
+{
+    simulationPage.SetVisible(false);
+    readingTablePage.SetVisible(false);
+    (void)sender;mainPage.SetVisible(false);graphPage.SetVisible(false);menuPage.SetVisible(false);histogramPage.Open();
+}
+void BackFromHistogram(Button* sender)
+{
+    (void)sender;histogramPage.SetVisible(false);menuPage.Open();
+}
+
+void OpenReadingTablePage(Button* sender)
+{
+    simulationPage.SetVisible(false);
+    (void)sender;mainPage.SetVisible(false);graphPage.SetVisible(false);histogramPage.SetVisible(false);
+    menuPage.SetVisible(false);readingTablePage.Open();
+}
+void BackFromReadingTable(Button* sender)
+{
+    (void)sender;readingTablePage.SetVisible(false);menuPage.Open();
+}
+
+void OpenSimulationPage(Button* sender) {
+    (void)sender;mainPage.SetVisible(false);menuPage.SetVisible(false);graphPage.SetVisible(false);
+    histogramPage.SetVisible(false);readingTablePage.SetVisible(false);simulationPage.Open();
+}
+void BackFromSimulation(Button* sender) {(void)sender;simulationPage.SetVisible(false);menuPage.Open();}
 
 void OpenMeasureModePopup(Button* sender)
 {
@@ -106,17 +144,6 @@ void OnMeasureModePopupClosed(MeasureModePopup* sender, bool accepted)
     {
         UpdateCaptionFromMode();
     }
-}
-
-void OnSourceExpandChanged(SourcePanel* sender, bool expanded)
-{
-    if (sender != &mainPage.GetSourcePanel())
-    {
-        return;
-    }
-
-    sourceExpanded = expanded;
-    ApplyLayout();
 }
 
 void OpenSourceRangePopup(Button* sender)
@@ -215,7 +242,8 @@ void OpenXYGraphPopup(Button* sender)
 void setup()
 {
     Serial.begin(115200);
-    while (!Serial) {}
+    const uint32_t serialWaitStartMs = millis();
+    while (!Serial && (millis() - serialWaitStartMs) < SERIAL_WAIT_TIMEOUT_MS) {}
     delay(200);
 
     Serial.println("A-SMU Measure + SourcePanel test start");
@@ -227,22 +255,18 @@ void setup()
 
     System.Reset();
     System.SetSimulationEnabled(true);
+    // GUI development currently assumes an always-enabled simulated output.
+    System.SetOutputOn(true);
     System.SetMeasureMode(MeasureMode::Voltage);
     System.SetSenseMode(SenseMode::Local);
     System.SetMeasureAutoUnit(true);
-    System.SetVoltage(1.2345f);
-    System.SetCurrent(0.0123f);
-    System.SetResistance(1234.0f);
-    System.SetPower(0.0152f);
     System.SetVoltageSourceValue(0.0f);
     System.SetVoltageLimitValue(0.0f);
     System.SetCurrentSourceValue(0.0f);
     System.SetCurrentLimitValue(0.0f);
     System.SetSourceMode(SourceMode::Voltage);
-    System.SetDacOutput(&prototypeDac);
 
     mainPage.SetSystem(&System);
-    tracePage.SetSystem(&System);
     sourceRangePopup.SetSystem(&System);
     sourceModePopup.SetSystem(&System);
     resistanceRangePopup.SetSystem(&System);
@@ -253,9 +277,24 @@ void setup()
     measureModePopup.SetOnClose(OnMeasureModePopupClosed);
     SourcePanel& sourcePanel = mainPage.GetSourcePanel();
     mainPage.GetHeaderPanel().GetHomeButton().SetOnClick(OpenMainPage);
-    tracePage.GetHeaderPanel().GetHomeButton().SetOnClick(OpenMainPage);
-    mainPage.GetConfigPanel().GetTraceButton().SetOnClick(OpenTracePage);
-    sourcePanel.SetOnExpandChanged(OnSourceExpandChanged);
+    mainPage.GetHeaderPanel().GetMenuButton().SetOnClick(OpenMenu);
+    menuPage.SetOnHome(OpenMainPage);
+    menuPage.SetOnSimulation(OpenSimulationPage);
+    simulationPage.SetSystem(&System);
+    simulationPage.SetOnBack(BackFromSimulation);
+    simulationPage.SetOnHome(OpenMainPage);
+    menuPage.SetOnGraph(OpenGraphPage);
+    menuPage.SetOnHistogram(OpenHistogramPage);
+    menuPage.SetOnReadingTable(OpenReadingTablePage);
+    readingTablePage.SetSystem(&System);
+    readingTablePage.SetOnBack(BackFromReadingTable);
+    readingTablePage.SetOnHome(OpenMainPage);
+    histogramPage.SetSystem(&System);
+    histogramPage.SetOnBack(BackFromHistogram);
+    histogramPage.SetOnHome(OpenMainPage);
+    graphPage.SetSystem(&System);
+    graphPage.SetOnBack(BackFromGraph);
+    graphPage.SetOnHome(OpenMainPage);
     mainPage.GetMeasurePanel().GetRangeButton().SetOnClick(OpenSourceRangePopup);
     mainPage.GetMeasurePanel().GetFunctionButton().SetOnClick(OpenMeasureModePopup);
     sourcePanel.GetVoltagePanel().GetRangeButton().SetOnClick(OpenSourceRangePopup);
@@ -273,7 +312,11 @@ void setup()
     ApplyLayout();
 
     root.AddChild(&mainPage);
-    root.AddChild(&tracePage);
+    root.AddChild(&menuPage);
+    root.AddChild(&graphPage);
+    root.AddChild(&histogramPage);
+    root.AddChild(&readingTablePage);
+    root.AddChild(&simulationPage);
 
     root.AddChild(&sourceRangePopup);
     root.AddChild(&sourceModePopup);
@@ -289,7 +332,6 @@ void setup()
 
 void loop()
 {
-    Beeper.Update();
     System.Execute();
     UpdateCaptionFromMode();
 
@@ -304,39 +346,58 @@ void loop()
 
     GD.get_inputs();
 
-    const bool touching = GD.inputs.touching;
-
-    if (touching)
+    // Only the topmost visible surface receives new gestures (never behind a modal).
+    Control* touchSurface=nullptr;
+    for(int i=root.GetChildCount()-1;i>=0;--i)
     {
-        lastTouchX = GD.inputs.x;
-        lastTouchY = GD.inputs.y;
+        Control* child=root.GetChild(i);
+        if(child->IsVisible() && child->IsEnabled()) {touchSurface=child;break;}
+    }
+    if(readingTablePage.HandleMultiTouch(GD.touches,touchSurface==&readingTablePage) ||
+       histogramPage.HandleMultiTouch(GD.touches,touchSurface==&histogramPage) ||
+       graphPage.HandleMultiTouch(GD.touches,touchSurface==&graphPage) ||
+       mainPage.GetSourcePanel().HandleMultiTouch(GD.touches,touchSurface==&mainPage))
+    {
+        if(lastTouching) root.TouchEnd(-1,-1);
+        lastTouching=false;
+    }
+    else
+    {
+        const bool touching = GD.inputs.touching;
+
+        if (touching)
+        {
+            lastTouchX = GD.inputs.x;
+            lastTouchY = GD.inputs.y;
+        }
+
+        if (touching && !lastTouching)
+        {
+            root.TouchStart(lastTouchX, lastTouchY);
+        }
+
+        if (touching)
+        {
+            root.TouchMove(lastTouchX, lastTouchY);
+        }
+
+        if (!touching && lastTouching)
+        {
+            root.TouchEnd(lastTouchX, lastTouchY);
+        }
+
+        lastTouching = touching;
+
     }
 
-    if (touching && !lastTouching)
-    {
-        root.TouchStart(lastTouchX, lastTouchY);
-    }
-
-    if (touching)
-    {
-        root.TouchMove(lastTouchX, lastTouchY);
-    }
-
-    if (!touching && lastTouching)
-    {
-        root.TouchEnd(lastTouchX, lastTouchY);
-    }
-
-    lastTouching = touching;
-
-    GD.cmd_dlstart();
+    if (!GD.BeginFrame()) return;
     GD.cmd_romfont(1, 34);
     GD.cmd_romfont(2, 33);
     GD.ClearColorRGB(Theme::MainScreenBackground);
     GD.Clear();
     GD.VertexFormat(0);
 
-    GD.ColorRGB(Theme::PrototypeFrame);
+    GD.ColorRGB(Theme::ScreenFrame);
     GD.LineWidth(16);
     GD.Begin(LINE_STRIP);
     GD.Vertex2f(1, 1);
@@ -348,4 +409,5 @@ void loop()
     root.Draw();
 
     GD.swap();
+
 }

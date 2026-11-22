@@ -15,19 +15,21 @@ BufferClass::BufferClass()
 
 void BufferClass::Reset()
 {
+    _totalSamples=0;_startTimeMs=0;
     _head = 0;
     _count = 0;
 }
 
 void BufferClass::AddSample(uint32_t timeMs, float voltage, float current)
 {
-    BufferSample& sample = _samples[_head];
-    sample.Voltage = voltage;
-    sample.Current = current;
-    sample.Power = voltage * current;
-    sample.TimeMs = timeMs;
-    sample.ResistanceValid = (fabsf(current) >= kMinResistanceCurrent);
-    sample.Resistance = sample.ResistanceValid ? (voltage / current) : 0.0f;
+    AddSample(Hardware::MakeMeasurement(timeMs,voltage,current));
+}
+
+void BufferClass::AddSample(const BufferSample& sample)
+{
+    if(_totalSamples==0) _startTimeMs=sample.TimeMs;
+    ++_totalSamples;
+    _samples[_head]=sample;
 
     _head = static_cast<uint16_t>((_head + 1) % Capacity);
     if (_count < Capacity)
@@ -97,134 +99,100 @@ float BufferClass::GetCurrent() const
 float BufferClass::GetPower() const
 {
     const BufferSample* sample = GetLatest();
-    return (sample != nullptr) ? sample->Power : 0.0f;
+    return (sample != nullptr) ? sample->GetPower() : 0.0f;
 }
 
 float BufferClass::GetResistance() const
 {
     const BufferSample* sample = GetLatest();
-    if (sample == nullptr || !sample->ResistanceValid)
+    if (sample == nullptr || !sample->HasValidResistance())
     {
         return 0.0f;
     }
 
-    return sample->Resistance;
+    return sample->GetResistance();
 }
 
 bool BufferClass::HasValidResistance() const
 {
     const BufferSample* sample = GetLatest();
-    return (sample != nullptr) && sample->ResistanceValid;
+    return (sample != nullptr) && sample->HasValidResistance();
 }
 
 float BufferClass::GetVoltageMin() const
 {
-    if (IsEmpty())
-    {
-        return 0.0f;
-    }
-
-    float value = _samples[0].Voltage;
-    for (uint16_t i = 1; i < _count; ++i)
-    {
-        if (_samples[i].Voltage < value)
-        {
-            value = _samples[i].Voltage;
-        }
-    }
-    return value;
+    return GetStatistics(BufferQuantity::Voltage).Minimum;
 }
 
 float BufferClass::GetVoltageMax() const
 {
-    if (IsEmpty())
-    {
-        return 0.0f;
-    }
-
-    float value = _samples[0].Voltage;
-    for (uint16_t i = 1; i < _count; ++i)
-    {
-        if (_samples[i].Voltage > value)
-        {
-            value = _samples[i].Voltage;
-        }
-    }
-    return value;
+    return GetStatistics(BufferQuantity::Voltage).Maximum;
 }
 
 float BufferClass::GetVoltageAverage() const
 {
-    if (IsEmpty())
-    {
-        return 0.0f;
-    }
-
-    float sum = 0.0f;
-    for (uint16_t i = 0; i < _count; ++i)
-    {
-        sum += _samples[i].Voltage;
-    }
-    return sum / static_cast<float>(_count);
+    return GetStatistics(BufferQuantity::Voltage).Average;
 }
 
 float BufferClass::GetVoltagePeakToPeak() const
 {
-    return GetVoltageMax() - GetVoltageMin();
+    return GetStatistics(BufferQuantity::Voltage).PeakToPeak;
 }
 
 float BufferClass::GetCurrentMin() const
 {
-    if (IsEmpty())
-    {
-        return 0.0f;
-    }
-
-    float value = _samples[0].Current;
-    for (uint16_t i = 1; i < _count; ++i)
-    {
-        if (_samples[i].Current < value)
-        {
-            value = _samples[i].Current;
-        }
-    }
-    return value;
+    return GetStatistics(BufferQuantity::Current).Minimum;
 }
 
 float BufferClass::GetCurrentMax() const
 {
-    if (IsEmpty())
-    {
-        return 0.0f;
-    }
-
-    float value = _samples[0].Current;
-    for (uint16_t i = 1; i < _count; ++i)
-    {
-        if (_samples[i].Current > value)
-        {
-            value = _samples[i].Current;
-        }
-    }
-    return value;
+    return GetStatistics(BufferQuantity::Current).Maximum;
 }
 
 float BufferClass::GetCurrentAverage() const
 {
-    if (IsEmpty())
-    {
-        return 0.0f;
-    }
-
-    float sum = 0.0f;
-    for (uint16_t i = 0; i < _count; ++i)
-    {
-        sum += _samples[i].Current;
-    }
-    return sum / static_cast<float>(_count);
+    return GetStatistics(BufferQuantity::Current).Average;
 }
 
 float BufferClass::GetCurrentPeakToPeak() const
 {
-    return GetCurrentMax() - GetCurrentMin();
+    return GetStatistics(BufferQuantity::Current).PeakToPeak;
+}
+
+BufferStatistics BufferClass::GetStatistics(BufferQuantity quantity) const
+{
+    BufferStatistics result;
+    double mean = 0;
+    double m2 = 0;
+    for (uint16_t i = 0; i < _count; ++i)
+    {
+        const BufferSample& sample = _samples[i];
+        if(sample.Fault!=Hardware::Error::None) continue;
+        float value = 0;
+        switch (quantity)
+        {
+            case BufferQuantity::Voltage: value = sample.Voltage; break;
+            case BufferQuantity::Current: value = sample.Current; break;
+            case BufferQuantity::Power: value = sample.GetPower(); break;
+            case BufferQuantity::Resistance:
+                if (!sample.HasValidResistance()) continue;
+                value = sample.GetResistance();
+                break;
+        }
+        if (!isfinite(value)) continue;
+        if (result.Count == 0) result.Minimum = result.Maximum = value;
+        if (value < result.Minimum) result.Minimum = value;
+        if (value > result.Maximum) result.Maximum = value;
+        ++result.Count;
+        const double delta = value - mean;
+        mean += delta / result.Count;
+        m2 += delta * (value - mean);
+    }
+    if (result.Count > 0)
+    {
+        result.Average = static_cast<float>(mean);
+        result.PeakToPeak = result.Maximum - result.Minimum;
+        result.StandardDeviation = static_cast<float>(sqrt(m2 > 0 ? m2 / result.Count : 0));
+    }
+    return result;
 }

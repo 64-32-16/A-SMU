@@ -7,7 +7,7 @@
 class Container : public Control
 {
 public:
-    static constexpr uint8_t MaxChildren = 32;
+    static constexpr uint8_t MaxChildren = 33;
 
     Container();
     Container(int16_t x, int16_t y, int16_t w, int16_t h);
