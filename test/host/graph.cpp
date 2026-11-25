@@ -9,6 +9,7 @@
 #include "UI/Pages/ReadingTablePage.h"
 #include "UI/Pages/SimulationPage.h"
 #include "UI/Panels/GraphPanel.h"
+#include "UI/Panels/XYGraphPopup.h"
 #include "UI/Panels/SourcePanel.h"
 #include "UI/Pages/MenuPage.h"
 #include "Core/Beeper.h"
@@ -77,8 +78,67 @@ static unsigned simulationCalls=0;static void Simulation(Button*) {++simulationC
 static unsigned tableCalls=0;static void ReadingTable(Button*) {++tableCalls;}
 static unsigned histogramCalls=0;static void Histogram(Button*) {++histogramCalls;}
 
+// Guard against reintroducing full measurement arrays into persistent UI objects.
+static_assert(sizeof(GraphPanel)<4096,"Main graph must not own a sample buffer");
+static_assert(sizeof(GraphPage)<8192,"Graph page must not own a sample buffer");
+static_assert(sizeof(HistogramPage)<8192,"Histogram must not own a sample buffer");
+static_assert(sizeof(XYGraphPopup)<2048,"XY popup must not own a sample buffer");
+static_assert(sizeof(ReadingTableState)<1024,"Table storage must remain one 50-sample page");
+static void CheckBufferViews()
+{
+    BufferClass buffer;
+    assert(buffer.View().Count()==0 && BufferView(nullptr,12).Count()==0);
+    for(unsigned n=1;n<=2u*BufferClass::Capacity+52;++n) {
+        buffer.AddSample(n*10,n,n%17?1:0);
+        const auto all=buffer.View();
+        const unsigned retained=std::min<unsigned>(n,BufferClass::Capacity);
+        assert(all.Count()==retained && &all[retained-1]==buffer.GetLatest());
+        Near(all[0].Voltage,n-retained+1);
+        for(uint16_t limit:{uint16_t(0),uint16_t(1),ReadingTableState::PageCapacity,uint16_t(256),BufferClass::Capacity,UINT16_MAX}) {
+            const auto tail=buffer.View(limit);
+            const unsigned count=retained<limit?retained:limit;
+            assert(tail.Count()==count);
+            for(uint16_t i=0;i<count;++i) {
+                assert(&tail[i]==&all[retained-count+i]);
+                assert(tail[i].TimeMs==(n-count+i+1)*10);
+            }
+        }
+    }
+    // All algorithms agree for wrapped ring storage and a contiguous reference copy.
+    BufferSample copied[BufferClass::Capacity];
+    const uint16_t count=buffer.CopyLatest(copied,BufferClass::Capacity);
+    for(unsigned iv=0;iv<2;++iv) {
+        GraphState direct,reference;direct.SetIV(iv!=0);reference.SetIV(iv!=0);
+        direct.Resolve(buffer.View());reference.Resolve(copied,count);
+        Near(direct.X().start,reference.X().start);Near(direct.X().division,reference.X().division);
+        for(unsigned q=0;q<4;++q) {
+            const auto quantity=static_cast<GraphState::Quantity>(q);
+            Near(direct.y[q].start,reference.y[q].start);Near(direct.y[q].division,reference.y[q].division);
+            const GraphState::Trace a{&direct,buffer.View(),quantity},b{&reference,BufferView(copied,count),quantity};
+            for(uint16_t i=0;i<count;++i) {
+                const auto pa=GraphState::Trace::Read(&a,i),pb=GraphState::Trace::Read(&b,i);
+                assert(pa.valid==pb.valid);Near(pa.x,pb.x);Near(pa.y,pb.y);
+            }
+            PlotPoint pa[GraphState::MaxPoints],pb[GraphState::MaxPoints];
+            const auto na=direct.MakePoints(buffer.View(),quantity,pa);
+            const auto nb=reference.MakePoints(copied,count,quantity,pb);assert(na==nb);
+            for(uint16_t i=0;i<na;++i) {assert(pa[i].valid==pb[i].valid);Near(pa[i].x,pb[i].x);Near(pa[i].y,pb[i].y);}
+            HistogramSettings settings;settings.quantity=static_cast<BufferQuantity>(q);
+            HistogramResult ha,hb;CalculateHistogram(buffer.View(),settings,ha);CalculateHistogram(copied,count,settings,hb);
+            assert(ha.valid==hb.valid && ha.invalid==hb.invalid);Near(ha.minimum,hb.minimum);Near(ha.maximum,hb.maximum);
+            for(unsigned i=0;i<ha.bins+2;++i) assert(ha.counts[i]==hb.counts[i]);
+        }
+    }
+    buffer.Reset();assert(buffer.View().Count()==0);
+    buffer.AddSample(7,42,1);assert(buffer.View()[0].TimeMs==7);
+}
+
 int main()
 {
+    CheckBufferViews();
+    constexpr unsigned overwritten=76, totalReadings=BufferClass::Capacity+overwritten;
+    constexpr unsigned lastRows=BufferClass::Capacity-ReadingTableState::Rows;
+    constexpr unsigned lastCache=BufferClass::Capacity-ReadingTableState::PageCapacity;
     Button native;native.SetBounds(10,10,80,40);native.SetText("1");native.SetNativeFlat(true);
     native.SetBackgroundColor(0x204060);native.SetCornerRadius(6);
     native.Draw();assert(lastForeground==0x204060 && nativeButtons==1 && flatButtons==1);
@@ -181,7 +241,25 @@ int main()
     GraphState quiet;quiet.windowSeconds=10;quiet.scrolling=false;quiet.Resolve(bounded,2);const auto fixedY=quiet.y[0];quiet.Resolve(bounded,3);
     assert(quiet.y[0].start==fixedY.start && quiet.y[0].division==fixedY.division);
     bounded[2].Voltage=6;quiet.Resolve(bounded,3);assert(quiet.y[0].start+quiet.y[0].division*6>=6);
-    bounded[2].Voltage=5;quiet.Resolve(bounded,3);assert(quiet.y[0].start+quiet.y[0].division*6>=6);
+    bounded[2].Voltage=5;quiet.Resolve(bounded,3);assert(quiet.y[0].division<.001);
+    // Expired extremes and displaced plateaus refit without pressing AUTO SCALE.
+    BufferSample shifted[]={Hardware::MakeMeasurement(0,0,.1f),Hardware::MakeMeasurement(1,10,.1f)};
+    GraphState tracking;tracking.Resolve(shifted,2);
+    shifted[0].Voltage=2;shifted[1].Voltage=3;tracking.Resolve(shifted,2);
+    GraphState fresh;fresh.Resolve(shifted,2);
+    Near(tracking.y[0].start,fresh.y[0].start);Near(tracking.y[0].division,fresh.y[0].division);
+    const auto settled=tracking.y[0];
+    for(unsigned n=0;n<50;++n) {tracking.Resolve(shifted,2);Near(tracking.y[0].start,settled.start);Near(tracking.y[0].division,settled.division);}
+    // Small upper escapes must not accumulate the prior axis padding.
+    for(unsigned n=0;n<20;++n) {
+        shifted[1].Voltage=3+n*.1f;tracking.Resolve(shifted,2);
+        fresh.AutoScale();fresh.Resolve(shifted,2);
+        assert(tracking.y[0].division<=fresh.y[0].division/0.75);
+        assert(tracking.y[0].start<=shifted[0].Voltage && tracking.y[0].start+tracking.y[0].division*6>=shifted[1].Voltage);
+    }
+    tracking.SetManual(false,false,-10);tracking.SetManual(false,true,5);
+    shifted[0].Voltage=2;shifted[1].Voltage=3;tracking.Resolve(shifted,2);
+    Near(tracking.y[0].start,-10);Near(tracking.y[0].division,5);
     quiet.AutoScale();quiet.Resolve(bounded,3);assert(quiet.y[0].division<.001);
     bounded[2].TimeMs=10100;quiet.Resolve(bounded,3);Near(quiet.X().division,2);
     bounded[2].TimeMs=20100;quiet.Resolve(bounded,3);Near(quiet.X().division,5);
@@ -260,18 +338,96 @@ int main()
     SystemClass compactSystem;compactSystem.Reset();
     GraphPanel compact(20,272,760,208);compact.SetSystem(&compactSystem);
     compact.Draw();assert(lastPoints.empty());
-    for(unsigned i=0;i<1024;++i) compactSystem.Buffer.AddSample(10000+i*2,i==50?100.0f:2.0f,0.5f);
+    for(unsigned i=0;i<BufferClass::Capacity;++i) compactSystem.Buffer.AddSample(10000+i*2,i==50?100.0f:2.0f,0.5f);
     const MeasureMode modes[]={MeasureMode::Voltage,MeasureMode::Current,MeasureMode::Power,MeasureMode::Resistance};
     const double peaks[]={100,0.5,50,200};
     for(unsigned mode=0;mode<4;++mode) {
         compactSystem.SetMeasureMode(modes[mode]);nativeButtons=0;compact.Draw();assert(nativeButtons==0);
         double peak=-1;for(const auto& point:lastPoints) if(point.valid) peak=std::max(peak,point.y);
-        Near(peak,peaks[mode]);Near(lastPoints.back().x,2.046);
+        Near(peak,peaks[mode]);Near(lastPoints.back().x,(BufferClass::Capacity-1)*0.002);
     }
     compactSystem.ClearMeasurementBuffer();compact.Draw();assert(lastPoints.empty());
     compactSystem.Buffer.AddSample(20000,1,0);compact.Draw();
     for(const auto& point:lastPoints) assert(!point.valid); // Invalid resistance remains a gap.
     compactSystem.SetMeasureMode(MeasureMode::Voltage);compact.Draw();Near(lastPoints[0].x,0);
+
+    // Automatic windows fit the retained duration at every NPLC. A full ring
+    // never expires data inside the automatic viewport as it advances.
+    const double expectedWindows[]={0.4,4,20,40,200,400};
+    for(unsigned profile=0;profile<MeasurementTiming::Count;++profile) {
+        BufferClass history;GraphState automatic;
+        const auto period=MeasurementTiming::PairTimeUs(profile);
+        automatic.Resolve(history,history.View(),period);
+        Near(automatic.windowSeconds,expectedWindows[profile]);
+        for(unsigned n=0;n<BufferClass::Capacity*3;++n) {
+            history.AddSample(static_cast<uint32_t>(uint64_t(n)*period/1000),1,.1f);
+            automatic.Resolve(history,history.View(),period);
+            if(history.GetCount()==history.GetCapacity()) {
+                const auto view=history.View();
+                const double first=GraphState::Time(view[0],automatic.timeOrigin);
+                const double last=GraphState::Time(view[view.Count()-1],automatic.timeOrigin);
+                assert(automatic.X().start+1e-9>=first);
+                assert(automatic.X().start<=last);
+                assert(automatic.X().start+automatic.windowSeconds+1e-9>=last);
+            }
+        }
+        assert(automatic.timeOrigin==0);
+        automatic.SetWindowSeconds(100);automatic.Resolve(history,history.View(),period);
+        Near(automatic.windowSeconds,100);assert(!automatic.automaticWindow);
+        automatic.SetManual(true,false,12);automatic.SetManual(true,true,3);
+        automatic.Resolve(history,history.View(),MeasurementTiming::PairTimeUs(0));
+        Near(automatic.X().start,12);Near(automatic.X().division,3);
+        automatic.AutoScale();automatic.Resolve(history,history.View(),period);
+        Near(automatic.windowSeconds,expectedWindows[profile]);
+        history.Reset();automatic.Resolve(history,history.View(),period);
+        Near(automatic.X().start,0);Near(automatic.X().division,expectedWindows[profile]/GraphState::XDivisions);
+    }
+    // Slowing NPLC must not expand over history that the fast mode already lost.
+    BufferClass mixedHistory;GraphState mixedWindow;
+    for(unsigned n=0;n<BufferClass::Capacity;++n) mixedHistory.AddSample(n*40,1,.1f);
+    mixedWindow.Resolve(mixedHistory,mixedHistory.View(),MeasurementTiming::PairTimeUs(5));
+    Near(mixedWindow.windowSeconds,40);
+    mixedWindow.SetWindowSeconds(75);mixedHistory.Reset();
+    mixedWindow.Resolve(mixedHistory,mixedHistory.View(),MeasurementTiming::PairTimeUs(0));
+    Near(mixedWindow.windowSeconds,75);Near(mixedWindow.X().division,7.5);
+    mixedWindow.SetIV(true);mixedWindow.AutoScale();assert(!mixedWindow.automaticWindow);
+    // Both views observe a reset even when they miss the empty buffer entirely.
+    SystemClass resetSystem;resetSystem.Reset();
+    GraphPanel resetPanel(20,272,760,208);resetPanel.SetSystem(&resetSystem);
+    GraphPage resetPage(0,0,800,480);resetPage.SetSystem(&resetSystem);
+    resetSystem.Buffer.AddSample(10000,1,0.1f);
+    resetSystem.Buffer.AddSample(560000,2,0.2f);
+    resetPanel.Draw();resetPage.Open();resetPage.Draw();
+    Near(resetPanel.GetGraphState().X().start,512);
+    Near(resetPage.GetGraphState().X().start,512);
+    resetPage.TouchStart(400,220);resetPage.TouchMove(450,220);resetPage.TouchEnd(450,220);
+    assert(!resetPage.GetGraphState().X().automatic);
+    resetSystem.ClearMeasurementBuffer();
+    // Refill to the same count before either view draws: count comparison cannot detect this.
+    resetSystem.Buffer.AddSample(600000,3,0.3f);
+    resetSystem.Buffer.AddSample(601000,4,0.4f);
+    resetPanel.Draw();resetPage.Draw();
+    for(const GraphState* state:{&resetPanel.GetGraphState(),&resetPage.GetGraphState()}) {
+        Near(state->X().start,0);Near(state->X().division,4);
+        assert(state->X().automatic && state->timeOrigin==600000);
+    }
+    Near(lastPoints.front().x,0);Near(lastPoints.back().x,1);
+    resetSystem.ClearMeasurementBuffer();resetPanel.Draw();resetPage.Draw();
+    Near(resetPanel.GetGraphState().X().start,0);Near(resetPage.GetGraphState().X().start,0);
+    assert(!resetPanel.GetGraphState().hasOrigin && !resetPage.GetGraphState().hasOrigin);
+    // Opening after ring overwrite still shares the acquisition origin; overwrite is not a reset.
+    for(unsigned i=0;i<totalReadings;++i) resetSystem.Buffer.AddSample(700000+i*1000,1,0.1f);
+    resetPanel.Draw();resetPage.Draw();
+    assert(resetPanel.GetGraphState().timeOrigin==700000 && resetPage.GetGraphState().timeOrigin==700000);
+    Near(resetPage.GetGraphState().X().start,ceil((totalReadings-1-40)/4.0)*4);
+    // Clearing from Graph/Data also resets the time axis while I-V is selected.
+    resetPage.GetTabs().SetSelectedIndex(1);resetPage.Draw();Press(resetPage,16);
+    Press(resetPage,17);
+    Near(resetPage.GetGraphState().x[0].start,0);
+    resetSystem.Buffer.AddSample(2000000,2,0.2f);
+    Press(resetPage,15);resetPage.GetTabs().SetSelectedIndex(0);resetPage.Draw();resetPanel.Draw();
+    Near(resetPage.GetGraphState().X().start,0);Near(resetPanel.GetGraphState().X().start,0);
+    Near(lastPoints.front().x,0);
 
     SystemClass system;system.Reset();system.SetSimulationEnabled(true);system.Buffer.Reset();system.SetOutputOn(true);
     system.Buffer.AddSample(0,1,0.1f);system.Buffer.AddSample(1000,2,0.2f);
@@ -383,6 +539,9 @@ int main()
     key(14);key(0);key(15);assert(editor->IsVisible()); // Zero division rejected.
     key(14);key(1);key(15);assert(!editor->IsVisible());Near(page.GetGraphState().X().division,1);
     Press(page,12);key(14);key(9);key(16);assert(!editor->IsVisible());Near(page.GetGraphState().X().division,1);
+    const std::string capacityHint="Full buffer = retained measurements (maximum "+
+        std::to_string(BufferClass::Capacity)+" readings).";
+    assert(std::find(texts.begin(),texts.end(),capacityHint)!=texts.end());
     // Signed exponent input and all remaining scale targets share modal validation.
     Press(page,11);key(14);key(11);key(1);key(12);key(11);key(3);key(15);
     Near(page.GetGraphState().X().start,-0.001);assert(!editor->IsVisible());
@@ -509,10 +668,10 @@ int main()
     hs.enabled=false;CalculateHistogram(histSamples,9,hs,hr);assert(!hr.hasData && hr.valid==0);
     hs.bins=0;assert(!ValidHistogramSettings(hs));hs.bins=65;assert(!ValidHistogramSettings(hs));
     hs.bins=4;hs.minimum=hs.maximum;assert(!ValidHistogramSettings(hs));
-    BufferClass ring;for(unsigned i=0;i<1100;++i) ring.AddSample(i,i,1);
+    BufferClass ring;for(unsigned i=0;i<totalReadings;++i) ring.AddSample(i,i,1);
     const auto retained=ring.CopyLatest(samples,BufferClass::Capacity);hs=HistogramSettings();hs.method=HistogramScale::AutoBin;
-    CalculateHistogram(samples,retained,hs,hr);assert(hr.valid==1024);Near(hr.dataMin,76);Near(hr.dataMax,1099);
-    unsigned total=0;for(unsigned i=0;i<hr.bins+2;++i) total+=hr.counts[i];assert(total==1024);
+    CalculateHistogram(samples,retained,hs,hr);assert(hr.valid==BufferClass::Capacity);Near(hr.dataMin,overwritten);Near(hr.dataMax,totalReadings-1);
+    unsigned total=0;for(unsigned i=0;i<hr.bins+2;++i) total+=hr.counts[i];assert(total==BufferClass::Capacity);
 
     SystemClass histSystem;histSystem.Reset();histSystem.SetSimulationEnabled(true);histSystem.Buffer.Reset();histSystem.SetOutputOn(true);
     hs=HistogramSettings();hs.bins=4;hs.minimum=0;hs.maximum=4;hs.method=HistogramScale::Fit;assert(histSystem.SetHistogramSettings(hs));
@@ -540,15 +699,16 @@ int main()
     const unsigned hb=homeCalls,bb=backCalls;hpress(0);hpress(1);assert(homeCalls==hb+1 && backCalls==bb+1);
     menu.SetOnHistogram(Histogram);menu.Open();Tap(menu,menu.GetChild(13));assert(histogramCalls==1);
 
-    // Stable reading indices/time origin and a real frozen snapshot across overwrite/reset.
-    // Live table keeps the newest eight rows, including every page and ring boundary.
+    // LIVE keeps the latest eight rows in one cache of at most 50 samples.
     BufferClass liveRows;ReadingTableState liveTable;
-    for(unsigned j=1;j<=1100;++j) {
+    for(unsigned j=1;j<=totalReadings;++j) {
         liveRows.AddSample(j*100,j,1);liveTable.Refresh(liveRows);
-        const unsigned count=j<1024?j:1024;
+        const unsigned count=std::min<unsigned>(j,BufferClass::Capacity);
+        assert(liveTable.Count()==count && liveTable.CachedCount()==(std::min<unsigned>(count,ReadingTableState::PageCapacity)));
         assert(liveTable.Offset()==(count>8?count-8:0));
         assert(liveTable.Index(liveTable.Count()-1)==j);
         if(j>=8) assert(liveTable.Index(liveTable.Offset())==j-7);
+        Near(liveTable.Sample(liveTable.Count()-1).Voltage,j);
     }
     liveRows.Reset();for(unsigned j=0;j<20;++j) liveRows.AddSample(j,j,1);
     liveTable.SetLive(liveRows);assert(liveTable.Offset()==12);
@@ -558,25 +718,56 @@ int main()
     liveTable.Select(19);assert(liveTable.Offset()==12 && liveTable.Selected()==19);
     BufferClass tableBuffer;ReadingTableState tableState;tableState.Refresh(tableBuffer);
     assert(tableState.Count()==0 && !tableState.SelectTime(0.5));
-    for(unsigned i=0;i<1100;++i) tableBuffer.AddSample(5000+i*10,i,1);
-    assert(tableBuffer.GetTotalSamples()==1100 && tableBuffer.GetStartTimeMs()==5000);
-    tableState.Refresh(tableBuffer);assert(tableState.Count()==1024 && tableState.Index(0)==77);
-    assert(tableState.TimeMs(0)==760 && tableState.Index(1023)==1100);
+    for(unsigned i=0;i<totalReadings;++i) tableBuffer.AddSample(5000+i*10,i,1);
+    assert(tableBuffer.GetTotalSamples()==totalReadings && tableBuffer.GetStartTimeMs()==5000);
+    tableState.Refresh(tableBuffer);assert(tableState.Count()==BufferClass::Capacity && tableState.Index(0)==overwritten+1);
+    assert(tableState.CachedCount()==ReadingTableState::PageCapacity && tableState.CacheOffset()==lastCache);
     tableState.First();assert(tableState.IsHeld() && tableState.Offset()==0);
-    tableState.Page(1);assert(tableState.Offset()==8);tableState.Last();assert(tableState.Offset()==1016);
-    tableState.SelectTime(0);assert(tableState.Selected()==0);tableState.SelectTime(1);assert(tableState.Selected()==1023);
-    tableState.SelectTime(0.5);assert(tableState.Selected()==511);
-    const auto frozenFirst=tableState.Samples()[0].Voltage;
-    for(unsigned i=0;i<2000;++i) tableBuffer.AddSample(20000+i,9999,1);
-    tableState.Refresh(tableBuffer);Near(tableState.Samples()[0].Voltage,frozenFirst);
-    tableBuffer.Reset();tableState.Refresh(tableBuffer);assert(tableState.Count()==1024);
-    tableState.SetLive(tableBuffer);assert(tableState.Count()==0);
+    assert(tableState.TimeMs(0)==overwritten*10 && tableState.Index(BufferClass::Capacity-1)==totalReadings);
+    // Every screenful is backed by the cache, across 50-sample and ring boundaries.
+    for(unsigned step=0;step<=BufferClass::Capacity/ReadingTableState::Rows;++step) {
+        const uint16_t offset=tableState.Offset();
+        assert(offset>=tableState.CacheOffset() && offset+8<=tableState.CacheOffset()+tableState.CachedCount());
+        for(unsigned row=0;row<8;++row) Near(tableState.Sample(offset+row).Voltage,overwritten+offset+row);
+        tableState.Page(1);
+    }
+    assert(tableState.Offset()==lastRows);
+    for(unsigned step=0;step<=BufferClass::Capacity/ReadingTableState::Rows;++step) tableState.Page(-1);
+    assert(tableState.Offset()==0);
+    tableState.SelectTime(1);assert(tableState.Selected()==ReadingTableState::PageCapacity-1 && tableState.Offset()==ReadingTableState::PageCapacity-ReadingTableState::Rows);
+    tableState.First();tableState.SelectTime(0);assert(tableState.Selected()==0);
+    tableState.Last();assert(tableState.Offset()==lastRows);
+    tableState.SelectTime(0);assert(tableState.Selected()==lastCache && tableState.Offset()==lastCache);
+    tableState.SelectTime(1);assert(tableState.Selected()==BufferClass::Capacity-1 && tableState.Offset()==lastRows);
+    const auto frozenFirst=tableState.CachedSamples()[0].Voltage;
+    const auto frozenGeneration=tableBuffer.GetResetGeneration();
+    for(unsigned i=0;i<BufferClass::Capacity+1u;++i) tableBuffer.AddSample(5000+totalReadings*10+i,9999,1);
+    tableState.Refresh(tableBuffer);Near(tableState.CachedSamples()[0].Voltage,frozenFirst);
+    tableState.First();assert(tableState.PageUnavailable() && tableState.Offset()==lastRows);
+    assert(tableState.SelectTime(0) && tableState.Selected()==lastCache); // cached page remains usable
+    tableBuffer.Reset();tableState.Refresh(tableBuffer);assert(tableState.Count()==BufferClass::Capacity);
+    assert(tableBuffer.GetResetGeneration()!=frozenGeneration);
+    tableState.First();assert(tableState.PageUnavailable());
+    tableState.Last();assert(!tableState.PageUnavailable() && tableState.Offset()==lastRows);
+    // Same reading indices in a new generation cannot replace the frozen history.
+    for(unsigned i=0;i<totalReadings;++i) tableBuffer.AddSample(i,12345,1);
+    tableState.First();assert(tableState.PageUnavailable());
+    Near(tableState.CachedSamples()[0].Voltage,frozenFirst);
+    tableBuffer.Reset();tableState.SetLive(tableBuffer);assert(tableState.Count()==0 && tableState.CachedCount()==0);
     tableBuffer.AddSample(0xFFFFFF00,1,0);tableBuffer.AddSample(100,2,1);
     tableState.Refresh(tableBuffer);assert(tableState.TimeMs(1)==356 && tableState.Index(0)==1);
     assert(!tableState.Select(2) && !tableState.SelectTime(NAN));
-    // Preview navigation uses timestamps, not uniformly spaced sample indices.
+    // Preview selection uses timestamps within the cached page.
     tableBuffer.Reset();tableBuffer.AddSample(0,1,1);tableBuffer.AddSample(100,2,1);tableBuffer.AddSample(10000,3,1);
     tableState.Refresh(tableBuffer);tableState.SelectTime(0.5);assert(tableState.Selected()==1);
+    // Partial overwrite: load a still available page without reading older expired slots.
+    tableBuffer.Reset();for(unsigned i=0;i<BufferClass::Capacity;++i) tableBuffer.AddSample(i,i,1);
+    tableState.SetLive(tableBuffer);tableState.Hold();
+    for(unsigned i=BufferClass::Capacity;i<BufferClass::Capacity+30u;++i) tableBuffer.AddSample(i,i,1);
+    assert(tableState.Select(32));Near(tableState.Sample(32).Voltage,32);
+    assert(tableState.CacheOffset()==30);
+    tableState.First();assert(tableState.PageUnavailable());
+    tableState.SetLive(tableBuffer);assert(!tableState.PageUnavailable());
 
     SystemClass readings;readings.Reset();readings.SetSimulationEnabled(true);readings.Buffer.Reset();readings.SetOutputOn(true);
     for(unsigned i=0;i<20;++i) readings.Buffer.AddSample(10000+i*100,i,i?0.1f:0);
@@ -598,6 +789,18 @@ int main()
     tpress(2);assert(tablePage.GetChild(9)->IsVisible());tpress(9);
     const unsigned th=homeCalls,tb=backCalls;tpress(0);tpress(1);assert(homeCalls==th+1 && backCalls==tb+1 && readings.GetOutputOn());
     menu.SetOnReadingTable(ReadingTable);menu.Open();Tap(menu,menu.GetChild(14));assert(tableCalls==1);
+    // UI renders only the cached preview and all visible rows, including HOLD after clear.
+    readings.Buffer.Reset();for(unsigned i=0;i<120;++i) readings.Buffer.AddSample(700000+i*100,i,0.1f);
+    tpress(5);assert(tablePage.GetTable().CachedCount()==50 && tablePage.GetTable().Offset()==112);
+    assert(lastPoints.size()==50);Near(lastPoints.front().x,7);Near(lastPoints.back().x,11.9);
+    tablePage.TouchStart(200,190);readings.ClearMeasurementBuffer();tablePage.TouchEnd(200,190);tablePage.Draw();
+    assert(tablePage.GetTable().Selected()==112 && tablePage.GetChild(8)->IsVisible());
+    Near(tablePage.GetTable().Sample(112).Voltage,112);
+    tpress(8);texts.clear();tpress(6);
+    assert(tablePage.GetTable().PageUnavailable() && tablePage.GetTable().Offset()==112);
+    assert(std::find(texts.begin(),texts.end(),"Page expired - select LIVE")!=texts.end());
+    tpress(5);assert(tablePage.GetTable().Count()==0 && tablePage.GetTable().CachedCount()==0);
+
 
 
     BufferSample failed=Hardware::MakeMeasurement(1,12,1);failed.Fault=Hardware::Error::UnsupportedMode;
@@ -625,5 +828,5 @@ int main()
     simulation.Draw();Tap(simulation,simulation.GetChild(2));assert(simulated.GetSimulationEnabled() && simulated.GetOutputOn());
     simulation.SetVisible(false);simulation.Open();Near(simulated.GetSimulationSettings().resistance,2000);
     menu.Open();menu.SetOnSimulation(Simulation);Tap(menu,menu.GetChild(32));assert(simulationCalls==1);
-    puts("PASS: timestamp axes, autoscale, manual values, pinch zoom/release/cancellation, zoom/pan, I-V, envelope/gaps, clipping, cursor, tabs, clear/remove, graph route, histogram bins/scaling/modals/routes, reading table hold/index/preview/routes, BACK/HOME, output preserved");
+    puts("PASS: zero-copy ring views, 50-sample page cache/expiry, timestamp axes, autoscale, manual values, pinch zoom/release/cancellation, zoom/pan, I-V, envelope/gaps, clipping, cursor, tabs, clear/remove, graph route, histogram bins/scaling/modals/routes, reading table hold/index/preview/routes, BACK/HOME, output preserved");
 }

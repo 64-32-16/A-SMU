@@ -78,6 +78,7 @@ void ReadingTablePage::Draw()
     Text(780,24,text,_table.IsHeld()?0xFF80DC:Theme::ToolbarText,26,OPT_RIGHTX|OPT_CENTERY);
     Text(16,106,"Time since buffer start [s]",Theme::SourceBlue,26);
     DrawPreview();DrawRows();
+    if(_table.PageUnavailable()) Text(16,130,"Page expired - select LIVE",0xFFAA40,26);
     if(_table.Count()) snprintf(text,sizeof(text),"%u-%u / %u",_table.Offset()+1,
         static_cast<unsigned>(_table.Offset()+ReadingTableState::Rows<_table.Count()?_table.Offset()+ReadingTableState::Rows:_table.Count()),_table.Count());
     else snprintf(text,sizeof(text),"0 / 0");
@@ -101,7 +102,7 @@ void ReadingTablePage::DrawRows()
         Text(tableX+columns[1]-6,y,text,color,strlen(text)>7?24:26,OPT_RIGHTX|OPT_CENTERY);
         Time(_table.TimeMs(index),text,sizeof(text));Text(tableX+columns[2]-6,y,text,color,26,OPT_RIGHTX|OPT_CENTERY);
         for(unsigned q=0;q<4;++q) {
-            Value(_table.Samples()[index],static_cast<GraphState::Quantity>(q),text,sizeof(text));
+            Value(_table.Sample(index),static_cast<GraphState::Quantity>(q),text,sizeof(text));
             Text(tableX+columns[q+3]-6,y,text,color,26,OPT_RIGHTX|OPT_CENTERY);
         }
     }
@@ -121,23 +122,25 @@ void ReadingTablePage::DrawPreview()
         case MeasureMode::Power:state.selected=GraphState::Power;break;
         case MeasureMode::Resistance:state.selected=GraphState::Resistance;break;
     }
-    // The preview spans precisely the retained data, matching SelectTime's mapping.
+    // The preview spans only the cached page, matching SelectTime's mapping.
     state.X().automatic=false;
-    if(_table.Count()) {
-        state.X().start=_table.TimeMs(0)/1000.0;
-        const double span=(_table.TimeMs(_table.Count()-1)-_table.TimeMs(0))/1000.0;
+    if(_table.CachedCount()) {
+        const uint16_t first=_table.CacheOffset(),last=first+_table.CachedCount()-1;
+        state.X().start=_table.TimeMs(first)/1000.0;
+        const double span=(_table.TimeMs(last)-_table.TimeMs(first))/1000.0;
         state.X().division=(span>0?span:0.001)/GraphState::XDivisions;
     }
-    state.Resolve(_table.Samples(),_table.Count());
-    const GraphState::Trace trace{&state,_table.Samples(),state.selected};
+    state.Resolve(_table.CachedSamples());
+    const GraphState::Trace trace{&state,_table.CachedSamples(),state.selected};
     const auto style=_system->GetGraphSettings().style;
-    GD.DrawPlotTrace(previewX,previewY,previewW,previewH,trace.Source(_table.Count()),state.X(),state.y[state.selected],0x40FF60,style!=GraphStyle::Points,style!=GraphStyle::Lines);
+    GD.DrawPlotTrace(previewX,previewY,previewW,previewH,trace.Source(_table.CachedCount()),state.X(),state.y[state.selected],0x40FF60,style!=GraphStyle::Points,style!=GraphStyle::Lines);
     if(_table.Selected()>=0) {
         const double position=(_table.TimeMs(_table.Selected())/1000.0-state.X().start)/(state.X().division*10);
         const int marker=previewX+position*previewW;
         GD.DrawSolidRoundedRect(marker,previewY,2,previewH,0,0xFF80DC);
     }
-    Text(previewX,130,names[state.selected],Theme::SourceBlue,26);
+    char caption[40];snprintf(caption,sizeof(caption),"%s | %u readings",names[state.selected],_table.CachedCount());
+    Text(previewX,130,caption,Theme::SourceBlue,26);
 }
 int ReadingTablePage::RowAt(int x,int y) const
 {
@@ -194,9 +197,9 @@ void ReadingTablePage::DrawPopup()
         Text(146,110,"Time [s]:",Theme::SourceBlue,28);Time(_table.TimeMs(index),text,sizeof(text));Text(328,110,text,Theme::ValueGreen,28);
         for(unsigned q=0;q<4;++q) {
             Text(146,158+q*42,names[q],Theme::SourceBlue,28);
-            Value(_table.Samples()[index],static_cast<GraphState::Quantity>(q),text,sizeof(text));Text(328,158+q*42,text,Theme::ValueGreen,28);
+            Value(_table.Sample(index),static_cast<GraphState::Quantity>(q),text,sizeof(text));Text(328,158+q*42,text,Theme::ValueGreen,28);
         }
-        Text(146,322,"Held snapshot; acquisition continues.",Theme::ToolbarText,26);
+        Text(146,322,"Held page; acquisition continues.",Theme::ToolbarText,26);
     }
     Panel::Draw();
 }

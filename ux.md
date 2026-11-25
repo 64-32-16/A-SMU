@@ -550,3 +550,99 @@ Die anfängliche Fingermitte bleibt der Bezugspunkt. Bei getrenntem Zoom bleiben
 
 ### Reading Table zeilenweise live – 22.11.2026
 LIVE zeigt jetzt immer die letzten bis zu acht Messpunkte. Nach Füllen der Ansicht rückt mit jedem neuen Messpunkt eine Zeile nach oben, der neue Wert erscheint unten. Der bisherige Sprung auf eine fast leere neue Seite nach jeweils acht Werten entfällt. Dies gilt vor und nach Erreichen der Ringpufferkapazität. HOLD behält seine Momentaufnahme; Previous/Next blättern weiterhin in Acht-Zeilen-Schritten, begrenzt auf das letzte vollständige Fenster. Last und Messpunktauswahl zeigen am Pufferende ebenfalls ein vollständig gefülltes Fenster, sofern mindestens acht Werte existieren.
+
+
+### Zeitachse nach Clear Buffer – 24.11.2026
+Clear Buffer startet die Zeitdarstellung in Main und MENU/Graph wieder bei 00:00; der erste neue Messpunkt entspricht t=0. Bei der Standardfensterbreite zeigt die Achse 00:00 bis 01:40. Das gilt auch beim Loeschen aus Statistics oder Histogram und fuer zwischenzeitlich ausgeblendete Graphen. Eine manuell verschobene/gezoomte Zeitachse folgt danach wieder automatisch mit der eingestellten Fensterbreite. Kurvenauswahl, Darstellungsart und manuelle Y-/I-V-Skalen bleiben erhalten.
+
+
+### Reading Table mit 50-Punkte-Seitenspeicher – 24.11.2026
+
+Ersetzt die bisherige vollstaendige HOLD-Momentaufnahme: Die Tabelle behaelt einen Ausschnitt von maximal 50 Messpunkten, der die acht sichtbaren Zeilen enthaelt. LIVE schiebt diese weiterhin mit jedem Messpunkt weiter. Previous/Next blaettern um acht Zeilen; bei Bedarf wird ein neuer Ausschnitt aus dem zentralen Ringpuffer geladen. First/Last beziehen sich im HOLD auf die beim Anhalten erfassten Verlaufsgrenzen.
+
+HOLD und Detaildialoge halten den geladenen Ausschnitt stabil, auch ueber Clear Buffer hinweg. Bereits ueberschriebene oder geloeschte Seiten ausserhalb dieses Ausschnitts sind nicht mehr nachladbar: Die bisherige Seite bleibt sichtbar, mit dem Hinweis "Page expired - select LIVE". LIVE uebernimmt wieder den aktuellen Messpuffer. Vorschau und Antippen eines Kurvenpunkts beziehen sich auf die maximal 50 geladenen Messpunkte; deren Anzahl steht unter der Vorschau. Es wird kein vollstaendiges eingefrorenes Archiv mehr vorgetaeuscht.
+
+Main-/Vollbild-Graph, Histogramm und XY-Popup lesen ohne eigene Messdatenkopien aus dem zentralen Puffer. Der Verzicht auf diese Kopien aendert deren Darstellung, Messrate und Pufferkapazitaet nicht. Optik und Bedienung des neuen Seitenhinweises sind nach Upload am Display zu pruefen.
+
+
+### MEASURE Settings / NPLC � 24.11.2026
+MENU > MEASURE > Settings oeffnet eine eigene Seite mit sechs grossen Direktwahltasten in zwei Reihen. Jede Stufe zeigt ihre nominalen Messungen/s; Blau und ein Pfeil kennzeichnen den aktiven Wert. Ein Tipp uebernimmt sofort, ohne zusaetzlichen Bestaetigungsdialog. Standard ist 1 NPLC. BACK fuehrt ins Menue, HOME zur Hauptansicht; die Auswahl bleibt beim Navigieren erhalten.
+
+Nur 50 Hz: 0,01 / 0,1 / 0,5 / 1 / 5 / 10 NPLC. Eine Messung bedeutet ein vollstaendiges, nacheinander erfasstes U/I-Paar. Die Seite zeigt die ausgewaehlte Zeit je Kanal, die nominale Paarrate und kurze Erklaerungen zu Geschwindigkeit und Rauschen. Netzfrequenz 50 Hz und zusaetzliche Mittelung OFF sind Informationen, keine funktionslosen Schalter. Die bestehende englische GUI-Sprache bleibt erhalten. Messbereiche werden weiterhin auf Main eingestellt; keine neue Anzeigeaktualisierungsoption in diesem Schritt.
+
+
+### Measure Settings im Keithley-Stil � 24.11.2026
+Ersetzt die direkten NPLC-Tasten auf der Settings-Seite: zweispaltige Felder mit blauer Beschriftung, kurzem Hinweis und grauer nativer Werttaste. Voltage Range und Current Range greifen auf die bestehenden zentralen AUTO-/MANUAL-Werte und Verfuegbarkeitsregeln zu. NPLC oeffnet einen zentrierten Auswahldialog im SET-LIMIT-Stil mit gespeichertem Hintergrund, sechs Stufen und nominalen Messungen/s je Stufe. Auswahl uebernimmt und schliesst; Cancel behaelt den Wert. Hintergrundnavigation ist waehrend der Auswahl ausgeblendet und gesperrt. 50 Hz, Mittelung Off und abgeleitete Kanalzeit sind Informationen ohne vorgetaeuschte Bedienfunktion.
+
+Count bezeichnet bei Keithley die Anzahl der Messwerte pro Messanforderung, nicht Messungen/s oder Filtermittelung (2450 Reference Manual, Measure Settings: https://download.tek.com/manual/2450-901-01E_Sept_2019_Ref.pdf). Fuer den bisherigen kontinuierlichen A-SMU-Betrieb wird kein Count-Feld eingefuehrt. Auto Zero, Display Digits und zusaetzliche Autorange-Optionen aus der Bildvorlage sind nicht implementiert und werden nicht als verfuegbar angezeigt.
+
+
+### Anzeige und Erfassung getrennt - 24.11.2026
+Die Messzahl folgt weiter NPLC: bei langsamen Stufen bleibt der letzte Wert bis zur naechsten Messung stehen, bei schnellen Stufen wird pro Bildschirmbild der neueste vollstaendige Wert angezeigt. Neue Frames haben ein 33-ms-Ziel, Touch ein getrenntes 10-ms-Ziel. Der kontinuierliche Messverlauf wird unabhaengig vom Zeichnen erfasst und bei der naechsten Hauptschleifenrunde in den zentralen Puffer uebernommen. Graph und Statistik verwenden diese Messpunkte; es gibt keine neue Anzeigemittelung.
+
+ACQ OVERRUN im bestehenden Hardwarestatus meldet eine volle Uebergabe-Queue oder verpasste Erfassungstermine. Clear Buffer loescht die Meldung samt Zaehlern. Die schnelle Messrate und Touchlatenz sind am echten Display, insbesondere mit vier Graphkurven und 0,01 NPLC, zu pruefen. Ein langsamer GUI-Frame kann weiter die Touchabfrage verzoegern, nicht jedoch allein durch seine Laufzeit den Erfassungsthread anhalten.
+
+
+### Automatisches Zeitfenster passend zum Messpuffer - 24.11.2026
+Ersetzt das feste automatische 100-s-Fenster in Main-Graph und MENU/Graph: Die Fensterbreite wird aus (Pufferkapazitaet - 1) * nominaler U/I-Paarzeit abgeleitet und auf eine passende 1/2/4/5-Dekadenstufe abgerundet. Bei vollem Puffer begrenzt zusaetzlich die tatsaechlich erhaltene Zeitspanne die Breite; so funktioniert auch ein NPLC-Wechsel mit gemischten Abstaenden im Verlauf. Der Zeitursprung bleibt der Pufferstart, die Achse wandert weiterhin in Schritten von einer Rasterteilung.
+
+Bei 1024 Punkten: 0,01 / 0,1 / 0,5 / 1 / 5 / 10 NPLC ergeben nominal 0,4 / 4 / 20 / 40 / 200 / 400 Sekunden Fensterbreite. Bei 1 NPLC zeigt der Start 00:00 bis 00:40 mit 4 s/div. Beim Ueberschreiben alter Werte liegen diese links ausserhalb des automatischen Fensters. Keine Aenderung an Messrate, Speichertiefe oder Erfassungsdaten.
+
+SCALE kennzeichnet die automatische Breite als Auto window. Eine ausdrueckliche Window-/Min-span-Eingabe bleibt auch bei NPLC-Wechseln und Clear erhalten; manuelles X/Pan/Zoom bleibt beim normalen Nachzeichnen erhalten. AUTO SCALE in der Zeitansicht aktiviert die passende automatische Breite wieder. Clear setzt den Zeitursprung weiterhin auf null. AUTO SCALE in I-V veraendert die Zeitfensterwahl nicht.
+
+
+### Vollbild-Graph: automatische Y-Achse ohne wachsenden Leerraum - 24.11.2026
+MENU/Graph passt automatische Y-Grenzen jetzt aus den aktuell sichtbaren Messwerten ein. Die bisherigen bereits gerundeten Achsengrenzen werden bei einer Erweiterung nicht erneut als Messwerte verwendet; dadurch addiert sich kein zusaetzlicher Leerraum. Veraltete grosse Skalen werden bei mindestens 25 % kleinerem passenden Raster zurueckgenommen. Bei mindestens zwei freien Rasterteilungen auf einer Seite und einer moeglichen Verschiebung um mindestens eine Teilung wird neu positioniert. Kleine Aenderungen innerhalb einer weiterhin passenden Skala bleiben ruhig.
+
+Dies ersetzt das bisherige ausschliessliche Erweitern bis zum manuellen AUTO SCALE. Manuelle Y-Achsen, X-Zeitfenster und die engere Main-Graph-Skalierung bleiben erhalten. Regression prueft entfernte Extreme, verschobene Wertebereiche, stabile Wiederholungen, wiederholte obere Grenzueberschreitungen ohne aufsummierte Randerweiterung und manuelle Achsen.
+
+
+### SYSTEM Settings - 25.11.2026
+MENU > SYSTEM > Settings oeffnet die echte Settings-Seite mit KeyClick, Backlight und Backlight Dimmer im bestehenden Stil. KeyClick toggelt ON/OFF direkt. BACK geht ins Menue, HOME zur Hauptansicht.
+
+Backlight oeffnet einen SET-LIMIT-gestalteten Modal mit Prozentanzeige und grossem Slider (5..100 Prozent). Ziehen bzw. Antippen uebernimmt sofort fuer sichtbare Helligkeitsrueckmeldung; Minus/Plus aendern um einen Prozentpunkt. Done schliesst, ohne einen nicht vorhandenen Cancel/Rollback vorzutäuschen. Rendering erfolgt ueber den allgemeinen GDClass::DrawSlider. Hintergrundbedienung ist waehrend des Modals gesperrt.
+
+Backlight Dimmer verwendet NumericEntryDialog fuer ganze Minuten, Default 30, Bereich 0..1440; 0=OFF. Ungueltige/gebrochene Eingaben werden abgewiesen, Cancel behaelt die bisherige Zeit. Nach Inaktivitaet wird auf 5 Prozent gedimmt. Nutzerbestaetigung: Die erste Beruehrung weckt ausschliesslich auf und wird bis zum Loslassen konsumiert. Die konfigurierte Normalhelligkeit wird wiederhergestellt. Einstellungen gelten bis Neustart, Speicherung folgt separat.
+
+
+### Date / Time vorbereitet - 25.11.2026
+SYSTEM > Settings zeigt als vierte Zeile Date / Time. Der graue deaktivierte Wert Unavailable und der Hinweis RTC not connected kennzeichnen die noch fehlende RTC-Anbindung. Kein Eingabedialog und keine scheinbar gespeicherte Uhrzeit vor der Hardwarepruefung. Die vorhandenen KeyClick-/Backlight-/Dimmerfunktionen bleiben bedienbar; die vier Zeilen passen ohne Scrollen in 800 x 480. Bei offenem Backlight-/Zahlendialog wird auch die RTC-Zeile ausgeblendet.
+
+Nach Fertigstellung des Mainboard-Schaltplans durch den Nutzer werden DS3231-Beschaltung und anschliessend Datum/Uhrzeit-Einstellung gemeinsam angeschlossen. Die bisherige Header-Laufzeit bleibt bis dahin bestehen.
+
+
+### Menue vereinfacht - 25.11.2026
+Auf Nutzerwunsch sind Quickset (SOURCE), Config Lists (SOURCE und MEASURE) sowie Calculations (MEASURE) vorerst aus dem Menue entfernt. SOURCE zeigt Settings und Sweep; MEASURE zeigt Settings und Reading Buffers. Verbleibende Eintraege ruecken ohne Leerzeilen zusammen. Andere Menuegruppen bleiben unveraendert.
+
+
+## Info page - 2026-11-25
+
+- MENU > SYSTEM > Info replaces Info/Manage. Read-only page with A-SMU / Hobby SMU branding.
+- Displays all supported bipolar V and I ranges from SystemClass metadata; these are capabilities, not the active selection.
+- Firmware build timestamp is generated by PlatformIO in UTC on each build (not the RTC time). Backend status remains visible.
+- BACK returns to MENU, HOME to the main display.
+
+
+### Navigation and Info typography - 2026-11-25
+- Prefer page navigation at the top whenever possible. Info now places BACK and HOME at the top left, beside the centered title.
+- Info range values use font 28, matching their labels. The firmware build label and value both retain font 26.
+
+
+### Verbindliche MENU-Seitenvorlage - 25.11.2026
+System Settings ist die Referenz fuer neue und ueberarbeitete Menue-Unterseiten; siehe [StyleGuide.md](StyleGuide.md). System Settings und Info teilen Kopf, Navigation oben rechts und das Label/Wert-Raster. Dies ersetzt den vorherigen zentrierten Info-Titel und die Navigation oben links. Info zeigt vier Informationszeilen ohne Bedienbuttons fuer reine Werte. Labels und Werte verwenden Schrift 28, auch beim zweizeiligen Buildstand. Bestehende weitere Seiten werden bei ihrer Ueberarbeitung angeglichen.
+
+
+### Measure Settings und MENU vereinheitlicht - 25.11.2026
+Beide Seiten verwenden MenuPageStyle fuer Kopf und Navigation oben rechts. Measure Settings folgt dem System-Settings-Raster mit Voltage Range, Current Range, NPLC und Time / Channel; bestehende Auswahldialoge und Messratenhinweise bleiben erhalten. Feste Netzfrequenz, Averaging und Function stehen unter den Feldern. MENU behaelt seine Funktionsspalten; Backendstatus unten rechts, HOME im gemeinsamen Kopf und BACK in Platzhalter-Unterseiten. Details in StyleGuide.md.
+
+
+### Range-Dialoge gemeinsam - 25.11.2026
+Measure Settings oeffnet fuer Voltage Range und Current Range dieselbe SourceRangePopup-Instanz wie die Hauptansicht. Die doppelte Auswahl samt Range-Schreiblogik wurde aus MeasureSettingsPage entfernt. Neutrale Dialogtitel SELECT VOLTAGE RANGE / SELECT CURRENT RANGE gelten fuer beide Aufrufstellen. NPLC behaelt seinen eigenen Editor. Der gemeinsame vollflaechige Popup blockiert Touch auf der darunterliegenden Seite; Cancel aendert keine Einstellung.
+
+
+### Simulation im gemeinsamen Stil - 25.11.2026
+Simulation nutzt MenuPageStyle fuer Seitenkopf und Navigation oben rechts. Fuenf kompakte Label/Wert-Zeilen enthalten Simulation, Load, Resistance, V ranges und I ranges. Bereichsnamen kommen aus SystemClass. I-Verfuegbarkeit steht explizit als ON/OFF unter dem jeweiligen Button. Bestehende Lastwahl, Einheiten, gesperrte aktive Bereiche und Widerstandsdialog bleiben erhalten; Live-Messwerte und Ausgangsstatus stehen unten. Details im StyleGuide.md.
+
+
+### Source Settings - 25.11.2026
+MENU > SOURCE > Settings oeffnet SourceSettingsPage im gemeinsamen Vier-Zeilen-Raster: Source Function, Source Range, Current Limit bei Spannungsquelle bzw. Voltage Limit bei Stromquelle, Output Off State. BACK/HOME oben rechts. Alle Werte werden direkt aus SystemClass gelesen; keine eigenen Domainwerte. Die Seite oeffnet ueber main.cpp die bereits vorhandenen Instanzen SourceModePopup, SourceRangePopup, NumberPadPopup (LimitValue) und OutputOffStatePopup. Aenderungen sind auch in Main sichtbar; Cancel und Validierung bleiben bei den gemeinsamen Dialogen. Sense wird in dieser Stufe nicht ergaenzt.

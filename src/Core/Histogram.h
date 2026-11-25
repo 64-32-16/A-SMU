@@ -20,5 +20,8 @@ struct HistogramResult {
     int BinAt(double value) const;
 };
 bool ValidHistogramSettings(const HistogramSettings& settings);
-void CalculateHistogram(const BufferSample* samples,uint16_t count,
-                        const HistogramSettings& settings,HistogramResult& result);
+void CalculateHistogram(BufferView samples,const HistogramSettings& settings,HistogramResult& result);
+inline void CalculateHistogram(const BufferSample* samples,uint16_t count,
+                               const HistogramSettings& settings,HistogramResult& result) {
+    CalculateHistogram(BufferView(samples,count),settings,result);
+}

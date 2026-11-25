@@ -34,13 +34,14 @@ int HistogramResult::BinAt(double value) const
     }
     return low+1;
 }
-void CalculateHistogram(const BufferSample* samples,uint16_t count,const HistogramSettings& s,HistogramResult& r)
+void CalculateHistogram(BufferView samples,const HistogramSettings& s,HistogramResult& r)
 {
+    const uint16_t count=samples.Count();
     r=HistogramResult();
     if(!ValidHistogramSettings(s)) return;
     r.bins=s.bins;r.minimum=s.minimum;r.maximum=s.maximum;r.yMaximum=s.yMaximum;
     r.width=(r.maximum-r.minimum)/r.bins;
-    if(!s.enabled || !samples) return;
+    if(!s.enabled || !count) return;
     for(uint16_t i=0;i<count;++i) {
         double value;
         if(!Value(samples[i],s.quantity,value)) {++r.invalid;continue;}

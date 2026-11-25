@@ -65,7 +65,6 @@ private:
     Button _yAxisButton;
     Button _closeButton;
     Label _titleLabel;
-    BufferSample _plotSamples[MaxPlotSamples];
     char _textBuffer[32];
 };
 

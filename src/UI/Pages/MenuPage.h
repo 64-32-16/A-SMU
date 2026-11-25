@@ -10,6 +10,10 @@ class MenuPage : public Panel
 public:
     MenuPage(int16_t x, int16_t y, int16_t w, int16_t h);
     void Open();
+    void SetOnInfo(ButtonClickHandler h) {_onInfo=h;}
+    void SetOnSystemSettings(ButtonClickHandler h) {_onSystemSettings=h;}
+    void SetOnSourceSettings(ButtonClickHandler h) {_onSourceSettings=h;}
+    void SetOnMeasureSettings(ButtonClickHandler h) {_onMeasureSettings=h;}
     void SetOnSimulation(ButtonClickHandler handler) {_onSimulation=handler;}
     void SetOnHome(ButtonClickHandler handler);
     void SetOnGraph(ButtonClickHandler handler);
@@ -22,6 +26,10 @@ public:
 private:
     void UpdateVisibility();
     void OpenFunction(uint8_t group, uint8_t item);
+    ButtonClickHandler _onInfo=nullptr;
+    ButtonClickHandler _onSourceSettings=nullptr;
+    ButtonClickHandler _onMeasureSettings=nullptr;
+    ButtonClickHandler _onSystemSettings=nullptr;
     Button _simulation;
     ButtonClickHandler _onSimulation=nullptr;
     Button _home;

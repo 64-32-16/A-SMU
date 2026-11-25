@@ -309,14 +309,14 @@ void SourceRangePopup::UpdateTexts()
 {
     if (_mode == SourceMode::Voltage)
     {
-        _titleLabel.SetText("SELECT SOURCE VOLTAGE RANGE");
+        _titleLabel.SetText("SELECT VOLTAGE RANGE");
         _autoButton.SetText("Auto");
         _rangeButtons[0].SetText("5V");
         _rangeButtons[1].SetText("30V");
     }
     else
     {
-        _titleLabel.SetText("SELECT SOURCE CURRENT RANGE");
+        _titleLabel.SetText("SELECT CURRENT RANGE");
         _autoButton.SetText("Auto");
         for (uint8_t i = 0; i < SystemClass::CurrentRangeCount; ++i)
             _rangeButtons[i].SetText(SystemClass::GetCurrentRangeText(SystemClass::GetCurrentRangeAt(i)));

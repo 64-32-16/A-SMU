@@ -6,6 +6,28 @@
 #include "Hardware/HardwareBackend.h"
 using BufferSample = Hardware::Measurement;
 
+// Non-owning chronological view. Valid only until the source buffer is modified.
+// The worker writes only a transport queue. Main-loop publication and rendering
+// remain sequential, so no history mutation occurs while a view is consumed.
+class BufferView {
+public:
+    BufferView() = default;
+    BufferView(const BufferSample* samples, uint16_t count)
+        : _first(samples), _firstCount(samples?count:0), _count(samples?count:0) {}
+    template<size_t N> BufferView(const BufferSample (&samples)[N])
+        : BufferView(samples,static_cast<uint16_t>(N)) {}
+    uint16_t Count() const {return _count;}
+    // Caller must keep index below Count(). No sample is copied.
+    const BufferSample& operator[](uint16_t index) const {
+        return index<_firstCount?_first[index]:_second[index-_firstCount];
+    }
+private:
+    friend class BufferClass;
+    const BufferSample* _first=nullptr;
+    const BufferSample* _second=nullptr;
+    uint16_t _firstCount=0, _count=0;
+};
+
 enum class BufferQuantity : uint8_t { Voltage, Current, Power, Resistance };
 
 struct BufferStatistics
@@ -38,7 +60,9 @@ public:
     // Stable reading indices and elapsed-time origin, retained across ring overwrite.
     uint64_t GetTotalSamples() const { return _totalSamples; }
     uint32_t GetStartTimeMs() const { return _startTimeMs; }
+    uint32_t GetResetGeneration() const { return _resetGeneration; }
 
+    BufferView View(uint16_t maxCount=Capacity) const;
     const BufferSample* GetLatest() const;
     uint16_t CopyLatest(BufferSample* dest, uint16_t maxCount) const;
 
@@ -62,6 +86,7 @@ private:
     uint16_t _count;
     uint64_t _totalSamples=0;
     uint32_t _startTimeMs=0;
+    uint32_t _resetGeneration=0;
 };
 
 #endif

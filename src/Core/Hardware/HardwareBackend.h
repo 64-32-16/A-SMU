@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <math.h>
+#include "../MeasurementSettings.h"
 
 namespace Hardware {
 enum class Regulation : uint8_t { Off, CV, CC };
@@ -22,6 +23,7 @@ struct Measurement {
 };
 static_assert(sizeof(Measurement)==16,"Keep measurement buffers bounded");
 struct Request {
+    uint8_t nplcProfile=MeasurementTiming::Default;
     float voltage=0, compliance=0;
     float voltageRange=5, currentRange=0.1f;
     bool output=false, voltageMode=true;

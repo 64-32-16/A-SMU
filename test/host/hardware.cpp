@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include "System.h"
+#include "../../src/UI/Core/WakeTouchGate.h"
 static void Near(double a,double b) {assert(fabs(a-b)<=fmax(1e-12,fabs(b)*1e-6));}
 static void NoisyNear(double a,double b) {assert(fabs(a-b)<=fmax(1e-12,fabs(b)*0.000201));}
 int main() {
@@ -77,5 +78,45 @@ int main() {
     assert(system.Buffer.GetLatest()->Fault==Error::UnsupportedMode);
     system.SetSourceMode(SourceMode::Voltage);system.ExecuteAt(1002);NoisyNear(system.GetCurrent(),.02);
     system.ExecuteAt(0xfffffff0);count=system.Buffer.GetCount();system.ExecuteAt(0x10);assert(system.Buffer.GetCount()==count);system.ExecuteAt(0x100);assert(system.Buffer.GetCount()==count+1);
+    // NPLC profiles control actual simulator cadence, including sub-ms and wrap.
+    SystemClass timed;timed.SetSimulationEnabled(true);
+    assert(timed.GetNplcProfile()==MeasurementTiming::Default);
+    assert(!timed.SetNplcProfile(MeasurementTiming::Count));
+    for(uint8_t profile=0;profile<MeasurementTiming::Count;++profile) {
+        assert(timed.SetNplcProfile(profile));
+        timed.ExecuteAtTime(1000,1000000);
+        const auto before=timed.Buffer.GetTotalSamples();
+        const auto period=MeasurementTiming::PairTimeUs(profile);
+        timed.ExecuteAtTime(1000+(period-1)/1000,1000000+period-1);
+        assert(timed.Buffer.GetTotalSamples()==before);
+        timed.ExecuteAtTime(1000+period/1000,1000000+period);
+        assert(timed.Buffer.GetTotalSamples()==before+1);
+        // No fabricated catch-up readings after a slow frame.
+        timed.ExecuteAtTime(2000,2000000);
+        assert(timed.Buffer.GetTotalSamples()==before+2);
+    }
+    timed.SetNplcProfile(0);timed.ExecuteAtTime(3000,0xffffff00u);
+    auto beforeWrap=timed.Buffer.GetTotalSamples();
+    timed.ExecuteAtTime(3000,0x8fu);assert(timed.Buffer.GetTotalSamples()==beforeWrap);
+    timed.ExecuteAtTime(3000,0x90u);assert(timed.Buffer.GetTotalSamples()==beforeWrap+1);
+    timed.Reset();assert(timed.GetNplcProfile()==MeasurementTiming::Default);
+    SystemClass preferences;
+    assert(preferences.GetUserInterfaceSettings().keyClick && preferences.GetUserInterfaceSettings().dimmerMinutes==30);
+    assert(!preferences.SetBacklightPercent(UserInterfaceSettings::MinBacklight-1));
+    assert(!preferences.SetBacklightPercent(UserInterfaceSettings::MaxBacklight+1));
+    assert(preferences.SetBacklightPercent(80));
+    preferences.RegisterUserActivity(100);preferences.UpdateUserInterface(100+30*60000-1);
+    assert(!preferences.IsBacklightDimmed() && preferences.GetEffectiveBacklightPercent()==80);
+    preferences.UpdateUserInterface(100+30*60000);assert(preferences.IsBacklightDimmed());
+    assert(preferences.GetEffectiveBacklightPercent()==UserInterfaceSettings::MinBacklight);
+    preferences.UpdateUserInterface(0);assert(preferences.IsBacklightDimmed()); // dim state latches across clock wrap
+    WakeTouchGate gate;assert(gate.Consume(true,preferences.IsBacklightDimmed()));
+    preferences.RegisterUserActivity(2000000);assert(preferences.GetEffectiveBacklightPercent()==80);
+    assert(gate.Consume(true,false));assert(gate.Consume(false,false));assert(!gate.Consume(true,false));
+    assert(preferences.SetDimmerMinutes(1));preferences.RegisterUserActivity(0xfffffff0);
+    preferences.UpdateUserInterface(0xfffffff0u+59999u);assert(!preferences.IsBacklightDimmed());
+    preferences.UpdateUserInterface(0xfffffff0u+60000u);assert(preferences.IsBacklightDimmed());
+    assert(preferences.SetDimmerMinutes(0));preferences.UpdateUserInterface(0xffffffff);assert(!preferences.IsBacklightDimmed());
+    assert(!preferences.SetDimmerMinutes(UserInterfaceSettings::MaxDimmerMinutes+1));
     puts("PASS: bounded/balanced 0.01% noise, repeatable channels, derived values, ideal loads, bipolar CV/CC, zero/off, overrange, invalid input, shared samples, timing, range masks, backend switch");
 }

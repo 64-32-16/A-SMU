@@ -1,9 +1,12 @@
 #include "SimulationPage.h"
+#include "MenuPageStyle.h"
 #include "../Core/GDClass.h"
 #include "../Core/GraphState.h"
 #include "../Core/Theme.h"
 #include <stdio.h>
 namespace {
+constexpr int LabelX=240, ValueX=260, RowTop=74, RowStep=64, FieldHeight=48;
+int RowY(unsigned row) {return RowTop+row*RowStep;}
 const double factors[]={1,1000,1000000};
 const char* units[]={"Ohm","kOhm","MOhm"};
 void Text(int x,int y,const char* text,uint32_t color=Theme::ToolbarText,uint8_t font=26,uint16_t options=0) {
@@ -26,27 +29,36 @@ void SimulationPage::Configure(unsigned id,const char* text,int x,int y,int w,in
 void SimulationPage::Layout() {
     for(auto& b:_buttons) {b.SetVisible(!_editor.IsVisible());b.SetEnabled(true);b.SetBackgroundColor(Theme::MainButtonBackground);}
     if(_editor.IsVisible()) return;
-    Configure(0,"BACK",8,52,80,36);Configure(1,"HOME",96,52,80,36);
-    Configure(2,_system->GetSimulationEnabled()?"Simulation: ON":"Simulation: OFF",400,52,384,36);
+    _buttons[0].SetText("BACK");_buttons[1].SetText("HOME");
+    MenuPageStyle::Navigation(_buttons[0],_buttons[1]);
+    Configure(2,_system->GetSimulationEnabled()?"ON":"OFF",ValueX,RowY(0),MenuPageStyle::ValueWidth,FieldHeight);
     const auto& s=_system->GetSimulationSettings();
-    const char* loads[]={"RESISTOR","OPEN","SHORT"};
-    for(unsigned i=0;i<3;++i) {Configure(3+i,loads[i],16+i*256,123,240);if(i==static_cast<unsigned>(s.load)) _buttons[3+i].SetBackgroundColor(Theme::SourceBlue);}
-    char text[48];snprintf(text,sizeof(text),"R: %.7g %s",s.resistance/factors[_unit],units[_unit]);
-    Configure(6,text,16,177,392);
-    for(unsigned i=0;i<3;++i) {Configure(7+i,units[i],424+i*120,177,112);if(i==_unit) _buttons[7+i].SetBackgroundColor(Theme::SourceBlue);}
+    const char* loads[]={"Resistor","Open","Short"};
+    for(unsigned i=0;i<3;++i) {
+        Configure(3+i,loads[i],ValueX+i*176,RowY(1),168,FieldHeight);
+        if(i==static_cast<unsigned>(s.load)) _buttons[3+i].SetBackgroundColor(Theme::SourceBlue);
+    }
+    char text[48];snprintf(text,sizeof(text),"%.7g",s.resistance/factors[_unit]);
+    Configure(6,text,ValueX,RowY(2),MenuPageStyle::ValueWidth,FieldHeight);
+    for(unsigned i=0;i<3;++i) {
+        Configure(7+i,units[i],ValueX+248+i*92,RowY(2),84,FieldHeight);
+        if(i==_unit) _buttons[7+i].SetBackgroundColor(Theme::SourceBlue);
+    }
     _buttons[6].SetEnabled(s.load==Hardware::LoadType::Resistor);
-    for(unsigned i=0;i<2;++i) {
-        const auto r=static_cast<VoltageRange>(i);const bool available=_system->IsVoltageRangeAvailable(r);
-        snprintf(text,sizeof(text),"%s: %s",i?"+/-30 V":"+/-5 V",available?"ON":"OFF");
-        Configure(10+i,text,16+i*192,257,176);
+    for(unsigned i=0;i<SystemClass::VoltageRangeCount;++i) {
+        const auto r=SystemClass::GetVoltageRangeAt(i);const bool available=_system->IsVoltageRangeAvailable(r);
+        snprintf(text,sizeof(text),"%s: %s",SystemClass::GetVoltageRangeText(r),available?"ON":"OFF");
+        Configure(10+i,text,ValueX+i*176,RowY(3),168,FieldHeight);
         _buttons[10+i].SetEnabled(r!=_system->GetVoltageRange());
     }
-    for(unsigned i=0;i<4;++i) {
+    for(unsigned i=0;i<SystemClass::CurrentRangeCount;++i) {
         const auto r=SystemClass::GetCurrentRangeAt(i);const bool available=_system->IsCurrentRangeAvailable(r);
-        snprintf(text,sizeof(text),"%s: %s",SystemClass::GetCurrentRangeText(r),available?"ON":"OFF");
-        Configure(12+i,text,16+i*192,309,176);
+        // Range names stay readable; availability is shown by ON/OFF below each button.
+        Configure(12+i,SystemClass::GetCurrentRangeText(r),ValueX+i*132,RowY(4),124,36);
+        _buttons[12+i].SetBackgroundColor(available?Theme::SourceBlue:Theme::MainButtonBackground);
         _buttons[12+i].SetEnabled(r!=_system->GetCurrentRange());
     }
+
 }
 void SimulationPage::Action(unsigned id) {
     if(id==2) _system->SetSimulationEnabled(!_system->GetSimulationEnabled());
@@ -82,21 +94,27 @@ void SimulationPage::Draw() {
     if(!IsVisible()) return;
     if(_editor.IsVisible()) {_editor.Draw();return;}
     Layout();
-    GD.DrawSolidRoundedRect(8,4,784,40,0,Theme::TabInactive);
-    Text(20,10,"SIMULATION",Theme::ToolbarText,29);
-    Text(780,26,_system->GetBackendText(),Theme::FocusYellow,28,OPT_RIGHTX|OPT_CENTERY);
-    Text(16,95,"Load",Theme::SourceBlue,28);
-    Text(16,228,"Available ranges (active range locked)",Theme::SourceBlue,26);
-    Text(16,359,"Select active ranges, source and limit on Main.",Theme::ToolbarText,26);
+    MenuPageStyle::Header("SIMULATION");
+    const char* labels[]={"Simulation","Load","Resistance","V ranges","I ranges"};
+    const char* hints[]={"Virtual device","Select test load","Resistor load only","Available ranges","Active range locked"};
+    for(unsigned row=0;row<5;++row) {
+        Text(LabelX,RowY(row),labels[row],Theme::SourceBlue,MenuPageStyle::TextFont,OPT_RIGHTX);
+        Text(LabelX,RowY(row)+29,hints[row],Theme::ToolbarText,MenuPageStyle::HintFont,OPT_RIGHTX);
+    }
+    Text(784,RowY(0)+24,_system->GetBackendText(),Theme::FocusYellow,28,OPT_RIGHTX|OPT_CENTERY);
+    for(unsigned i=0;i<SystemClass::CurrentRangeCount;++i) {
+        const bool available=_system->IsCurrentRangeAvailable(SystemClass::GetCurrentRangeAt(i));
+        Text(ValueX+i*132+62,RowY(4)+38,available?"ON":"OFF",Theme::ToolbarText,MenuPageStyle::TextFont,OPT_CENTERX);
+    }
     const auto& m=_system->GetMeasurement();char u[32],i[32],p[32],text[128];
     if(m.Fault==Hardware::Error::None) {
         GraphState::FormatValue(m.Voltage,"V",u,sizeof(u),5);GraphState::FormatValue(m.Current,"A",i,sizeof(i),5);
         GraphState::FormatValue(m.GetPower(),"W",p,sizeof(p),5);
         snprintf(text,sizeof(text),"U: %s    I: %s    P: %s",u,i,p);
     } else snprintf(text,sizeof(text),"U: --    I: --    P: --");
-    Text(16,392,text,Theme::ValueGreen,28);
+    Text(16,403,text,Theme::ValueGreen,28);
     snprintf(text,sizeof(text),"OUTPUT %s | %s | %s",(m.Flags&Hardware::OutputOn)?"ON":"OFF",
         m.Mode==Hardware::Regulation::CC?"CC":m.Mode==Hardware::Regulation::CV?"CV":"--",_system->GetHardwareStatusText());
-    Text(16,434,text,Theme::FocusYellow,26);
+    Text(16,444,text,Theme::FocusYellow,26);
     Panel::Draw();
 }

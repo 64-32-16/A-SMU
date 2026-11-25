@@ -4,7 +4,13 @@
 
 namespace
 {
-constexpr uint32_t kSimulationPeriodMs = 100;
+struct VoltageRangeDefinition { VoltageRange range; float maximum; const char* label; };
+constexpr VoltageRangeDefinition kVoltageRanges[] = {
+    {VoltageRange::Range5V, 5.0f, "5 V"},
+    {VoltageRange::Range30V, 30.0f, "30 V"}
+};
+static_assert(sizeof(kVoltageRanges)/sizeof(kVoltageRanges[0]) == SystemClass::VoltageRangeCount,
+              "Voltage range metadata must cover all GUI options");
 struct CurrentRangeDefinition
 {
     CurrentRange range;
@@ -29,7 +35,10 @@ SystemClass::SystemClass()
 
 void SystemClass::Reset()
 {
+    if(_acquisition) {_acquisition->Configure(false,Hardware::Request(),Hardware::SimulationSettings());_acquisition->Clear();}
+    _acquisitionStats=Hardware::AcquisitionStats();
     if(_backend) {Hardware::Request off;_backend->Apply(off);}
+    _uiSettings=UserInterfaceSettings();RegisterUserActivity(millis());
     _graphSettings=GraphSettings();
     _histogramSettings=HistogramSettings();
     _measureMode = MeasureMode::Voltage;
@@ -56,7 +65,8 @@ void SystemClass::Reset()
     _voltageLimitValue = 0.0f;
     _currentSourceValue = 0.0f;
     _currentLimitValue = 0.0f;
-    _lastSimulationMs = 0;
+    _lastSimulationUs = 0;
+    _nplcProfile=MeasurementTiming::Default;
     _simulationSettings=Hardware::SimulationSettings();
     _backend=nullptr;_measurement=Hardware::Measurement();
     _measurement.Fault=Hardware::Error::Unavailable;_hardwareDirty=true;
@@ -64,11 +74,59 @@ void SystemClass::Reset()
     Buffer.Reset();
 }
 
-void SystemClass::Execute() {ExecuteAt(millis());}
-void SystemClass::ExecuteAt(uint32_t now)
+bool SystemClass::SetBacklightPercent(unsigned percent) {
+    if(percent<UserInterfaceSettings::MinBacklight || percent>UserInterfaceSettings::MaxBacklight) return false;
+    _uiSettings.backlightPercent=percent;RegisterUserActivity(millis());return true;
+}
+bool SystemClass::SetDimmerMinutes(unsigned minutes) {
+    if(minutes>UserInterfaceSettings::MaxDimmerMinutes) return false;
+    _uiSettings.dimmerMinutes=minutes;RegisterUserActivity(millis());return true;
+}
+void SystemClass::UpdateUserInterface(uint32_t now) {
+    if(_uiSettings.dimmerMinutes && uint32_t(now-_lastUserActivityMs)>=uint32_t(_uiSettings.dimmerMinutes)*60000u)
+        _backlightDimmed=true;
+}
+
+bool SystemClass::SetNplcProfile(uint8_t index)
 {
-    if(!_hardwareDirty && now-_lastSimulationMs<kSimulationPeriodMs) return;
-    _lastSimulationMs=now;_hardwareDirty=false;
+    if(index>=MeasurementTiming::Count) return false;
+    _nplcProfile=index;
+    return true;
+}
+void SystemClass::SetAcquisition(Hardware::Acquisition* acquisition) {
+    if(_acquisition) _acquisition->Configure(false,MakeHardwareRequest(),_simulationSettings);
+    _acquisition=acquisition;_acquisitionStats=Hardware::AcquisitionStats();
+    if(_acquisition) _acquisition->Clear();
+    _hardwareDirty=true;
+}
+void SystemClass::Execute() {ExecuteAtTime(millis(),micros());}
+void SystemClass::ExecuteAt(uint32_t now) {ExecuteAtTime(now,now*1000u);}
+void SystemClass::ExecuteAtTime(uint32_t now,uint32_t nowUs)
+{
+    if(_acquisition) {
+        const bool enabled=_backend==&_simulator;
+        _acquisition->Configure(enabled,MakeHardwareRequest(),_simulationSettings);
+        _hardwareDirty=false;
+        if(enabled) {
+            Hardware::Measurement sample;bool received=false;
+            // Bounded draining; the worker never touches the history or GUI.
+            for(unsigned i=0;i<Hardware::AcquisitionCore::Capacity && _acquisition->Read(sample);++i) {
+                _measurement=sample;Buffer.AddSample(sample);received=true;
+            }
+            if(received) {
+                AutoAdjustVoltageRangeForValue(fmaxf(fabsf(sample.Voltage),fabsf(_voltageSourceValue)));
+                AutoAdjustCurrentRangeForValue(fabsf(sample.Current));
+                _acquisition->Configure(true,MakeHardwareRequest(),_simulationSettings);
+            }
+        }
+        _acquisitionStats=_acquisition->Stats();
+        if(enabled) return;
+    }
+    // Polling never invents missed samples after slow rendering. Real backends
+    // own ADC timing and return false until a complete U/I pair is available.
+    if(!_hardwareDirty && _backend==&_simulator &&
+       uint32_t(nowUs-_lastSimulationUs)<MeasurementTiming::PairTimeUs(_nplcProfile)) return;
+    _lastSimulationUs=nowUs;_hardwareDirty=false;
     if(!_backend) {
         _measurement=Hardware::Measurement();_measurement.TimeMs=now;
         _measurement.Fault=Hardware::Error::Unavailable;
@@ -90,6 +148,7 @@ void SystemClass::ExecuteAt(uint32_t now)
 Hardware::Request SystemClass::MakeHardwareRequest() const
 {
     Hardware::Request request;
+    request.nplcProfile=_nplcProfile;
     request.voltage=_voltageSourceValue;request.compliance=_currentLimitValue;
     request.voltageRange=GetVoltageRangeMax(_voltageRange);request.currentRange=GetCurrentRangeMax(_currentRange);
     request.output=_outputOn;request.voltageMode=_sourceMode==SourceMode::Voltage;
@@ -305,7 +364,7 @@ void SystemClass::SetSimulationEnabled(bool enabled)
     if(enabled) {_backend=&_simulator;_outputOn=true;}
     else _measurement.Fault=Hardware::Error::Unavailable;
     _hardwareDirty=true;
-    ExecuteAt(millis());
+    Execute();
 }
 
 float SystemClass::GetVoltage() const
@@ -527,12 +586,17 @@ const char* SystemClass::GetRangeText() const
 
 const char* SystemClass::GetVoltageRangeText() const
 {
-    switch (_voltageRange)
-    {
-        case VoltageRange::Range5V: return "5 V";
-        case VoltageRange::Range30V: return "30 V";
-        default: return "--";
-    }
+    return GetVoltageRangeText(_voltageRange);
+}
+VoltageRange SystemClass::GetVoltageRangeAt(uint8_t index)
+{
+    return kVoltageRanges[index < VoltageRangeCount ? index : 0].range;
+}
+const char* SystemClass::GetVoltageRangeText(VoltageRange range)
+{
+    for (const auto& definition : kVoltageRanges)
+        if (definition.range == range) return definition.label;
+    return "--";
 }
 
 CurrentRange SystemClass::GetCurrentRangeAt(uint8_t index)
@@ -735,15 +799,9 @@ void SystemClass::RecalculateAutoCurrentRange()
 
 float SystemClass::GetVoltageRangeMax(VoltageRange range) const
 {
-    switch (range)
-    {
-        case VoltageRange::Range5V:
-            return 5.0f;
-
-        case VoltageRange::Range30V:
-        default:
-            return 30.0f;
-    }
+    for (const auto& definition : kVoltageRanges)
+        if (definition.range == range) return definition.maximum;
+    return kVoltageRanges[VoltageRangeCount-1].maximum;
 }
 
 float SystemClass::GetCurrentRangeMax(CurrentRange range) const
@@ -771,6 +829,8 @@ BufferStatistics SystemClass::GetMeasurementStatistics() const
 
 void SystemClass::ClearMeasurementBuffer()
 {
+    if(_acquisition) _acquisition->Clear();
+    _acquisitionStats=Hardware::AcquisitionStats();
     Buffer.Reset();
 }
 
@@ -819,6 +879,7 @@ const char* SystemClass::GetHardwareStatusText() const {
         case Hardware::Error::NumericOverflow:return "NUMERIC ERROR";
         default:break;
     }
+    if(_acquisitionStats.queueOverruns || _acquisitionStats.missedDeadlines) return "ACQ OVERRUN";
     if(_measurement.Flags&(Hardware::VoltageOverrange|Hardware::CurrentOverrange)) return "OVERRANGE";
     if(!(_measurement.Flags&Hardware::OutputOn)) return "OUTPUT OFF";
     return _measurement.Mode==Hardware::Regulation::CC?"CC":"CV";

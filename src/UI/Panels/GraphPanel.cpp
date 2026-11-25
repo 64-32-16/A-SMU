@@ -12,7 +12,7 @@ GraphPanel::GraphPanel(int16_t x,int16_t y,int16_t w,int16_t h):GraphPanel()
 void GraphPanel::SetSystem(SystemClass* system)
 {
     _system=system?system:&System;
-    _state=GraphState();_previousCount=0;
+    _state=GraphState();
 }
 SystemClass* GraphPanel::GetSystem() const {return _system;}
 
@@ -29,15 +29,11 @@ void GraphPanel::Draw()
         case MeasureMode::Power: _state.selected=GraphState::Power;break;
         case MeasureMode::Resistance: _state.selected=GraphState::Resistance;break;
     }
-    const uint16_t count=_system->Buffer.CopyLatest(_samples,BufferClass::Capacity);
-    if(count==0 || count<_previousCount)
-    {
-        const auto selected=_state.selected;_state=GraphState();_state.selected=selected;
-    }
-    _previousCount=count;
+    const auto samples=_system->Buffer.View();
+    const uint16_t count=samples.Count();
     for(unsigned q=0;q<4;++q) _state.enabled[q]=q==_state.selected;
     _state.tightYAxis=true;
-    _state.Resolve(_samples,count);
+    _state.Resolve(_system->Buffer,samples,MeasurementTiming::PairTimeUs(_system->GetNplcProfile()));
     const auto& xr=_state.X();const auto& yr=_state.y[_state.selected];
     const char* units[]={"V","A","W","Ohm"};
     constexpr uint32_t curveColor=0x40FF60;
@@ -59,7 +55,7 @@ void GraphPanel::Draw()
         GD.cmd_text(plotX+plotW*i/GraphState::XDivisions,plotY+plotH+17,26,
                     i==GraphState::XDivisions?(OPT_RIGHTX|OPT_CENTERY):OPT_CENTER,label);
     }
-    const GraphState::Trace trace{&_state,_samples,_state.selected};
+    const GraphState::Trace trace{&_state,samples,_state.selected};
     const bool any=GD.DrawPlotTrace(plotX,plotY,plotW,plotH,trace.Source(count),xr,yr,curveColor,
                        _system->GetGraphSettings().style!=GraphStyle::Points,
                        _system->GetGraphSettings().style!=GraphStyle::Lines);

@@ -1,4 +1,5 @@
 #include "MenuPage.h"
+#include "MenuPageStyle.h"
 
 #include <stdio.h>
 #include "../Core/GDClass.h"
@@ -16,12 +17,12 @@ struct MenuGroup
 
 // Keep all six groups in their original order; enable these flags when needed.
 constexpr MenuGroup groups[] = {
-    {"SOURCE", true, {"Quickset", "Settings", "Sweep", "Config Lists", nullptr}},
-    {"MEASURE", true, {"Settings", "Calculations", "Config Lists", "Reading Buffers", nullptr}},
+    {"SOURCE", true, {"Settings", "Sweep", nullptr, nullptr, nullptr}},
+    {"MEASURE", true, {"Settings", "Reading Buffers", nullptr, nullptr, nullptr}},
     {"VIEWS", true, {"Graph", "Histogram", "Reading Table", nullptr, nullptr}},
     {"TRIGGER", false, {"Templates", "Configure", nullptr, nullptr, nullptr}},
     {"SCRIPTS", false, {"Run", "Manage", "Save Setup", "Record", "Apps"}},
-    {"SYSTEM", true, {"Event Log", "Communication", "Settings", "Calibration", "Info/Manage"}}
+    {"SYSTEM", true, {"Event Log", "Communication", "Settings", "Calibration", "Info"}}
 };
 constexpr int16_t margin = 16;
 constexpr int16_t gap = 8;
@@ -51,6 +52,7 @@ MenuPage::MenuPage(int16_t x, int16_t y, int16_t w, int16_t h) : Panel(x, y, w, 
     SetShowTitle(false);
     StyleButton(_back, "BACK");
     StyleButton(_home, "HOME");
+    _back.SetFont(MenuPageStyle::TextFont);_home.SetFont(MenuPageStyle::TextFont);
     AddChild(&_back);
     AddChild(&_home);
     for (uint8_t g = 0; g < 6; ++g)
@@ -91,8 +93,7 @@ void MenuPage::UpdateVisibility()
 
 void MenuPage::UpdateLayout()
 {
-    _back.SetBounds(GetX() + margin, GetY() + 14, 104, 44);
-    _home.SetBounds(GetX() + GetWidth() - margin - 104, GetY() + 14, 104, 44);
+    MenuPageStyle::Navigation(_back,_home,GetX(),GetY());
     const uint8_t count = VisibleGroupCount();
     const int16_t width = (GetWidth() - 2 * margin - (count - 1) * gap) / count;
     uint8_t column = 0;
@@ -113,6 +114,10 @@ void MenuPage::SetOnReadingTable(ButtonClickHandler handler) { _onReadingTable=h
 
 void MenuPage::OpenFunction(uint8_t group, uint8_t item)
 {
+    if(group==5 && item==4 && _onInfo) {_onInfo(&_items[group][item]);return;}
+    if(group==5 && item==2 && _onSystemSettings) {_onSystemSettings(&_items[group][item]);return;}
+    if(group==0 && item==0 && _onSourceSettings) {_onSourceSettings(&_items[group][item]);return;}
+    if(group==1 && item==0 && _onMeasureSettings) {_onMeasureSettings(&_items[group][item]);return;}
     if(group==2 && item==2 && _onReadingTable) { _onReadingTable(&_items[group][item]); return; }
     if(group==2 && item==1 && _onHistogram) { _onHistogram(&_items[group][item]); return; }
     if(group==2 && item==0 && _onGraph) { _onGraph(&_items[group][item]); return; }
@@ -147,11 +152,9 @@ void MenuPage::Draw()
 {
     if (!IsVisible()) return;
     UpdateLayout();
+    MenuPageStyle::Header("MENU",GetX(),GetY());
     GD.ColorRGB(Theme::FocusYellow);
-    GD.cmd_text(156,36,26,OPT_CENTERY,System.GetBackendText());
-    GD.ColorRGB(Theme::ToolbarText);
-    GD.cmd_text(GetX() + GetWidth() / 2, GetY() + 36, Theme::FontHeader, OPT_CENTER,
-                _placeholder ? "A-SMU" : "MENU");
+    GD.cmd_text(GetX()+784,GetY()+445,MenuPageStyle::HintFont,OPT_RIGHTX|OPT_CENTERY,System.GetBackendText());
     if (_placeholder)
     {
         GD.ColorRGB(Theme::SourceBlue);

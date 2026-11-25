@@ -5,6 +5,9 @@
 #include "Buffer.h"
 #include "GraphSettings.h"
 #include "Histogram.h"
+#include "MeasurementSettings.h"
+#include "UserInterfaceSettings.h"
+#include "Hardware/Acquisition.h"
 
 enum class MeasureMode : uint8_t
 {
@@ -84,8 +87,21 @@ public:
     SystemClass& operator=(const SystemClass&)=delete;
 
     void Reset();
+    const UserInterfaceSettings& GetUserInterfaceSettings() const {return _uiSettings;}
+    void SetKeyClick(bool enabled) {_uiSettings.keyClick=enabled;}
+    bool SetBacklightPercent(unsigned percent);
+    bool SetDimmerMinutes(unsigned minutes);
+    void RegisterUserActivity(uint32_t now) {_lastUserActivityMs=now;_backlightDimmed=false;}
+    void UpdateUserInterface(uint32_t now);
+    bool IsBacklightDimmed() const {return _backlightDimmed;}
+    unsigned GetEffectiveBacklightPercent() const {return _backlightDimmed?UserInterfaceSettings::MinBacklight:_uiSettings.backlightPercent;}
     void Execute();
+    void SetAcquisition(Hardware::Acquisition* acquisition);
+    Hardware::AcquisitionStats GetAcquisitionStats() const {return _acquisitionStats;}
     void ExecuteAt(uint32_t now);
+    void ExecuteAtTime(uint32_t nowMs, uint32_t nowUs);
+    uint8_t GetNplcProfile() const {return _nplcProfile;}
+    bool SetNplcProfile(uint8_t index);
     const Hardware::Measurement& GetMeasurement() const { return _measurement; }
     const Hardware::SimulationSettings& GetSimulationSettings() const {return _simulationSettings;}
     bool SetSimulationLoad(Hardware::LoadType load);
@@ -182,6 +198,9 @@ public:
     const char* GetRangeText() const;
     const char* GetVoltageRangeText() const;
     const char* GetCurrentRangeText() const;
+    static constexpr uint8_t VoltageRangeCount = 2;
+    static VoltageRange GetVoltageRangeAt(uint8_t index);
+    static const char* GetVoltageRangeText(VoltageRange range);
     static constexpr uint8_t CurrentRangeCount = 4;
     static CurrentRange GetCurrentRangeAt(uint8_t index);
     static const char* GetCurrentRangeText(CurrentRange range);
@@ -206,6 +225,9 @@ private:
     Hardware::Request MakeHardwareRequest() const;
 
 private:
+    UserInterfaceSettings _uiSettings;
+    uint32_t _lastUserActivityMs=0;
+    bool _backlightDimmed=false;
     MeasureMode _measureMode;
     SenseMode _senseMode;
 
@@ -228,9 +250,12 @@ private:
     float _voltageLimitValue;
     float _currentSourceValue;
     float _currentLimitValue;
-    uint32_t _lastSimulationMs;
+    uint32_t _lastSimulationUs;
+    uint8_t _nplcProfile=MeasurementTiming::Default;
     Hardware::SimulationSettings _simulationSettings;
     Hardware::SimulationBackend _simulator;
+    Hardware::Acquisition* _acquisition=nullptr;
+    Hardware::AcquisitionStats _acquisitionStats;
     Hardware::Backend* _backend=nullptr;
     Hardware::Measurement _measurement;
     bool _hardwareDirty=true;

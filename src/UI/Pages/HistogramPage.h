@@ -36,7 +36,6 @@ private:
     char _captions[20][64]={};
     TabControl _tabs;
     NumericEntryDialog _editor;
-    BufferSample _samples[BufferClass::Capacity];
     HistogramResult _result;
     unsigned _field=0;
     int _popup=0,_selectedBin=-1,_pressedBin=-1;

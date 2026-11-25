@@ -29,8 +29,7 @@ void HistogramPage::SetOnHome(ButtonClickHandler handler) {_buttons[1].SetOnClic
 void HistogramPage::Open() {Panel::TouchEnd(-1,-1);_editor.Close();_popup=0;_pressedBin=-1;SetVisible(true);Refresh();Layout();}
 void HistogramPage::Refresh()
 {
-    const uint16_t count=_system->Buffer.CopyLatest(_samples,BufferClass::Capacity);
-    CalculateHistogram(_samples,count,_system->GetHistogramSettings(),_result);
+    CalculateHistogram(_system->Buffer.View(),_system->GetHistogramSettings(),_result);
 }
 void HistogramPage::Configure(unsigned id,const char* text,int x,int y,int w,int h)
 {

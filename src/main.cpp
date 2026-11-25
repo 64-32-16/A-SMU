@@ -2,11 +2,17 @@
 
 #include "Core/Beeper.h"
 #include "Core/System.h"
+#include "Core/Hardware/SimulationAcquisition.h"
 #include "UI/Core/Container.h"
 #include "UI/Core/GDClass.h"
 #include "UI/Core/Theme.h"
 #include "UI/Pages/MainPage.h"
 #include "UI/Pages/MenuPage.h"
+#include "UI/Pages/InfoPage.h"
+#include "UI/Pages/MeasureSettingsPage.h"
+#include "UI/Pages/SourceSettingsPage.h"
+#include "UI/Pages/SystemSettingsPage.h"
+#include "UI/Core/WakeTouchGate.h"
 #include "UI/Pages/SimulationPage.h"
 #include "UI/Pages/GraphPage.h"
 #include "UI/Pages/HistogramPage.h"
@@ -20,13 +26,20 @@
 #include "UI/Panels/SourceRangePopup.h"
 #include "UI/Panels/XYGraphPopup.h"
 
-constexpr uint32_t FRAME_TIME_MS = 20;
+constexpr uint32_t FRAME_TIME_MS = 33;
+constexpr uint32_t TOUCH_TIME_MS = 10;
+Hardware::SimulationAcquisition acquisition;
 constexpr uint32_t SERIAL_WAIT_TIMEOUT_MS = 1000;
 constexpr uint8_t BEEPER_PIN = 9;
 
 Container root(0, 0, 800, 480);
 MainPage mainPage(0, 0, 800, 480);
 MenuPage menuPage(0, 0, 800, 480);
+InfoPage infoPage(0,0,800,480);
+SourceSettingsPage sourceSettingsPage(0,0,800,480);
+MeasureSettingsPage measureSettingsPage(0,0,800,480);
+SystemSettingsPage systemSettingsPage(0,0,800,480);
+WakeTouchGate wakeTouch;
 SimulationPage simulationPage(0,0,800,480);
 GraphPage graphPage(0, 0, 800, 480);
 HistogramPage histogramPage(0,0,800,480);
@@ -40,6 +53,7 @@ OutputOffStatePopup outputOffStatePopup(0, 0, 800, 480);
 XYGraphPopup xyGraphPopup(0, 0, 800, 480);
 
 uint32_t lastFrameMs = 0;
+uint32_t lastTouchMs = 0;
 bool lastTouching = false;
 int16_t lastTouchX = 0;
 int16_t lastTouchY = 0;
@@ -57,6 +71,10 @@ void UpdateCaptionFromMode()
 
 void ShowMainPage()
 {
+    sourceSettingsPage.SetVisible(false);
+    infoPage.SetVisible(false);
+    systemSettingsPage.SetVisible(false);
+    measureSettingsPage.SetVisible(false);
     simulationPage.SetVisible(false);
     readingTablePage.SetVisible(false);
     histogramPage.SetVisible(false);
@@ -83,6 +101,10 @@ void OpenMenu(Button* sender)
 
 void OpenGraphPage(Button* sender)
 {
+    sourceSettingsPage.SetVisible(false);
+    infoPage.SetVisible(false);
+    systemSettingsPage.SetVisible(false);
+    measureSettingsPage.SetVisible(false);
     simulationPage.SetVisible(false);
     readingTablePage.SetVisible(false);
     (void)sender;
@@ -97,6 +119,10 @@ void BackFromGraph(Button* sender)
 
 void OpenHistogramPage(Button* sender)
 {
+    sourceSettingsPage.SetVisible(false);
+    infoPage.SetVisible(false);
+    systemSettingsPage.SetVisible(false);
+    measureSettingsPage.SetVisible(false);
     simulationPage.SetVisible(false);
     readingTablePage.SetVisible(false);
     (void)sender;mainPage.SetVisible(false);graphPage.SetVisible(false);menuPage.SetVisible(false);histogramPage.Open();
@@ -108,6 +134,10 @@ void BackFromHistogram(Button* sender)
 
 void OpenReadingTablePage(Button* sender)
 {
+    sourceSettingsPage.SetVisible(false);
+    infoPage.SetVisible(false);
+    systemSettingsPage.SetVisible(false);
+    measureSettingsPage.SetVisible(false);
     simulationPage.SetVisible(false);
     (void)sender;mainPage.SetVisible(false);graphPage.SetVisible(false);histogramPage.SetVisible(false);
     menuPage.SetVisible(false);readingTablePage.Open();
@@ -117,7 +147,44 @@ void BackFromReadingTable(Button* sender)
     (void)sender;readingTablePage.SetVisible(false);menuPage.Open();
 }
 
+void OpenSourceSettingsPage(Button*) {
+    ShowMainPage();mainPage.SetVisible(false);sourceSettingsPage.Open();
+}
+void BackFromSourceSettings(Button*) {sourceSettingsPage.SetVisible(false);menuPage.Open();}
+void EditSourceSetting(SourceSettingsPage::Setting setting) {
+    switch(setting) {
+        case SourceSettingsPage::Setting::Function: sourceModePopup.Open();break;
+        case SourceSettingsPage::Setting::Range: sourceRangePopup.OpenForMode(System.GetSourceMode());break;
+        case SourceSettingsPage::Setting::Limit: numberPadPopup.Open(System.GetSourceMode(),NumberPadTargetType::LimitValue);break;
+        case SourceSettingsPage::Setting::OutputOff: outputOffStatePopup.Open();break;
+    }
+}
+void OpenInfoPage(Button*) {
+    ShowMainPage();mainPage.SetVisible(false);infoPage.Open();
+}
+void BackFromInfo(Button*) {infoPage.SetVisible(false);menuPage.Open();}
+void OpenSystemSettingsPage(Button*) {
+    sourceSettingsPage.SetVisible(false);
+    infoPage.SetVisible(false);
+    mainPage.SetVisible(false);menuPage.SetVisible(false);graphPage.SetVisible(false);
+    histogramPage.SetVisible(false);readingTablePage.SetVisible(false);simulationPage.SetVisible(false);
+    measureSettingsPage.SetVisible(false);systemSettingsPage.Open();
+}
+void BackFromSystemSettings(Button*) {systemSettingsPage.SetVisible(false);menuPage.Open();}
+void OpenMeasureSettingsPage(Button*) {
+    sourceSettingsPage.SetVisible(false);
+    infoPage.SetVisible(false);
+    systemSettingsPage.SetVisible(false);
+    mainPage.SetVisible(false);menuPage.SetVisible(false);graphPage.SetVisible(false);
+    histogramPage.SetVisible(false);readingTablePage.SetVisible(false);simulationPage.SetVisible(false);
+    measureSettingsPage.Open();
+}
+void BackFromMeasureSettings(Button*) {measureSettingsPage.SetVisible(false);menuPage.Open();}
 void OpenSimulationPage(Button* sender) {
+    sourceSettingsPage.SetVisible(false);
+    infoPage.SetVisible(false);
+    systemSettingsPage.SetVisible(false);
+    measureSettingsPage.SetVisible(false);
     (void)sender;mainPage.SetVisible(false);menuPage.SetVisible(false);graphPage.SetVisible(false);
     histogramPage.SetVisible(false);readingTablePage.SetVisible(false);simulationPage.Open();
 }
@@ -145,6 +212,8 @@ void OnMeasureModePopupClosed(MeasureModePopup* sender, bool accepted)
         UpdateCaptionFromMode();
     }
 }
+
+void OpenMeasureSettingsRange(SourceMode mode) {sourceRangePopup.OpenForMode(mode);}
 
 void OpenSourceRangePopup(Button* sender)
 {
@@ -249,9 +318,10 @@ void setup()
     Serial.println("A-SMU Measure + SourcePanel test start");
 
     GD.begin(0);
-    GD.wr(REG_PWM_DUTY, 50);
+    GD.SetBacklightPercent(System.GetEffectiveBacklightPercent());
 
     Beeper.Begin(BEEPER_PIN, true);
+    Beeper.SetClickAllowed([](){return System.GetUserInterfaceSettings().keyClick;});
 
     System.Reset();
     System.SetSimulationEnabled(true);
@@ -279,7 +349,24 @@ void setup()
     mainPage.GetHeaderPanel().GetHomeButton().SetOnClick(OpenMainPage);
     mainPage.GetHeaderPanel().GetMenuButton().SetOnClick(OpenMenu);
     menuPage.SetOnHome(OpenMainPage);
+    menuPage.SetOnSourceSettings(OpenSourceSettingsPage);
+    sourceSettingsPage.SetSystem(&System);
+    sourceSettingsPage.SetOnBack(BackFromSourceSettings);
+    sourceSettingsPage.SetOnHome(OpenMainPage);
+    sourceSettingsPage.SetOnSetting(EditSourceSetting);
+    menuPage.SetOnInfo(OpenInfoPage);
+    infoPage.SetOnBack(BackFromInfo);
+    infoPage.SetOnHome(OpenMainPage);
     menuPage.SetOnSimulation(OpenSimulationPage);
+    menuPage.SetOnSystemSettings(OpenSystemSettingsPage);
+    systemSettingsPage.SetSystem(&System);
+    systemSettingsPage.SetOnBack(BackFromSystemSettings);
+    systemSettingsPage.SetOnHome(OpenMainPage);
+    menuPage.SetOnMeasureSettings(OpenMeasureSettingsPage);
+    measureSettingsPage.SetSystem(&System);
+    measureSettingsPage.SetOnRange(OpenMeasureSettingsRange);
+    measureSettingsPage.SetOnBack(BackFromMeasureSettings);
+    measureSettingsPage.SetOnHome(OpenMainPage);
     simulationPage.SetSystem(&System);
     simulationPage.SetOnBack(BackFromSimulation);
     simulationPage.SetOnHome(OpenMainPage);
@@ -313,6 +400,10 @@ void setup()
 
     root.AddChild(&mainPage);
     root.AddChild(&menuPage);
+    root.AddChild(&infoPage);
+    root.AddChild(&sourceSettingsPage);
+    root.AddChild(&measureSettingsPage);
+    root.AddChild(&systemSettingsPage);
     root.AddChild(&graphPage);
     root.AddChild(&histogramPage);
     root.AddChild(&readingTablePage);
@@ -327,6 +418,8 @@ void setup()
     root.AddChild(&resistanceRangePopup);
     root.AddChild(&measureModePopup);
 
+    if(acquisition.Start()) System.SetAcquisition(&acquisition);
+    else Serial.println("ERROR: acquisition worker failed to start; synchronous fallback");
     Serial.println("Setup done");
 }
 
@@ -336,61 +429,73 @@ void loop()
     UpdateCaptionFromMode();
 
     const uint32_t now = millis();
+    System.UpdateUserInterface(now);
 
-    if ((now - lastFrameMs) < FRAME_TIME_MS)
+    if ((now - lastTouchMs) >= TOUCH_TIME_MS)
     {
-        return;
-    }
+        lastTouchMs = now;
+        GD.get_inputs();
+        const bool anyTouch=GD.inputs.touching || GD.touches.count;
+        const bool consumeWake=wakeTouch.Consume(anyTouch,System.IsBacklightDimmed());
+        if(anyTouch) System.RegisterUserActivity(now);
+        if(consumeWake) {
+            if(lastTouching) root.TouchEnd(-1,-1);
+            lastTouching=false;
+        } else {
 
-    lastFrameMs = now;
+            // Only the topmost visible surface receives new gestures (never behind a modal).
+            Control* touchSurface=nullptr;
+            for(int i=root.GetChildCount()-1;i>=0;--i)
+            {
+                Control* child=root.GetChild(i);
+                if(child->IsVisible() && child->IsEnabled()) {touchSurface=child;break;}
+            }
+            if(readingTablePage.HandleMultiTouch(GD.touches,touchSurface==&readingTablePage) ||
+               histogramPage.HandleMultiTouch(GD.touches,touchSurface==&histogramPage) ||
+               graphPage.HandleMultiTouch(GD.touches,touchSurface==&graphPage) ||
+               mainPage.GetSourcePanel().HandleMultiTouch(GD.touches,touchSurface==&mainPage))
+            {
+                if(lastTouching) root.TouchEnd(-1,-1);
+                lastTouching=false;
+            }
+            else
+            {
+                const bool touching = GD.inputs.touching;
 
-    GD.get_inputs();
+                if (touching)
+                {
+                    lastTouchX = GD.inputs.x;
+                    lastTouchY = GD.inputs.y;
+                }
 
-    // Only the topmost visible surface receives new gestures (never behind a modal).
-    Control* touchSurface=nullptr;
-    for(int i=root.GetChildCount()-1;i>=0;--i)
-    {
-        Control* child=root.GetChild(i);
-        if(child->IsVisible() && child->IsEnabled()) {touchSurface=child;break;}
-    }
-    if(readingTablePage.HandleMultiTouch(GD.touches,touchSurface==&readingTablePage) ||
-       histogramPage.HandleMultiTouch(GD.touches,touchSurface==&histogramPage) ||
-       graphPage.HandleMultiTouch(GD.touches,touchSurface==&graphPage) ||
-       mainPage.GetSourcePanel().HandleMultiTouch(GD.touches,touchSurface==&mainPage))
-    {
-        if(lastTouching) root.TouchEnd(-1,-1);
-        lastTouching=false;
-    }
-    else
-    {
-        const bool touching = GD.inputs.touching;
+                if (touching && !lastTouching)
+                {
+                    root.TouchStart(lastTouchX, lastTouchY);
+                }
 
-        if (touching)
-        {
-            lastTouchX = GD.inputs.x;
-            lastTouchY = GD.inputs.y;
-        }
+                if (touching)
+                {
+                    root.TouchMove(lastTouchX, lastTouchY);
+                }
 
-        if (touching && !lastTouching)
-        {
-            root.TouchStart(lastTouchX, lastTouchY);
-        }
+                if (!touching && lastTouching)
+                {
+                    root.TouchEnd(lastTouchX, lastTouchY);
+                }
 
-        if (touching)
-        {
-            root.TouchMove(lastTouchX, lastTouchY);
-        }
+                lastTouching = touching;
 
-        if (!touching && lastTouching)
-        {
-            root.TouchEnd(lastTouchX, lastTouchY);
-        }
+            }
 
-        lastTouching = touching;
+        } // wake gestures never reach buttons or multi-touch handlers
+    } // independent touch cadence, also while waiting for a new measurement
 
-    }
-
+    // Publish control changes before drawing; keep the history stable for the frame.
+    System.Execute();
+    GD.SetBacklightPercent(System.GetEffectiveBacklightPercent());
+    if ((now - lastFrameMs) < FRAME_TIME_MS) return;
     if (!GD.BeginFrame()) return;
+    lastFrameMs=now;
     GD.cmd_romfont(1, 34);
     GD.cmd_romfont(2, 33);
     GD.ClearColorRGB(Theme::MainScreenBackground);

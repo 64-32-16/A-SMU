@@ -37,6 +37,7 @@ public:
      * @brief Standard-Klickton für UI-Bedienung.
      */
     void Click();
+    void SetClickAllowed(bool (*allowed)()) {_clickAllowed=allowed;}
 
     /**
      * @brief Standard-Fehlerton.
@@ -63,6 +64,7 @@ private:
     bool _initialized;
     volatile bool _active;
     mbed::Timeout _timeout;
+    bool (*_clickAllowed)()=nullptr;
 };
 
 extern BeeperClass Beeper;

@@ -51,6 +51,7 @@ void GraphState::SetIV(bool value)
     for(auto& fitted:_autoYFitted) fitted=false;
 }
 void GraphState::AutoScale() {
+    if(!iv) automaticWindow=true;
     X().automatic=true;
     for(unsigned q=0;q<4;++q) {y[q].automatic=true;_autoYFitted[q]=false;}
 }
@@ -68,8 +69,43 @@ bool GraphState::Value(const BufferSample& s, Quantity q, double& value)
 double GraphState::Time(const BufferSample& s, uint32_t origin)
 { return static_cast<uint32_t>(s.TimeMs-origin)/1000.0; }
 
-void GraphState::Resolve(const BufferSample* samples, uint16_t count)
+void GraphState::Resolve(const BufferClass& buffer, BufferView samples, uint32_t pairTimeUs)
 {
+    if(automaticWindow && pairTimeUs && (x[0].automatic ||
+       _buffer!=&buffer || _bufferGeneration!=buffer.GetResetGeneration())) {
+        // N samples span N-1 intervals. Choose a readable window that fits,
+        // rather than displaying time whose samples have already expired.
+        double available=(buffer.GetCapacity()-1)*static_cast<double>(pairTimeUs)/1000000.0;
+        if(buffer.GetCount()==buffer.GetCapacity() && samples.Count()>1) {
+            const double retained=Time(samples[samples.Count()-1],samples[0].TimeMs);
+            if(retained>0) available=fmin(available,retained);
+        }
+        const double decade=pow(10.0,floor(log10(available)));
+        const double fraction=available/decade;
+        const double factor=fraction>=5?5:fraction>=4?4:fraction>=2?2:1;
+        windowSeconds=factor*decade;
+    }
+    // A reset must be observed even if this view was hidden while the buffer refilled.
+    if(_buffer!=&buffer || _bufferGeneration!=buffer.GetResetGeneration()) {
+        _buffer=&buffer;
+        _bufferGeneration=buffer.GetResetGeneration();
+        hasOrigin=false;
+        timeOrigin=0;
+        x[0].start=0;
+        x[0].division=windowSeconds/XDivisions;
+        x[0].automatic=true;
+        for(auto& fitted:_autoYFitted) fitted=false;
+    }
+    if(!hasOrigin && samples.Count()) {
+        timeOrigin=buffer.GetStartTimeMs();
+        hasOrigin=true;
+    }
+    Resolve(samples);
+}
+
+void GraphState::Resolve(BufferView samples)
+{
+    const uint16_t count=samples.Count();
     if(count == 0) {for(auto& fitted:_autoYFitted) fitted=false;return;}
     if(!hasOrigin) {
         timeOrigin=samples[0].TimeMs;hasOrigin=true;
@@ -118,9 +154,15 @@ void GraphState::Resolve(const BufferSample* samples, uint16_t count)
                    (high>low && high-low<(top-y[q].start)*0.75))
                     Fit(y[q],low,high,YDivisions,false);
             } else {
-                if(!_autoYFitted[q]) Fit(y[q],low,high,YDivisions);
-                else if(low<y[q].start || high>top)
-                    Fit(y[q],fmin(low,y[q].start),fmax(high,top),YDivisions);
+                PlotRange fitted=y[q];
+                Fit(fitted,low,high,YDivisions);
+                // Fit measured extrema, never rounded old axis bounds: feeding
+                // padding back into Fit grows the empty margins on every escape.
+                const bool escaped=low<y[q].start || high>top;
+                const bool smaller=fitted.division<=y[q].division*0.75;
+                const bool offCenter=fmax(low-y[q].start,top-high)>=2*y[q].division &&
+                    fabs(fitted.start-y[q].start)>=y[q].division;
+                if(!_autoYFitted[q] || escaped || smaller || offCenter) y[q]=fitted;
             }
             // A lone/constant initial sample cannot establish a useful noise span.
             if(high>low) _autoYFitted[q]=true;
@@ -179,8 +221,9 @@ bool GraphState::Pan(double dx, double dy)
     return true;
 }
 
-uint16_t GraphState::MakePoints(const BufferSample* samples, uint16_t count, Quantity q, PlotPoint* out,uint8_t bucketLimit) const
+uint16_t GraphState::MakePoints(BufferView samples, Quantity q, PlotPoint* out,uint8_t bucketLimit) const
 {
+    const uint16_t count=samples.Count();
     // Min/max envelope, in original sample order. Bounded geometry protects FT813 display-list RAM.
     if(!bucketLimit) return 0;
     if(bucketLimit>32) bucketLimit=32;

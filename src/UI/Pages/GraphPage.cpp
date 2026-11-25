@@ -72,8 +72,9 @@ void GraphPage::Open()
 }
 void GraphPage::ReadBuffer()
 {
-    _count=_system->Buffer.CopyLatest(_samples,BufferClass::Capacity);
-    _state.Resolve(_samples,_count);
+    _samples=_system->Buffer.View();
+    _count=_samples.Count();
+    _state.Resolve(_system->Buffer,_samples,MeasurementTiming::PairTimeUs(_system->GetNplcProfile()));
 }
 void GraphPage::Configure(unsigned id,const char* text,int x,int y,int w,int h)
 {
@@ -124,7 +125,7 @@ void GraphPage::Layout()
         Format(_state.y[_state.selected].division,units[_state.selected],number,sizeof(number));snprintf(text,sizeof(text),"Y / div: %s",number);Configure(14,text,410,218,366,48);
         Configure(15,"Step scrolling",24,304,216,44);Configure(16,"Full buffer",252,304,216,44);
         _buttons[_state.scrolling?15:16].SetBackgroundColor(Theme::SourceBlue);
-        Format(_state.windowSeconds,"s",number,sizeof(number));snprintf(text,sizeof(text),"%s: %s",_state.scrolling?"Window":"Min span",number);Configure(17,text,480,304,296,44);
+        Format(_state.windowSeconds,"s",number,sizeof(number));snprintf(text,sizeof(text),"%s: %s",_state.scrolling?(_state.automaticWindow?"Auto window":"Window"):"Min span",number);Configure(17,text,480,304,296,44);
         if(_state.iv) {_buttons[15].SetEnabled(false);_buttons[16].SetEnabled(false);_buttons[17].SetEnabled(false);}
     }
     else
@@ -155,7 +156,7 @@ void GraphPage::Action(unsigned id)
         }
         else if(id>=12 && id<=14) _system->SetGraphStyle(static_cast<GraphStyle>(id-12));
         else if(id==15 || id==16) _state.SetIV(id==16);
-        else if(id==17) {_system->ClearMeasurementBuffer();_state.hasOrigin=false;_count=0;}
+        else if(id==17) {_system->ClearMeasurementBuffer();ReadBuffer();}
     }
     else if(_tabs.GetSelectedIndex()==2)
     {
@@ -271,7 +272,7 @@ void GraphPage::EditorKey(unsigned key)
     {
         char* end=nullptr;const double value=strtod(_input,&end);
         bool valid=end!=_input && *end=='\0' && isfinite(value);
-        if(valid && _editing==4) {valid=value>=0.001 && value<=1e8;if(valid) {_state.windowSeconds=value;_state.X().automatic=true;}}
+        if(valid && _editing==4) {valid=value>=0.001 && value<=1e8;if(valid) {_state.SetWindowSeconds(value);_state.X().automatic=true;}}
         else if(valid) valid=_state.SetManual(_editing<2,(_editing%2)==1,value);
         if(!valid) {_error="Invalid value: divisions must be positive.";return;}
         _editing=-1;_editor.SetVisible(false);Layout();return;
@@ -425,7 +426,10 @@ void GraphPage::DrawSettings()
         Text(24,282,"Time axis:");
         Text(24,386,"One finger pans; two fingers zoom. AUTO SCALE resets.");
         Text(24,420,"AUTO SCALE restores automatic axes. Settings survive tab changes.");
-        Text(24,452,"Full buffer = retained measurements (maximum 1024 readings).",0xAAAAAA);
+        char capacityText[80];
+        snprintf(capacityText,sizeof(capacityText),"Full buffer = retained measurements (maximum %u readings).",
+                 static_cast<unsigned>(_system->Buffer.GetCapacity()));
+        Text(24,452,capacityText,0xAAAAAA);
     }
     else
     {

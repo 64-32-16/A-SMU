@@ -27,10 +27,8 @@ public:
 private:
     SystemClass* _system;
     GraphState _state;
-    uint16_t _previousCount=0;
     bool _drag=false,_moved=false,_multiBlocked=false,_hasTap=false;
     int16_t _lastX=0,_lastY=0,_tapX=0,_tapY=0;
     uint32_t _lastTapMs=0;
-    BufferSample _samples[BufferClass::Capacity];
 };
 #endif

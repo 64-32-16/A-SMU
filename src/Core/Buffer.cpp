@@ -15,6 +15,7 @@ BufferClass::BufferClass()
 
 void BufferClass::Reset()
 {
+    ++_resetGeneration;
     _totalSamples=0;_startTimeMs=0;
     _head = 0;
     _count = 0;
@@ -62,6 +63,19 @@ const BufferSample* BufferClass::GetLatest() const
 
     const uint16_t latestIndex = (_head == 0) ? (Capacity - 1) : (_head - 1);
     return &_samples[latestIndex];
+}
+
+BufferView BufferClass::View(uint16_t maxCount) const
+{
+    BufferView view;
+    view._count=_count<maxCount?_count:maxCount;
+    if(!view._count) return view;
+    const uint16_t start=(_head+Capacity-view._count)%Capacity;
+    view._first=_samples+start;
+    view._second=_samples;
+    view._firstCount=Capacity-start;
+    if(view._firstCount>view._count) view._firstCount=view._count;
+    return view;
 }
 
 uint16_t BufferClass::CopyLatest(BufferSample* dest, uint16_t maxCount) const

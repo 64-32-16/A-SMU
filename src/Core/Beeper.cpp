@@ -64,7 +64,7 @@ void BeeperClass::Beep(uint16_t durationMs)
  */
 void BeeperClass::Click()
 {
-    Beep(20);
+    if(!_clickAllowed || _clickAllowed()) Beep(20);
 }
 
 /**

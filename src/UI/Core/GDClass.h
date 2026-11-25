@@ -191,6 +191,9 @@ public:
     void DrawHistogramBars(int16_t x,int16_t y,int16_t w,int16_t h,
                            const uint16_t* counts,uint16_t count,uint16_t maximum,uint32_t color);
     // Bounded-cost solid rounded rectangle (no coprocessor widget/gradient).
+    void SetBacklightPercent(unsigned percent);
+    void DrawSlider(int16_t x,int16_t y,int16_t width,int16_t height,unsigned position,
+                    uint32_t track,uint32_t fill,uint32_t thumb);
     void DrawSolidRoundedRect(int16_t x,int16_t y,int16_t w,int16_t h,uint16_t radius,uint32_t color);
     // Capture the displayed screen asynchronously before the next frame.
     // Reserves RAM_G [0x40000, 0xFB800) for an 800x480 RGB565 backdrop and bitmap handle 0.
@@ -321,6 +324,7 @@ public:
     } inputs;
     TouchFrame touches;
 private:
+    uint8_t _backlightDuty=255; // last hardware write, not a user setting
     uint8_t _plotBank=0,_plotSlot=0;
     bool _captureRequested=false, _capturePending=false, _backdropReady=false;
 

@@ -402,3 +402,73 @@ Die anfängliche Fingermitte bleibt der Bezugspunkt. Bei getrenntem Zoom bleiben
 
 ### Reading Table zeilenweise live – 22.11.2026
 LIVE zeigt jetzt immer die letzten bis zu acht Messpunkte. Nach Füllen der Ansicht rückt mit jedem neuen Messpunkt eine Zeile nach oben, der neue Wert erscheint unten. Der bisherige Sprung auf eine fast leere neue Seite nach jeweils acht Werten entfällt. Dies gilt vor und nach Erreichen der Ringpufferkapazität. HOLD behält seine Momentaufnahme; Previous/Next blättern weiterhin in Acht-Zeilen-Schritten, begrenzt auf das letzte vollständige Fenster. Last und Messpunktauswahl zeigen am Pufferende ebenfalls ein vollständig gefülltes Fenster, sofern mindestens acht Werte existieren.
+
+
+### Zeitachse nach Clear Buffer – 24.11.2026
+ClearMeasurementBuffer leert den zentralen Puffer; BufferClass erhoeht bei jedem Reset eine Generation. Beide Graph-Ansichten erkennen diese unabhaengig von Sichtbarkeit und Sampleanzahl. Der gemeinsame Zeitursprung ist der erste Messpunkt seit Reset (GetStartTimeMs), auch nach Ringpuffer-Ueberschreiben. GraphState setzt beim Reset die Zeitachse auf automatisch, Start 0 und die eingestellte Fensterbreite; manuelle Y- und I-V-Achsen sowie Kurvenauswahl bleiben erhalten.
+
+
+### RAM-sparende Messwertansichten und 50-Punkte-Seitenspeicher – 24.11.2026
+
+Diese Festlegung ersetzt die bisherigen vollstaendigen Messpuffer-Kopien in den Ansichten und die vollstaendige HOLD-Momentaufnahme der Reading Table.
+
+- SystemClass.Buffer bleibt der einzige Messringpuffer mit 1024 Samples. BufferView referenziert seine bis zu zwei zusammenhaengenden Speicherabschnitte in zeitlicher Reihenfolge und besitzt keine Messdaten. Main-Graph, MENU/Graph, Histogramm und XY-Popup verwenden diesen lesenden Zugriff. Das XY-Popup betrachtet wie bisher die letzten maximal 256 Punkte.
+- Ansichten werden nur synchron vor der naechsten Pufferaenderung ausgewertet. System.Execute und Zeichnen laufen derzeit nacheinander in der Hauptschleife; spaetere parallele Erfassung muss den Zugriff explizit koordinieren. Keine Verlagerung der entfernten Kopien auf Stack oder Heap.
+- ReadingTableState speichert genau einen Ausschnitt mit maximal 50 Samples (800 Byte Messdaten), der alle acht sichtbaren Zeilen umfasst. LIVE folgt den neuesten acht Werten. HOLD haelt nur den geladenen Ausschnitt samt Zeit-/Indexbezug fest. Beim Blaettern ausserhalb dieses Ausschnitts werden benoetigte Werte aus dem zentralen Puffer nachgeladen; es gibt kein eingefrorenes Archiv des gesamten Verlaufs mehr.
+- Gesamtzahl und Indexgrenzen der gehaltenen Ansicht bleiben bis LIVE konstant. Nachladen prueft fortlaufende Indizes und Reset-Generation: ueberschriebene oder geloeschte Daten werden niemals durch neue Werte mit gleich aussehenden Indizes ersetzt. Ist die angeforderte Seite nicht mehr vorhanden, bleibt die aktuelle Seite erhalten und die GUI weist auf LIVE hin. Bereits gespeicherte 50 Punkte bleiben auch nach Clear erhalten.
+- Die Vorschau und ihre Messpunktauswahl beziehen sich auf den geladenen Ausschnitt. Clear Buffer und der gemeinsame Graph-Zeitreset bleiben wirksam.
+- Host-Tests pruefen direkte Referenzen, Ringumlaeufe, Gleichheit der Graph-/Histogrammauswertung mit einer Referenzkopie, alle sichtbaren Zeilen ueber Cachegrenzen, HOLD, Ablauf von Seiten, Reset-Generationen, LIVE und Vorschau-/Detaildialoge. Groessengrenzen verhindern erneute grosse UI-Puffer.
+
+
+### NPLC-Profile und Messkadenz � 24.11.2026
+SystemClass besitzt den NPLC-Profilindex mit validierendem SetNplcProfile. MeasurementSettings.h definiert die sechs Profile, Standard und feste 50-Hz-Netzfrequenz einmalig. Zeiten entsprechen den nominalen AD7177-2-Sinc5+Sinc1-Einschwingzeiten bei 16 MHz: 200 / 2000 / 10000 / 20016 / 100000 / 200000 us je Kanal. Paarzeit und Rate werden abgeleitet. Quelle: AD7177-2 Datenblatt Rev. B, Tabelle 20, https://www.analog.com/media/en/technical-documentation/data-sheets/ad7177-2.pdf . NPLC bezeichnet hier eine aequivalente Filterzeit, keine garantierte rechteckige Integrationsapertur.
+
+Ersetzt die feste 100-ms-Simulationskadenz: Execute verwendet einen ueberlaufsicheren Mikrosekundenabstand fuer U/I-Paare. Pro Aufruf entsteht hoechstens ein Sample, verpasste Intervalle werden nicht kuenstlich aufgefuellt. Hohe Raten bleiben durch Polling/Rendering begrenzt. Zeitstempel im kompakten Messpuffer bleiben Millisekunden; Sub-ms-Samples koennen gleiche Zeitstempel und damit gleiche simulierte Rauschwerte haben. Die Simulation bildet bislang weder die ADC-Filterantwort noch die NPLC-abhaengige Rauschreduktion oder zwei getrennte Messfenster ab. Bestehende sofortige Aktualisierungen bei Last-/Source-Aenderungen bleiben erhalten. Reale Backends erhalten den Profilindex im Request und liefern erst nach vollstaendigem U/I-Paar ein Sample; ihre Erfassung wird nicht durch den Simulationstimer gedrosselt. Noch keine Flash-Speicherung.
+
+Die fruehere Formulierung von gleichzeitig gemessenem U/I gilt nur fuer das Simulationsmodell: Die reale Hardware multiplexiert beide Kanaele. Ein gemeinsamer Datensatz behauptet keine simultane Wandlung.
+
+
+### Unabhaengige Erfassung und GUI - 24.11.2026
+Ersetzt die reine Main-Loop-Erfassung im Pico-Simulationsbetrieb: SimulationAcquisition besitzt einen Mbed-Thread mit Prioritaet AboveNormal und statischem 4096-Byte-Stack. Ein Ticker weckt ihn im NPLC-Paartakt. Der Interrupt setzt ausschliesslich ein Event; Modellberechnung erfolgt im Thread. Wiederholte unveraenderte Konfigurationen starten den Takt nicht neu. Verpasste Termine erzeugen keine erfundenen Nachholwerte.
+
+SystemClass bleibt Domain-Eigentuemer. Der Worker erhaelt nur Request-/Simulations-Konfigurationsnachrichten und liefert vollstaendige Measurements. Ein Mutex schuetzt Konfigurationswechsel, Berechnung, FIFO und Diagnose. Der Worker beruehrt weder SystemClass, BufferViews, GUI noch SPI. Die einzige Historie bleibt SystemClass.Buffer; nur die Hauptschleife uebernimmt neue Samples vor dem Zeichnen. Damit bleiben alle direkt referenzierten Ansichten waehrend eines Frames stabil.
+
+AcquisitionCore::Capacity definiert eine feste Transport-FIFO mit 256 noch nicht uebernommenen Samples (4096 Byte), keine Kopie des Messverlaufs. Bei 2500 Paaren/s ueberbrueckt sie 102,4 ms ohne Abnahme. Voll: aeltestes ausstehendes Sample verwerfen, neuesten Wert behalten, queueOverruns erhoehen. Verpasste Erfassungstermine werden als missedDeadlines gezaehlt. GetAcquisitionStats liefert beide Zaehler; GetHardwareStatusText zeigt ACQ OVERRUN. ClearMeasurementBuffer leert auch ausstehende Daten und Diagnose. OFF/Backend- oder Konfigurationswechsel verwerfen alte ausstehende Daten, damit kein alter Zustand nachtraeglich erscheint. Bereits gespeicherte Historie bleibt erhalten.
+
+Die Hauptschleife uebernimmt pro Execute hoechstens die FIFO-Kapazitaet und zeigt den letzten vollstaendigen Messwert. AUTO-Range wird aus dem uebernommenen Wert aufgeloest, die neue Konfiguration gilt ab dem folgenden Erfassungszyklus. Nach Einstellungen beginnt ein neuer Paarzyklus; der asynchrone Betrieb erzeugt keine sofortige kuenstliche Messung. Die synchrone Schnittstelle bleibt fuer bestehende Host-Tests und als gemeldeter Startfehler-Fallback erhalten.
+
+Touch wird unabhaengig von Messung und Frame-Takt alle 10 ms abgefragt, neue Frames fruehestens alle 33 ms. Dies sind Zeitziele, keine garantierten Bild-/Touchraten: EVE/SPI-Zeichenzeit kann die GUI weiter verzoegern, aber der hoeher priorisierte Erfassungsthread kann sie unterbrechen. Keine zusaetzliche Mittelung oder Reduktion gespeicherter Messwerte. Der reale ADC-Treiber fehlt weiterhin; vor parallelem ADC-SPI-Zugriff ist eine gemeinsame Transaktionsarbitrierung mit EVE zwingend erforderlich. Die bestehende ms-Zeitstempelaufloesung und das Simulationsrauschmodell bleiben unveraendert.
+
+
+### Automatisches Zeitfenster passend zum Messpuffer - 24.11.2026
+Ersetzt das feste automatische 100-s-Fenster in Main-Graph und MENU/Graph: Die Fensterbreite wird aus (Pufferkapazitaet - 1) * nominaler U/I-Paarzeit abgeleitet und auf eine passende 1/2/4/5-Dekadenstufe abgerundet. Bei vollem Puffer begrenzt zusaetzlich die tatsaechlich erhaltene Zeitspanne die Breite; so funktioniert auch ein NPLC-Wechsel mit gemischten Abstaenden im Verlauf. Der Zeitursprung bleibt der Pufferstart, die Achse wandert weiterhin in Schritten von einer Rasterteilung.
+
+Bei 1024 Punkten: 0,01 / 0,1 / 0,5 / 1 / 5 / 10 NPLC ergeben nominal 0,4 / 4 / 20 / 40 / 200 / 400 Sekunden Fensterbreite. Bei 1 NPLC zeigt der Start 00:00 bis 00:40 mit 4 s/div. Beim Ueberschreiben alter Werte liegen diese links ausserhalb des automatischen Fensters. Keine Aenderung an Messrate, Speichertiefe oder Erfassungsdaten.
+
+SCALE kennzeichnet die automatische Breite als Auto window. Eine ausdrueckliche Window-/Min-span-Eingabe bleibt auch bei NPLC-Wechseln und Clear erhalten; manuelles X/Pan/Zoom bleibt beim normalen Nachzeichnen erhalten. AUTO SCALE in der Zeitansicht aktiviert die passende automatische Breite wieder. Clear setzt den Zeitursprung weiterhin auf null. AUTO SCALE in I-V veraendert die Zeitfensterwahl nicht.
+
+
+### Vollbild-Graph: automatische Y-Achse ohne wachsenden Leerraum - 24.11.2026
+MENU/Graph passt automatische Y-Grenzen jetzt aus den aktuell sichtbaren Messwerten ein. Die bisherigen bereits gerundeten Achsengrenzen werden bei einer Erweiterung nicht erneut als Messwerte verwendet; dadurch addiert sich kein zusaetzlicher Leerraum. Veraltete grosse Skalen werden bei mindestens 25 % kleinerem passenden Raster zurueckgenommen. Bei mindestens zwei freien Rasterteilungen auf einer Seite und einer moeglichen Verschiebung um mindestens eine Teilung wird neu positioniert. Kleine Aenderungen innerhalb einer weiterhin passenden Skala bleiben ruhig.
+
+Dies ersetzt das bisherige ausschliessliche Erweitern bis zum manuellen AUTO SCALE. Manuelle Y-Achsen, X-Zeitfenster und die engere Main-Graph-Skalierung bleiben erhalten. Regression prueft entfernte Extreme, verschobene Wertebereiche, stabile Wiederholungen, wiederholte obere Grenzueberschreitungen ohne aufsummierte Randerweiterung und manuelle Achsen.
+
+
+### SYSTEM Settings: KeyClick und Backlight - 25.11.2026
+SystemClass besitzt UserInterfaceSettings und validiert Helligkeit 5..100 Prozent sowie Dimmerzeit 0..1440 ganze Minuten. Konstanten werden zentral in UserInterfaceSettings.h definiert. Defaults: KeyClick ON, Backlight 40 Prozent (nahe bisherigem PWM-Wert 50/128), Dimmer 30 Minuten. Keine Flash-Persistenz in diesem Schritt; Neustart/Reset stellt Defaults her.
+
+RegisterUserActivity aktualisiert die Inaktivitaetszeit und hebt Dimmen auf. UpdateUserInterface dimmt nach Ablauf auf den minimalen Backlightwert, ohne die konfigurierte Normalhelligkeit zu aendern. Der abgedimmte Zustand bleibt bis zur Bedienung bzw. einer Settings-Aenderung bestehen, auch ueber den millis-Ueberlauf. 0 Minuten deaktiviert den Dimmer. Alle erkannten Touchkontakte inkl. Multitouch zaehlen als Aktivitaet. WakeTouchGate konsumiert die erste komplette Beruehrung inklusive Loslassen; erst die naechste kann GUI-Aktionen ausloesen. Kein Einfluss auf Ausgang oder Erfassung.
+
+BeeperClass liest die KeyClick-Freigabe ueber einen im Setup registrierten Callback direkt aus SystemClass. Nur Click wird unterdrueckt; Error und direkte Beep-Aufrufe bleiben verfuegbar. GDClass kapselt Backlight-PWM-Konvertierung 0..100 Prozent auf EVE 0..128 und schreibt nur bei geaendertem Hardwarewert. Der Cache ist Hardwarezustand, keine zweite Einstellungsquelle. Alle EVE-Zugriffe bleiben im Hauptthread.
+
+
+## Geplante RTC und Kalenderzeit - 25.11.2026
+Die fruehere Aussage, dass vorerst keine Mainboard-Aenderungen geplant sind, wird fuer folgende Erweiterung ergaenzt: Der Nutzer plant den DS3231 und liefert einen neuen Schaltplan zur gemeinsamen Pruefung. Bis dahin bleibt die bisherige Schaltplanbasis fuer implementierte Hardwarefunktionen massgeblich. Busadressen, Versorgungskonzept und offene Pruefpunkte stehen zentral im RTC-Abschnitt von Hardware.md.
+
+SYSTEM > Settings enthaelt Date / Time als deaktivierte Vorbereitung (Unavailable / RTC not connected). Kein RTC-Treiber, keine I2C-Zugriffe und keine fiktive Kalenderzeit in diesem Schritt. Nach der Schaltplanpruefung sollen Datum/Uhrzeit und deren Gueltigkeitsstatus zentral ueber SystemClass und einen RTC-Hardwarezugriff gelesen/gesetzt werden; die GUI erhaelt keine eigene Uhr. RTC-Fehler bzw. ungueltige Zeit muessen erkennbar bleiben. Kalender-/Schaltjahrvalidierung, OSF-Auswertung und Zeitformat werden bei der Anbindung festgelegt.
+
+Messintervalle, relative Messzeitstempel, Beeper und Backlight-Inaktivitaet bleiben auf monotonen Systemtimern. Stellen der Kalenderuhr darf diese Ablaeufe nicht beeinflussen. Die bisherige Laufzeitanzeige im Header bleibt bis zur RTC-Anbindung unveraendert; keine Kalenderzeit aus der Laufzeit ableiten.
+
+
+## Source Settings ownership - 25.11.2026
+SourceSettingsPage is a read-only presentation of SystemClass state with callbacks for editor requests. Application wiring opens the existing SourceModePopup, SourceRangePopup, NumberPadPopup (LimitValue) and OutputOffStatePopup instances. Source mode determines the displayed source range and opposite compliance quantity. No page-local domain settings, duplicate editors, or additional output enable action.

@@ -211,7 +211,8 @@ void XYGraphPopup::DrawTrace(int16_t plotX, int16_t plotY, int16_t plotW, int16_
         return;
     }
 
-    const uint16_t count = _system->Buffer.CopyLatest(_plotSamples, MaxPlotSamples);
+    const auto samples = _system->Buffer.View(MaxPlotSamples);
+    const uint16_t count = samples.Count();
     if (count < 2)
     {
         return;
@@ -232,8 +233,8 @@ void XYGraphPopup::DrawTrace(int16_t plotX, int16_t plotY, int16_t plotW, int16_
     {
         bool validX = false;
         bool validY = false;
-        const float sampleX = GetAxisValue(_plotSamples[i], _xAxis, &validX);
-        const float sampleY = GetAxisValue(_plotSamples[i], _yAxis, &validY);
+        const float sampleX = GetAxisValue(samples[i], _xAxis, &validX);
+        const float sampleY = GetAxisValue(samples[i], _yAxis, &validY);
         if (!validX || !validY)
         {
             continue;
@@ -290,13 +291,14 @@ bool XYGraphPopup::GetAxisRange(XYGraphAxis axis, float* minValue, float* maxVal
         return false;
     }
 
-    const uint16_t count = _system->Buffer.CopyLatest(_plotSamples, MaxPlotSamples);
+    const auto samples = _system->Buffer.View(MaxPlotSamples);
+    const uint16_t count = samples.Count();
     bool haveValue = false;
 
     for (uint16_t i = 0; i < count; ++i)
     {
         bool valid = false;
-        const float value = GetAxisValue(_plotSamples[i], axis, &valid);
+        const float value = GetAxisValue(samples[i], axis, &valid);
         if (!valid)
         {
             continue;

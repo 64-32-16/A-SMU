@@ -61,5 +61,5 @@ private:
     double _pinchDistance=0, _pinchX=0.5, _pinchY=0.5;
     int16_t _lastX = 0, _lastY = 0;
     uint16_t _count = 0;
-    BufferSample _samples[BufferClass::Capacity];
+    BufferView _samples; // Refreshed before each synchronous draw; no sample storage.
 };

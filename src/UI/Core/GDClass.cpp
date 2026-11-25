@@ -21,6 +21,7 @@ arduino::MbedSPI displaySpi(EVE_MISO, EVE_MOSI, EVE_SCK);
 void GDClass::begin(byte p)
 {
     (void)p;
+    _backlightDuty=255;
 
     pinMode(EVE_CS, OUTPUT);
     digitalWrite(EVE_CS, HIGH);
@@ -528,4 +529,20 @@ bool GDClass::DrawPlotTrace(int16_t x,int16_t y,int16_t width,int16_t height,
     EVE_blend_func(EVE_SRC_ALPHA,EVE_ONE_MINUS_SRC_ALPHA);
     Begin(BITMAPS);Vertex2f(x,y);EVE_end();RestoreContext();
     return any;
+}
+
+// EVE PWM duty is 0..128; percentages and hardware details stay behind GDClass.
+void GDClass::SetBacklightPercent(unsigned percent) {
+    if(percent>100) percent=100;
+    const uint8_t duty=static_cast<uint8_t>((percent*128+50)/100);
+    if(duty!=_backlightDuty) {EVE_memWrite8(REG_PWM_DUTY,duty);_backlightDuty=duty;}
+}
+void GDClass::DrawSlider(int16_t x,int16_t y,int16_t width,int16_t height,unsigned position,
+                         uint32_t track,uint32_t fill,uint32_t thumb) {
+    if(width<height || height<4) return;
+    if(position>100) position=100;
+    const int16_t center=x+height/2+(width-height)*position/100;
+    DrawSolidRoundedRect(x,y+height/2-4,width,8,4,track);
+    DrawSolidRoundedRect(x,y+height/2-4,center-x,8,4,fill);
+    DrawSolidRoundedRect(center-height/2,y,height,height,height/2,thumb);
 }

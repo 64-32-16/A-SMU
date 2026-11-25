@@ -130,3 +130,48 @@ Host-Tests prüfen alle 100 Punkte der ersten 10 s im Pixelbild, unveränderte M
 
 ### L1-Transparenz korrigiert – 22.11.2026
 Die erste Bitmap-Version verwendete irrtümlich ONE/ONE-Blending und zeichnete dadurch eine gefüllte Fläche. FT813 L1 enthält ein Alpha-Bit und keine RGB-Farbbits. DrawPlotTrace verwendet jetzt SRC_ALPHA / ONE_MINUS_SRC_ALPHA: Nullbits erhalten Hintergrund und Raster, gesetzte Bits zeichnen die Kurvenfarbe. Quelle: FT81X Series Programmer Guide, BITMAP_LAYOUT-Formattabelle, https://brtchip.com/wp-content/uploads/Support/Documentation/Programming_Guides/ICs/EVE/FT81X_Series_Programmer_Guide.pdf . Die tatsächliche Ausgabe muss am Display nachgetestet werden.
+
+
+### RAM-Ersparnis durch direkte Messpufferansichten – 24.11.2026
+
+Main-Graph, MENU/Graph, Histogramm und XY-Popup besitzen keine Messpuffer-Kopien mehr. Die Reading Table verwendet statt 1024 kopierter Samples einen einzigen 50-Sample-Ausschnitt (800 Byte Messdaten). Der zentrale Ringpuffer bleibt bei 1024 Samples / 16 KiB. Der gemeinsame 25.600-Byte-Pixelpuffer in GDClass bleibt unveraendert.
+
+Pico-Build nach dem Umbau: 108.052 statt 176.860 Byte statische RAM-Belegung (40,0 % statt 65,4 % von 270.336 Byte). Nettoersparnis: 68.808 Byte, rund 67,2 KiB. Dies ist die Build-Angabe, keine Laufzeitmessung des maximalen Stack-/Heap-Bedarfs. Host-Tests und Pico-Build erfolgreich; nicht auf das Geraet uebertragen.
+
+
+### NPLC-Bedienung und Simulationskadenz � 24.11.2026
+MEASURE > Settings bietet sechs NPLC-aequivalente Sinc5+Sinc1-Profile fuer 50 Hz, Standard 1 NPLC. Die Simulation verwendet die abgeleitete U/I-Paarzeit, begrenzt durch die Hauptschleife; es gibt weiterhin keinen realen AD7177-2-Treiber. Keine Aenderung an SPI, Schaltplan oder Kalibrierung. Die angezeigten Messungen/s sind nominale U/I-Paarraten, keine gemessene Systemleistung. Filterwirkung und NPLC-abhaengige Rauschreduktion sind noch nicht simuliert. Details und Zeitquelle stehen in system.md.
+
+Pico-Build nach der NPLC-Seite: 108.836 Byte statisches RAM (40,3 %), zuvor 108.052 Byte; Zunahme 784 Byte. Host-Tests fuer Profile/Kadenz/Timerueberlauf, Auswahl/Navigation und bestehende Graph-/Bereichs-/Statistikfunktionen erfolgreich. Nicht auf das Geraet uebertragen; Sicht- und Touchpruefung am Display steht aus.
+
+Keithley-Layout-Nachtrag 24.11.2026: Pico-Build erfolgreich, statisches RAM 109.156 Byte (40,4 %), +320 Byte gegenueber der ersten NPLC-Seite. Host-Test fuer modale Auswahl/Cancel, Bereichsaenderungen, Navigation und unveraenderten Ausgang erfolgreich. Kein Upload; Sicht-/Touchpruefung am Geraet ausstehend.
+
+
+### Erfassungsthread fuer Simulation - 24.11.2026
+Pico-Simulation jetzt mit Mbed-Ticker/EventFlags/Thread (AboveNormal), separater Modellinstanz und mutexgeschuetzter 256-Sample-Transportqueue. Keine ADC- oder SPI-Aufrufe im Worker; EVE bleibt im Hauptthread. Der spaetere reale ADC braucht vor parallelem Betrieb gemeinsame SPI-Arbitrierung und nachgewiesene Timinggrenzen. Hauptpuffer und Graph-Arbeitsspeicher bleiben unveraendert. Stack des Workers: statisch 4096 Byte; Transportdaten: 4096 Byte.
+
+Pico-Build: 117.836 Byte statisch belegtes RAM (43,6 %), zuvor 109.156 Byte. Zunahme 8680 Byte inklusive Queue, Threadstack und Verwaltungsdaten. Kein Laufzeitnachweis fuer Stackreserve oder erreichbare Maximalrate; kein Upload. Host-Test prueft alle NPLC-Stufen, Erfassung ohne GUI-Abnahme, FIFO-Overflow, verpasste Termine, Timerueberlauf, OFF/Konfigurationswechsel, Clear und stabile BufferViews.
+
+Automatisches Graph-Zeitfenster, 24.11.2026: Host-Graphsuite inkl. aller sechs NPLC-Stufen ueber drei Pufferumlaeufe, gemischter Zeitabstaende, manueller Fenster und Clear erfolgreich. Pico-Build erfolgreich: 117.852 Byte statisches RAM (43,6 %), +16 Byte. Keine neuen Messdatenpuffer, kein Upload.
+
+
+### Backlight und KeyClick angebunden - 25.11.2026
+Die bisherige feste REG_PWM_DUTY-Ausgabe wird durch GDClass::SetBacklightPercent ersetzt (EVE PWM 0..128). SystemClass liefert Normal-/Dimmerhelligkeit; Hardwarecache verhindert unnoetige SPI-Schreibzugriffe. Keine Pin-/Busaenderungen. Beeper-Klickfreigabe wirkt auf den vorhandenen GPIO-/Timeout-Pfad, Fehlerbeeps bleiben aktiv.
+
+Pico-Build erfolgreich: 119.796 Byte statisches RAM (44,3 %), zuvor 117.852 Byte; Zunahme 1944 Byte fuer Seite/Dialog und Steuerzustand. Kein Upload. Sicht-/Touchpruefung des Sliders sowie reale PWM-Helligkeit und Aufwecken am Geraet noch pruefen. Host-Tests decken Grenzen, Dimmerablauf/Timerueberlauf, Wake-Geste, Klicksperre mit weiterhin aktivem Fehlerbeep, Slider-Endpunkte und NumberPad-Validierung/Cancel ab.
+
+
+## Geplante Mainboard-Erweiterung: DS3231 RTC - 25.11.2026
+Nutzerentscheidung: Auf dem Mainboard ist ein DS3231 vorgesehen. Der Nutzer erstellt den aktualisierten Schaltplan; danach erfolgt die gemeinsame Pruefung von Versorgung, Bus, Beschaltung und Layout. Der DS3231 ist noch kein nachgewiesener Bestandteil der bisherigen Schaltplanbasis vom 10.11.2026. Es wurden keine Schaltplan-/PCB-Dateien oder Pinzuordnungen geaendert.
+
+| Baustein | 7-Bit-I2C-Adresse | Versorgung |
+| --- | --- | --- |
+| TC74A0-3.3VAT | 0x48 | geschaltete 3,3 V |
+| TC74A1-3.3VAT | 0x49 | geschaltete 3,3 V |
+| DS3231 | 0x68 | VCC: geschaltete 3,3 V; VBAT: dauerhaft versorgt |
+
+Gemeinsamer SDA/SCL-Bus mit 100 kHz, begrenzt durch TC74. Ein gemeinsames Pull-up-Paar an geschalteten 3,3 V; Widerstandswerte werden anhand Buskapazitaet und vorhandener Pull-ups festgelegt. Alle direkt verbundenen Teilnehmer benoetigen denselben Massebezug. Gegen die bestehenden Analog-/Digital-/Endstufen-Potentialdomaenen am fertigen Schaltplan pruefen; keine Masseverbindung implizit ergaenzen. Die Versorgung des Pico und weiterer Busteilnehmer muss im ausgeschalteten Zustand ebenfalls beruecksichtigt werden, insbesondere USB-Versorgung/interne Pull-ups. SDA/SCL duerfen dann nicht von einer anderen Versorgung auf High gespeist werden.
+
+Wichtig: Die DS3231-I2C-Schnittstelle bleibt bei gueltiger VBAT auch ohne VCC zugaenglich. Rueckspeisungsvermeidung entsteht daher durch das gesamte Versorgungskonzept, nicht durch eine angenommene Abschaltung seiner I2C-Pins. Nur VBAT erhaelt die dauerhafte Versorgung. Backup-Quelle, genaue DS3231-Variante, Abblockung und eventuelle INT/SQW-/32-kHz-/RST-Anbindungen werden im neuen Schaltplan geprueft; keine neuen GPIOs reserviert.
+
+Quellen: [Microchip TC74 DS21462D](https://ww1.microchip.com/downloads/en/devicedoc/21462d.pdf), Adresstabelle und 100-kHz-Grenze; [Analog Devices DS3231](https://www.analog.com/media/en/technical-documentation/data-sheets/DS3231.pdf), Adresse 0x68, Versorgung und I2C-Interface bei VBAT.
