@@ -44,12 +44,13 @@ void GDClass::DrawPlotGrid(int16_t,int16_t,int16_t,int16_t,uint8_t,uint8_t,uint3
 static std::vector<PlotPoint> lastPoints;
 static PlotRange lastX,lastY;
 static bool lastLines=false,lastDots=false;
+static uint32_t lastTraceColor=0;
 void GDClass::DrawPlotSeries(int16_t,int16_t,int16_t,int16_t,const PlotPoint* p,uint16_t count,
                              const PlotRange& xr,const PlotRange& yr,uint32_t,bool lines,bool dots,uint8_t,uint8_t)
 { assert(count<=GraphState::MaxPoints);assert(xr.division>0 && yr.division>0);lastPoints.assign(p,p+count);lastX=xr;lastY=yr;lastLines=lines;lastDots=dots; }
 bool GDClass::DrawPlotTrace(int16_t,int16_t,int16_t,int16_t,const PlotPointSource& source,
-                            const PlotRange& xr,const PlotRange& yr,uint32_t,bool lines,bool dots) {
-    lastPoints.clear();bool any=false;
+                            const PlotRange& xr,const PlotRange& yr,uint32_t color,bool lines,bool dots) {
+    lastTraceColor=color;lastPoints.clear();bool any=false;
     for(uint16_t i=0;i<source.count;++i) {auto point=source.read(source.context,i);lastPoints.push_back(point);any|=point.valid;}
     lastX=xr;lastY=yr;lastLines=lines;lastDots=dots;return any;
 }
@@ -828,5 +829,82 @@ int main()
     simulation.Draw();Tap(simulation,simulation.GetChild(2));assert(simulated.GetSimulationEnabled() && simulated.GetOutputOn());
     simulation.SetVisible(false);simulation.Open();Near(simulated.GetSimulationSettings().resistance,2000);
     menu.Open();menu.SetOnSimulation(Simulation);Tap(menu,menu.GetChild(32));assert(simulationCalls==1);
+
+    // SIM Open: selecting Current must draw the actual zero-current samples,
+    // not leave the noisy voltage curve behind a current-labeled Y axis.
+    {
+        SystemClass openSystem;openSystem.SetSimulationEnabled(true);openSystem.SetOutputOn(true);
+        openSystem.SetVoltageSourceValue(5);openSystem.SetCurrentLimitValue(.01f);
+        openSystem.SetSimulationLoad(Hardware::LoadType::Open);
+        for(unsigned n=0;n<100;++n) openSystem.ExecuteAt(n*50);
+        assert(openSystem.GetCurrent()==0);
+        for(unsigned n=0;n<openSystem.Buffer.GetCount();++n) assert(openSystem.Buffer.View()[n].Current==0);
+        const auto retainedBefore=openSystem.Buffer.GetCount();
+        GraphPage openPage(0,0,800,480);openPage.SetSystem(&openSystem);openPage.Open();openPage.Draw();
+        assert(!lastPoints.empty() && lastPoints.back().y>4.99);
+        Press(openPage,8);
+        assert(openPage.GetGraphState().IsCurveVisible(GraphState::Current));
+        assert(!openPage.GetGraphState().IsCurveVisible(GraphState::Voltage));
+        for(const auto& point:lastPoints) assert(point.y==0);
+        assert(std::find(texts.begin(),texts.end(),"Current [Y]")!=texts.end());
+        GraphPanel compact(0,0,800,240);compact.SetSystem(&openSystem);openSystem.SetMeasureMode(MeasureMode::Current);compact.Draw();
+        for(const auto& point:lastPoints) assert(point.y==0); // both graphs agree
+        // Explicit Data/Add keeps the existing current curve and adds voltage.
+        Press(openPage,1);Press(openPage,7);assert(!openPage.GetGraphState().enabled[0]);
+        Press(openPage,11);Press(openPage,0);Press(openPage,8);
+        assert(openPage.GetGraphState().enabled[0] && openPage.GetGraphState().enabled[1]);
+        texts.clear();openPage.Draw();
+        assert(std::find(texts.begin(),texts.end(),"Voltage")!=texts.end());
+        assert(std::find(texts.begin(),texts.end(),"Current [Y]")!=texts.end());
+        for(const auto& point:lastPoints) assert(point.y==0);
+        Press(openPage,9);assert(openPage.GetGraphState().enabled[0] && openPage.GetGraphState().enabled[1] && openPage.GetGraphState().enabled[2]);
+        const auto retained=openSystem.Buffer.GetCount();assert(retained==retainedBefore && openSystem.GetOutputOn());
+    }
+
+    // Histogram quantity selection must switch actual data and units together.
+    // Open load has noisy voltage but exactly zero current/power and invalid R.
+    {
+        SystemClass openHist;openHist.SetSimulationEnabled(true);openHist.SetOutputOn(true);
+        openHist.SetVoltageSourceValue(5);openHist.SetCurrentLimitValue(.01f);
+        openHist.SetSimulationLoad(Hardware::LoadType::Open);openHist.ClearMeasurementBuffer();
+        for(unsigned n=0;n<BufferClass::Capacity+17u;++n) openHist.ExecuteAt(n*50);
+        const auto retained=openHist.Buffer.GetCount();assert(retained==BufferClass::Capacity);
+        HistogramPage view(0,0,800,480);view.SetSystem(&openHist);view.Open();view.Draw();
+        assert(view.GetHistogram().dataMin>4.99 && view.GetHistogram().dataMax>view.GetHistogram().dataMin);
+        for(unsigned repeat=0;repeat<3;++repeat) {
+            Tap(view,view.GetChild(4));texts.clear();view.Draw(); // Current
+            const auto& result=view.GetHistogram();
+            assert(openHist.GetHistogramSettings().quantity==BufferQuantity::Current);
+            assert(result.valid==retained && result.invalid==0 && result.dataMin==0 && result.dataMax==0);
+            assert(result.counts[result.BinAt(0)]==retained && result.counts[0]==0 && result.counts[result.bins+1]==0);
+            unsigned occupied=0,totalCounts=0;
+            for(unsigned bin=0;bin<result.bins+2u;++bin) {occupied+=result.counts[bin]>0;totalCounts+=result.counts[bin];}
+            assert(occupied==1 && totalCounts==retained);
+            assert(std::find(texts.begin(),texts.end(),"Data min: 0 A | Data max: 0 A | Invalid: 0")!=texts.end());
+            Tap(view,view.GetChild(3));view.Draw(); // Voltage again, same retained samples
+            assert(view.GetHistogram().dataMin>4.99 && view.GetHistogram().dataMax>view.GetHistogram().dataMin);
+        }
+        Tap(view,view.GetChild(5));view.Draw();assert(view.GetHistogram().dataMin==0 && view.GetHistogram().dataMax==0); // Power
+        Tap(view,view.GetChild(6));view.Draw();assert(!view.GetHistogram().hasData && view.GetHistogram().invalid==retained); // Open resistance
+        Tap(view,view.GetChild(4));view.Draw();assert(view.GetHistogram().valid==retained);
+        // Old nonzero values are real history, not stale histogram output.
+        openHist.Buffer.AddSample((BufferClass::Capacity+18u)*50,5,0.0000004f);view.Draw();
+        assert(view.GetHistogram().dataMax>0 && view.GetHistogram().dataMin==0);
+        openHist.ClearMeasurementBuffer();view.Draw();assert(!view.GetHistogram().hasData && view.GetHistogram().valid==0);
+        openHist.ExecuteAt((BufferClass::Capacity+20u)*50);view.Draw();
+        assert(view.GetHistogram().valid==1 && view.GetHistogram().dataMin==0 && view.GetHistogram().dataMax==0);
+        assert(openHist.GetOutputOn());
+    }
+    // Curve colors must not rotate with the quantity active on first opening.
+    for(unsigned initial=0;initial<4;++initial) {
+        SystemClass colorSystem;colorSystem.Buffer.AddSample(1,5,.001f);
+        const MeasureMode modes[]={MeasureMode::Voltage,MeasureMode::Current,MeasureMode::Power,MeasureMode::Resistance};
+        colorSystem.SetMeasureMode(modes[initial]);
+        GraphPage colorPage(0,0,800,480);colorPage.SetSystem(&colorSystem);colorPage.Open();
+        const uint32_t expected[]={0x40FF60,0x40D8FF,0xFFE050,0xFF80DC};
+        for(unsigned q=0;q<4;++q) {
+            Press(colorPage,7+q);assert(lastTraceColor==expected[q]);
+        }
+    }
     puts("PASS: zero-copy ring views, 50-sample page cache/expiry, timestamp axes, autoscale, manual values, pinch zoom/release/cancellation, zoom/pan, I-V, envelope/gaps, clipping, cursor, tabs, clear/remove, graph route, histogram bins/scaling/modals/routes, reading table hold/index/preview/routes, BACK/HOME, output preserved");
 }

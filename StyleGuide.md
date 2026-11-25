@@ -56,3 +56,22 @@ Simulation verwendet den gemeinsamen Kopf und BACK/HOME oben rechts. Fuer die zu
 ## Source Settings
 
 Source Settings verwendet das Standardraster mit vier Zeilen und dieselben Dialoginstanzen wie Main. Die Limit-Zeile nennt passend zur Source Function Current Limit oder Voltage Limit. Keine Kopien von Dialogen, Bereichslogik oder Domainwerten in der Seite.
+
+
+## Verbindliche Messgroessenfarben - 25.11.2026
+
+Nutzerentscheidung: Farben kennzeichnen eine Messgroesse dauerhaft, unabhaengig von Startansicht, Auswahlreihenfolge, Sichtbarkeit oder Anzahl der Kurven.
+
+| Messgroesse | Farbe | RGB-Hex |
+| --- | --- | --- |
+| Voltage / U | Gruen | `#40FF60` |
+| Current / I | Cyan | `#40D8FF` |
+| Power / P | Gelb | `#FFE050` |
+| Resistance / R | Rosa/Lila | `#FF80DC` |
+
+- Diese Zuordnung gilt fuer die farbliche Kennzeichnung von Messdaten in Graphen, Histogrammen, Legenden und zugehoerigen Achsen/ausgewaehlten Mengenbuttons. Dieselbe Messgroesse erhaelt auf allen Seiten dieselbe Farbe.
+- Kurve/Balken, Legende und zugehoerige Achse muessen zusammenpassen. Keine Rotation der Palette und kein pauschales Gruen fuer die erste Kurve.
+- Bei I(V) ist die dargestellte Messgroesse der Strom: Kurve und Y-Achse verwenden Cyan; eine farblich gekennzeichnete Spannungsachse verwendet Gruen.
+- Allgemeine Formularlabels bleiben blau und normale Formularwerte weiss. Status-, Warn- und Auswahlfarben sind keine Messgroessenfarben.
+- Bei neuen oder ueberarbeiteten Ansichten diese Regeln anwenden und vorhandene Abweichungen angleichen. Farbkonstanten bei Codeanpassungen zentral in Theme halten, keine weiteren seitenlokalen Paletten einfuehren.
+- Umsetzungsstand: Menu > Graph verwendet die festen Farben fuer Zeitkurven. Die bisher gruene I(V)-Kurve sowie weitere bisher pauschal gruene Messdarstellungen muessen noch angeglichen werden; die fruehere I(V)-Ausnahme in ux.md ist kein kuenftiger Designstandard.

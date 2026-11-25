@@ -48,7 +48,6 @@ private:
     int _editing = -1;
     bool _replaceInput = false;
     bool _initialized = false;
-    uint8_t _firstCurve = 0;
     TabControl _tabs;
     uint8_t _info = 0;
     GraphState::ZoomAxis _zoomAxis=GraphState::ZoomXY;

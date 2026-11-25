@@ -646,3 +646,11 @@ Simulation nutzt MenuPageStyle fuer Seitenkopf und Navigation oben rechts. Fuenf
 
 ### Source Settings - 25.11.2026
 MENU > SOURCE > Settings oeffnet SourceSettingsPage im gemeinsamen Vier-Zeilen-Raster: Source Function, Source Range, Current Limit bei Spannungsquelle bzw. Voltage Limit bei Stromquelle, Output Off State. BACK/HOME oben rechts. Alle Werte werden direkt aus SystemClass gelesen; keine eigenen Domainwerte. Die Seite oeffnet ueber main.cpp die bereits vorhandenen Instanzen SourceModePopup, SourceRangePopup, NumberPadPopup (LimitValue) und OutputOffStatePopup. Aenderungen sind auch in Main sichtbar; Cancel und Validierung bleiben bei den gemeinsamen Dialogen. Sense wird in dieser Stufe nicht ergaenzt.
+
+
+### Graph-Kurvenauswahl eindeutig - 25.11.2026
+Auf Graph/Scale schaltet die Mengenauswahl bei null oder einer sichtbaren Kurve direkt auf diese Kurve um. Bei mehreren Kurven bleiben vorhandene sichtbar und die gewaehlte wird bei Bedarf eingeblendet. Data behaelt die explizite Add/Remove-Bedienung. Die farbige Legende ueber dem Plot kennzeichnet die zur Y-Achse gehoerende Kurve mit [Y]; eine ausgeblendete Achsenkurve wird ausdruecklich gemeldet. Der Plot beginnt dafuer tiefer bei unveraenderter Unterkante. Keine Aenderung an Messwerten, Buffer oder Simulation. SIM Open wird mit exakt 0 A in beiden Graphen getestet.
+
+
+### Feste Graph-Farben - 25.11.2026
+Zeitkurven haben eine feste Zuordnung unabhaengig von der beim ersten Oeffnen gewaehlten Messgroesse: Voltage gruen, Current cyan, Power gelb, Resistance rosa/lila. Legende, Y-Achse und Auswahlbutton verwenden dieselbe Zuordnung wie die Kurve. Die vorherige Rotation anhand der ersten Kurve entfaellt. I(V) behaelt seine bisherige gruene Kennlinie.

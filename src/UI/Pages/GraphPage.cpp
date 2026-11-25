@@ -8,7 +8,7 @@
 
 namespace
 {
-constexpr int plotX=136,plotY=108,plotW=636,plotH=224;
+constexpr int plotX=136,plotY=128,plotW=636,plotH=204;
 const char* names[]={"Voltage","Current","Power","Resistance"};
 const char* units[]={"V","A","W","Ohm"};
 const uint32_t colors[]={0x40FF60,0x40D8FF,0xFFE050,0xFF80DC};
@@ -65,7 +65,6 @@ void GraphPage::Open()
         default:break;
         }
         for(unsigned q=0;q<4;++q) _state.enabled[q]=q==_state.selected;
-        _firstCurve=_state.selected;
         _initialized=true;
     }
     SetVisible(true);ReadBuffer();Layout();
@@ -143,7 +142,17 @@ void GraphPage::Action(unsigned id)
 {
     if(id<4) return;
     else if(id==4) {_state.AutoScale();ReadBuffer();}
-    else if(id>=7 && id<=10) {_state.selected=static_cast<GraphState::Quantity>(id-7);}
+    else if(id>=7 && id<=10) {
+        _state.selected=static_cast<GraphState::Quantity>(id-7);
+        // Data is the explicit Add/Remove editor. Elsewhere selecting a
+        // quantity must display that quantity, not only relabel the Y axis.
+        if(!_state.iv && _tabs.GetSelectedIndex()!=1) {
+            unsigned visible=0;
+            for(unsigned q=0;q<4;++q) if(_state.enabled[q]) ++visible;
+            if(visible<=1) for(auto& enabled:_state.enabled) enabled=false;
+            _state.enabled[_state.selected]=true;
+        }
+    }
     else if(id>=24 && id<=26) {_info=id-24;}
     else if(_tabs.GetSelectedIndex()==0 && id==11) {_state.cursorMode=static_cast<GraphState::CursorMode>((_state.cursorMode+1)%4);}
     else if(_tabs.GetSelectedIndex()==0 && id==12) {_state.cursor=1-_state.cursor;}
@@ -324,10 +333,21 @@ void GraphPage::DrawEditor()
 }
 uint32_t GraphPage::CurveColor(unsigned quantity) const
 {
-    return _state.iv ? colors[0] : colors[(quantity+4-_firstCurve)%4];
+    return _state.iv ? colors[0] : colors[quantity];
 }
 void GraphPage::DrawGraph()
 {
+    // Legend shares each trace's color; [Y] identifies the labeled Y scale.
+    Text(4,96,"Y scale:",CurveColor(_state.selected),26);
+    if(!_state.IsCurveVisible(_state.selected))
+        Text(plotX,96,"Selected Y curve hidden - select a visible curve",Theme::FocusYellow,26);
+    else {
+        unsigned column=0;char legend[32];
+        for(unsigned q=0;q<4;++q) if(_state.IsCurveVisible(q)) {
+            snprintf(legend,sizeof(legend),"%s%s",_state.iv?"I(V)":names[q],q==_state.selected?" [Y]":"");
+            Text(plotX+column*159,96,legend,CurveColor(q),26);++column;
+        }
+    }
     GD.DrawPlotGrid(plotX,plotY,plotW,plotH,10,6,0x303030);
     char label[40];const auto& xr=_state.X();const auto& yr=_state.y[_state.selected];
     for(unsigned i=0;i<=6;++i)
@@ -411,13 +431,13 @@ void GraphPage::DrawSettings()
     if(_tabs.GetSelectedIndex()==1)
     {
         Text(24,112,"Data source: Active Buffer (timestamped measurements)",Theme::SourceBlue,27);
-        Text(24,142,"Top buttons select a curve; Add / Remove controls visibility.");
+        Text(24,142,"Select a quantity here, then use Add / Remove.");
         char visible[100];
         if(_state.iv) snprintf(visible,sizeof(visible),"Visible: %s",_state.ivEnabled?"I(V)":"none");
         else snprintf(visible,sizeof(visible),"Visible: %s %s %s %s",_state.enabled[0]?"V":"",_state.enabled[1]?"I":"",_state.enabled[2]?"P":"",_state.enabled[3]?"R":"");
         Text(252,182,visible);
         Text(24,222,"Display style:");Text(24,300,"Axes:");
-        Text(24,402,"Independent Y scales; axis labels follow the selected curve.");
+        Text(24,402,"Separate Y scales; [Y] in the graph legend marks the axis.");
         Text(24,438,"Remove keeps data. Clear empties the measurement buffer.");
     }
     else if(_tabs.GetSelectedIndex()==2)

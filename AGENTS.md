@@ -74,3 +74,10 @@
 
 - Before adding an editor/dialog, reuse the existing implementation and shared instance where possible. No page-specific duplicate range selection logic.
 - Measure Settings and the main page open the same SourceRangePopup instance via application wiring; only the NPLC editor belongs to Measure Settings.
+
+
+## Stable Measurement Colors - 2026-11-25
+
+- Follow the binding measurement-color table in StyleGuide.md for new or revised visualizations: Voltage green, Current cyan, Power yellow, Resistance pink/purple.
+- Never rotate colors by first-opened quantity or selection order. Match traces/bars, legends, associated axes and quantity selection indicators. I(V) uses the Current color for its trace/Y axis.
+- Keep general form/status colors separate. Reuse central Theme constants when implementing color changes; do not create additional page-local palettes.
