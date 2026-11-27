@@ -33,3 +33,27 @@ struct PlotPointSource {
     PlotPoint (*read)(const void*,uint16_t);
     uint16_t count;
 };
+
+// Non-owning drawing view: offset,offset+2,... . The caller anchors offset
+// to stable sample numbers, so advancing a ring does not change selection.
+// Consume synchronously while this adapter and the original source are alive.
+struct PlotEverySecondSource {
+    PlotPointSource original;
+    uint8_t offset=0;
+    static PlotPoint Read(const void* context,uint16_t index) {
+        const auto& self=*static_cast<const PlotEverySecondSource*>(context);
+        const auto& source=self.original;
+        const unsigned n=unsigned(index)*2+(self.offset&1);
+        auto point=source.read(source.context,static_cast<uint16_t>(n));
+        // Do not bridge an invalid measurement hidden by the sampling step.
+        if(index) {
+            const auto skipped=source.read(source.context,static_cast<uint16_t>(n-1));
+            if(!skipped.valid || !isfinite(skipped.x) || !isfinite(skipped.y)) point.valid=false;
+        }
+        return point;
+    }
+    PlotPointSource Source() const {
+        const unsigned first=offset&1;
+        return {this,Read,static_cast<uint16_t>(original.count>first?(original.count-first+1)/2:0)};
+    }
+};

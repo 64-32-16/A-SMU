@@ -11,12 +11,21 @@ public:
               bool lines,bool dots,unsigned xDivisions=10,unsigned yDivisions=6) {
         memset(_pixels,0,_stride*_height);
         if(!source.read || !xDivisions || !yDivisions || xr.division<=0 || yr.division<=0) return false;
+        const double xSpan=xr.division*xDivisions,ySpan=yr.division*yDivisions;
+        if(!isfinite(xSpan) || !isfinite(ySpan)) return false;
+        const double xScale=1.0/xSpan,yScale=1.0/ySpan;
+        // Keep division as a fallback for extreme ranges whose reciprocal
+        // overflows. Ordinary graph ranges need only two divisions per draw.
+        const bool multiplyX=isfinite(xScale),multiplyY=isfinite(yScale);
         bool previous=false,any=false;double px=0,py=0;
         for(uint16_t n=0;n<source.count;++n) {
             const PlotPoint point=source.read(source.context,n);
             if(!point.valid) {previous=false;continue;}
-            const double x=(point.x-xr.start)/(xr.division*xDivisions);
-            const double y=(point.y-yr.start)/(yr.division*yDivisions);
+            const double dx=point.x-xr.start,dy=point.y-yr.start;
+            // Preserve exact upper endpoints: reciprocal rounding must not
+            // turn an on-edge point into an out-of-bounds value above 1.
+            const double x=dx==xSpan?1.0:(multiplyX?dx*xScale:dx/xSpan);
+            const double y=dy==ySpan?1.0:(multiplyY?dy*yScale:dy/ySpan);
             if(!isfinite(x) || !isfinite(y)) {previous=false;continue;}
             if(lines && previous) {
                 double a=px,b=py,c=x,d=y;

@@ -1,6 +1,8 @@
 #include "GraphPage.h"
 #include "../Core/GDClass.h"
 #include "../Core/Theme.h"
+#include "../Core/UiTiming.h"
+#include "../Core/GraphPlot.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,7 +75,7 @@ void GraphPage::ReadBuffer()
 {
     _samples=_system->Buffer.View();
     _count=_samples.Count();
-    _state.Resolve(_system->Buffer,_samples,MeasurementTiming::PairTimeUs(_system->GetNplcProfile()));
+    UI_TIMED(PlotPrepare,_state.Resolve(_system->Buffer,_samples,MeasurementTiming::PairTimeUs(_system->GetNplcProfile())));
 }
 void GraphPage::Configure(unsigned id,const char* text,int x,int y,int w,int h)
 {
@@ -310,8 +312,12 @@ void GraphPage::Draw()
     Text(500,17,status,Theme::ToolbarText,28);
     GD.SaveContext();GD.VertexFormat(0);GD.ColorRGB(Theme::TabActive);GD.LineWidth(32);
     GD.Begin(LINES);GD.Vertex2f(8,46);GD.Vertex2f(792,46);GD.RestoreContext();
-    if(_tabs.GetSelectedIndex()==0) {DrawGraph();DrawInfo();} else DrawSettings();
-    _editor.SetVisible(false);Panel::Draw();
+    _editor.SetVisible(false);
+    if(_tabs.GetSelectedIndex()==0) {
+        // Finish controls/info before budgeting curves. They do not overlap
+        // the plot/axes; only cursors and subsequent traces remain afterward.
+        Panel::Draw();DrawInfo();DrawGraph();
+    } else {DrawSettings();Panel::Draw();}
 }
 void GraphPage::DrawEditor()
 {
@@ -348,28 +354,12 @@ void GraphPage::DrawGraph()
             Text(plotX+column*159,96,legend,CurveColor(q),26);++column;
         }
     }
-    GD.DrawPlotGrid(plotX,plotY,plotW,plotH,10,6,0x303030);
-    char label[40];const auto& xr=_state.X();const auto& yr=_state.y[_state.selected];
-    for(unsigned i=0;i<=6;++i)
-    {
-        GraphState::FormatAxis(yr,6,i,units[_state.selected],label,sizeof(label));
-        Text(4,plotY+plotH-i*plotH/6,label,CurveColor(_state.selected),26,OPT_CENTERY);
-    }
-    for(unsigned i=0;i<=10;i+=2)
-    {
-        if(_state.iv) GraphState::FormatAxis(xr,10,i,"V",label,sizeof(label));
-        else GraphState::FormatTime(xr.start+xr.division*i,xr.division*2,label,sizeof(label));
-        Text(plotX+plotW*i/10,plotY+plotH+14,label,Theme::ToolbarText,26,OPT_CENTER);
-    }
-    bool any=false;
-    for(unsigned q=0;q<4;++q)
-    {
-        if(!_state.IsCurveVisible(q)) continue;
-        const GraphState::Trace trace{&_state,_samples,static_cast<GraphState::Quantity>(q)};
-        any=GD.DrawPlotTrace(plotX,plotY,plotW,plotH,trace.Source(_count),xr,_state.y[q],
-                          CurveColor(q),_system->GetGraphSettings().style!=GraphStyle::Points,
-                          _system->GetGraphSettings().style!=GraphStyle::Lines) || any;
-    }
+    const auto& xr=_state.X();
+#if ASMU_UI_TIMING
+    UiTiming::PlotWindow(xr.start);
+#endif
+    const GraphPlot::Layout area{plotX,plotY,plotW,plotH,4,14,Theme::ToolbarText,_state.iv,false};
+    const bool any=GraphPlot::Draw(_state,_samples,_system->Buffer,_system->GetGraphSettings().style,area,colors);
     if(!any) Text(360,204,_count?"No visible valid curve":"Buffer empty",0xAAAAAA,26);
     if(_state.cursorMode!=GraphState::Off)
     {

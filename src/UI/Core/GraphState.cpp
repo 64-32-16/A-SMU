@@ -5,13 +5,6 @@
 
 namespace
 {
-// Expand the full-history axis in readable steps instead of rescaling every frame.
-double HistorySpan(double needed)
-{
-    const double decade=pow(10.0,floor(log10(needed)));
-    const double fraction=needed/decade;
-    return decade*(fraction<=1?1:fraction<=2?2:fraction<=5?5:10);
-}
 void Fit(PlotRange& range, double low, double high, unsigned divisions,bool nice=true)
 {
     double span=high-low;
@@ -69,7 +62,8 @@ bool GraphState::Value(const BufferSample& s, Quantity q, double& value)
 double GraphState::Time(const BufferSample& s, uint32_t origin)
 { return static_cast<uint32_t>(s.TimeMs-origin)/1000.0; }
 
-void GraphState::Resolve(const BufferClass& buffer, BufferView samples, uint32_t pairTimeUs)
+void GraphState::Resolve(const BufferClass& buffer, BufferView samples, uint32_t pairTimeUs,
+                         bool selectedOnly)
 {
     if(automaticWindow && pairTimeUs && (x[0].automatic ||
        _buffer!=&buffer || _bufferGeneration!=buffer.GetResetGeneration())) {
@@ -100,10 +94,10 @@ void GraphState::Resolve(const BufferClass& buffer, BufferView samples, uint32_t
         timeOrigin=buffer.GetStartTimeMs();
         hasOrigin=true;
     }
-    Resolve(samples);
+    Resolve(samples,selectedOnly);
 }
 
-void GraphState::Resolve(BufferView samples)
+void GraphState::Resolve(BufferView samples, bool selectedOnly)
 {
     const uint16_t count=samples.Count();
     if(count == 0) {for(auto& fitted:_autoYFitted) fitted=false;return;}
@@ -123,7 +117,12 @@ void GraphState::Resolve(BufferView samples)
                 X().start=last>windowSeconds?ceil((last-windowSeconds)/step)*step:0;
                 X().division=windowSeconds/XDivisions;
             }
-            else { X().start=first; X().division=HistorySpan(fmax(last-first,windowSeconds))/XDivisions; }
+            else {
+                // Full Buffer fills the viewport; a rounded-up span leaves an
+                // empty rightmost grid cell even when the history is full.
+                X().start=first;
+                X().division=fmax(last-first,0.001)/XDivisions;
+            }
         }
         else
         {
@@ -136,7 +135,7 @@ void GraphState::Resolve(BufferView samples)
     }
     for(unsigned q=0;q<4;++q)
     {
-        if(!y[q].automatic) continue;
+        if(!y[q].automatic || (selectedOnly && q!=selected)) continue;
         bool found=false;double low=0,high=0;
         for(uint16_t n=0;n<count;++n)
         {

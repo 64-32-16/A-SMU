@@ -1,0 +1,129 @@
+{
+  "unit": "mm",
+  "parts": {
+    "Boden": {
+      "valid": true,
+      "step_reimport": true,
+      "volume_mm3": 199729.5995
+    },
+    "Deckel": {
+      "valid": true,
+      "step_reimport": true,
+      "volume_mm3": 188016.6438
+    },
+    "Steg_links": {
+      "valid": true,
+      "step_reimport": true,
+      "volume_mm3": 61924.7084
+    },
+    "Steg_rechts": {
+      "valid": true,
+      "step_reimport": true,
+      "volume_mm3": 61924.7084
+    },
+    "Frontplatte": {
+      "valid": true,
+      "step_reimport": true,
+      "volume_mm3": 36279.3357
+    },
+    "Frontwinkel_links_unten": {
+      "valid": true,
+      "step_reimport": true,
+      "volume_mm3": 556.365
+    },
+    "Frontwinkel_links_oben": {
+      "valid": true,
+      "step_reimport": true,
+      "volume_mm3": 556.365
+    },
+    "Frontwinkel_rechts_unten": {
+      "valid": true,
+      "step_reimport": true,
+      "volume_mm3": 556.365
+    },
+    "Frontwinkel_rechts_oben": {
+      "valid": true,
+      "step_reimport": true,
+      "volume_mm3": 556.365
+    }
+  },
+  "intersections_mm3": {
+    "Boden/Deckel": 0.0,
+    "Boden/Steg_links": 0.0,
+    "Boden/Steg_rechts": 0.0,
+    "Boden/Frontplatte": 0.0,
+    "Boden/Frontwinkel_links_unten": 0.0,
+    "Boden/Frontwinkel_links_oben": 0.0,
+    "Boden/Frontwinkel_rechts_unten": 0.0,
+    "Boden/Frontwinkel_rechts_oben": 0.0,
+    "Deckel/Steg_links": 0.0,
+    "Deckel/Steg_rechts": 0.0,
+    "Deckel/Frontplatte": 0.0,
+    "Deckel/Frontwinkel_links_unten": 0.0,
+    "Deckel/Frontwinkel_links_oben": 0.0,
+    "Deckel/Frontwinkel_rechts_unten": 0.0,
+    "Deckel/Frontwinkel_rechts_oben": 0.0,
+    "Steg_links/Steg_rechts": 0.0,
+    "Steg_links/Frontplatte": 0.0,
+    "Steg_links/Frontwinkel_links_unten": 0.0,
+    "Steg_links/Frontwinkel_links_oben": 0.0,
+    "Steg_links/Frontwinkel_rechts_unten": 0.0,
+    "Steg_links/Frontwinkel_rechts_oben": 0.0,
+    "Steg_rechts/Frontplatte": 0.0,
+    "Steg_rechts/Frontwinkel_links_unten": 0.0,
+    "Steg_rechts/Frontwinkel_links_oben": 0.0,
+    "Steg_rechts/Frontwinkel_rechts_unten": 0.0,
+    "Steg_rechts/Frontwinkel_rechts_oben": 0.0,
+    "Frontplatte/Frontwinkel_links_unten": 0.0,
+    "Frontplatte/Frontwinkel_links_oben": 0.0,
+    "Frontplatte/Frontwinkel_rechts_unten": 0.0,
+    "Frontplatte/Frontwinkel_rechts_oben": 0.0,
+    "Frontwinkel_links_unten/Frontwinkel_links_oben": 0.0,
+    "Frontwinkel_links_unten/Frontwinkel_rechts_unten": 0.0,
+    "Frontwinkel_links_unten/Frontwinkel_rechts_oben": 0.0,
+    "Frontwinkel_links_oben/Frontwinkel_rechts_unten": 0.0,
+    "Frontwinkel_links_oben/Frontwinkel_rechts_oben": 0.0,
+    "Frontwinkel_rechts_unten/Frontwinkel_rechts_oben": 0.0
+  },
+  "lid_lift_mm": [
+    0.15,
+    1,
+    4,
+    8,
+    15,
+    40,
+    80
+  ],
+  "rear_panel": "deferred; open rear",
+  "load_capacity": "not evaluated",
+  "insert_pilots": "provisional; match selected insert before manufacture",
+  "bounds_XYZ_mm": [
+    240.0,
+    300.0,
+    100.0
+  ],
+  "front_through_apertures": 12,
+  "assembly_step_solids": 9,
+  "side_fasteners": {
+    "per_side_per_shell": 3,
+    "total": 12,
+    "y_mm": [
+      35.0,
+      150.0,
+      265.0
+    ],
+    "z_mm": [
+      42.0,
+      58.0
+    ]
+  },
+  "vents": {
+    "count": 74,
+    "slot_mm": [
+      40.0,
+      2.0
+    ],
+    "web_mm": 4.0,
+    "location": "horizontal lid only; 40 mm is slot length"
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "source": "Front_Quelle.sc",
+  "source_panel_mm": [
+    230.0,
+    120.0
+  ],
+  "target_panel_mm": [
+    235.6,
+    95.6,
+    3.0
+  ],
+  "translation_relative_to_panel_lower_left_mm": [
+    2.799999999999997,
+    -12.200000000000003
+  ],
+  "scaling": 1,
+  "jack_pitch_mm": [
+    19.05,
+    19.05
+  ],
+  "aperture_count": 8,
+  "cutouts": [
+    {
+      "type": "Displayausschnitt",
+      "curves": [
+        "l5",
+        "l6",
+        "l7",
+        "l8"
+      ],
+      "center_from_panel_lower_left_mm": [
+        94.13484024578008,
+        47.3
+      ],
+      "global_center_xz_mm": [
+        96.33484024578009,
+        49.5
+      ],
+      "width_mm": 124.00000000000003,
+      "height_mm": 79.0,
+      "area_mm2": 9796.000000000002
+    },
+    {
+      "type": "Buchse_abgeflacht",
+      "curves": [
+        "a4",
+        "l42",
+        "a5",
+        "l43"
+      ],
+      "center_from_panel_lower_left_mm": [
+        192.00138207564416,
+        32.25752965327267
+      ],
+      "global_center_xz_mm": [
+        194.20138207564415,
+        34.45752965327267
+      ],
+      "width_mm": 12.0,
+      "height_mm": 10.5,
+      "area_mm2": 107.19465775388716,
+      "diameter_mm": 12
+    },
+    {
+      "type": "Buchse_abgeflacht",
+      "curves": [
+        "a6",
+        "l45",
+        "a7",
+        "l46"
+      ],
+      "center_from_panel_lower_left_mm": [
+        192.00138207564416,
+        13.207529653272662
+      ],
+      "global_center_xz_mm": [
+        194.20138207564415,
+        15.407529653272661
+      ],
+      "width_mm": 11.999999999999943,
+      "height_mm": 10.499999999999996,
+      "area_mm2": 107.1946577538868,
+      "diameter_mm": 12
+    },
+    {
+      "type": "Buchse_abgeflacht",
+      "curves": [
+        "a8",
+        "l48",
+        "a9",
+        "l49"
+      ],
+      "center_from_panel_lower_left_mm": [
+        211.05138207564417,
+        32.25752965327267
+      ],
+      "global_center_xz_mm": [
+        213.25138207564416,
+        34.45752965327267
+      ],
+      "width_mm": 12.0,
+      "height_mm": 10.499999999999993,
+      "area_mm2": 107.19465775388704,
+      "diameter_mm": 12
+    },
+    {
+      "type": "Buchse_abgeflacht",
+      "curves": [
+        "a10",
+        "l51",
+        "a11",
+        "l52"
+      ],
+      "center_from_panel_lower_left_mm": [
+        211.05138207564417,
+        13.207529653272662
+      ],
+      "global_center_xz_mm": [
+        213.25138207564416,
+        15.407529653272661
+      ],
+      "width_mm": 11.999999999999943,
+      "height_mm": 10.499999999999996,
+      "area_mm2": 107.1946577538868,
+      "diameter_mm": 12
+    },
+    {
+      "type": "Rundbohrung",
+      "curves": [
+        "c3"
+      ],
+      "center_from_panel_lower_left_mm": [
+        186.24898060340038,
+        79.40527252190095
+      ],
+      "global_center_xz_mm": [
+        188.44898060340037,
+        81.60527252190096
+      ],
+      "width_mm": 7.0,
+      "height_mm": 7.0,
+      "area_mm2": 38.48451000647496,
+      "diameter_mm": 7.0
+    },
+    {
+      "type": "Rundbohrung",
+      "curves": [
+        "c4"
+      ],
+      "center_from_panel_lower_left_mm": [
+        214.05568218748445,
+        79.40527252190095
+      ],
+      "global_center_xz_mm": [
+        216.25568218748444,
+        81.60527252190096
+      ],
+      "width_mm": 9.0,
+      "height_mm": 9.0,
+      "area_mm2": 63.61725123519331,
+      "diameter_mm": 9.0
+    },
+    {
+      "type": "Rundbohrung",
+      "curves": [
+        "c5"
+      ],
+      "center_from_panel_lower_left_mm": [
+        15.604896629622388,
+        7.800000000000001
+      ],
+      "global_center_xz_mm": [
+        17.804896629622387,
+        10.0
+      ],
+      "width_mm": 9.0,
+      "height_mm": 9.0,
+      "area_mm2": 63.61725123519331,
+      "diameter_mm": 9.0
+    }
+  ],
+  "ignored_open_geometry": [
+    [
+      "l44"
+    ],
+    [
+      "l47"
+    ],
+    [
+      "l50"
+    ],
+    [
+      "l53"
+    ],
+    [
+      "l54",
+      "l57",
+      "l56"
+    ]
+  ],
+  "removed_front_volume_mm3": 31171.492930477238,
+  "verified_through_apertures": 8
+}

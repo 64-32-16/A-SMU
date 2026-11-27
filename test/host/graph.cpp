@@ -14,6 +14,7 @@
 #include "UI/Pages/MenuPage.h"
 #include "Core/Beeper.h"
 #include "UI/Core/PlotRaster.h"
+#include "UI/Core/PlotVector.h"
 #include "UI/Core/DisplayFormat.h"
 
 static std::vector<std::string> texts;
@@ -43,13 +44,16 @@ void GDClass::DrawHistogramBars(int16_t,int16_t,int16_t,int16_t,const uint16_t*,
 void GDClass::DrawPlotGrid(int16_t,int16_t,int16_t,int16_t,uint8_t,uint8_t,uint32_t) {}
 static std::vector<PlotPoint> lastPoints;
 static PlotRange lastX,lastY;
-static bool lastLines=false,lastDots=false;
+static bool lastLines=false,lastDots=false,lastPreferVectors=false;
+static unsigned traceCalls=0;
 static uint32_t lastTraceColor=0;
 void GDClass::DrawPlotSeries(int16_t,int16_t,int16_t,int16_t,const PlotPoint* p,uint16_t count,
                              const PlotRange& xr,const PlotRange& yr,uint32_t,bool lines,bool dots,uint8_t,uint8_t)
 { assert(count<=GraphState::MaxPoints);assert(xr.division>0 && yr.division>0);lastPoints.assign(p,p+count);lastX=xr;lastY=yr;lastLines=lines;lastDots=dots; }
 bool GDClass::DrawPlotTrace(int16_t,int16_t,int16_t,int16_t,const PlotPointSource& source,
-                            const PlotRange& xr,const PlotRange& yr,uint32_t color,bool lines,bool dots) {
+                            const PlotRange& xr,const PlotRange& yr,uint32_t color,bool lines,bool dots,bool preferVectors) {
+    lastPreferVectors=preferVectors;
+    ++traceCalls;
     lastTraceColor=color;lastPoints.clear();bool any=false;
     for(uint16_t i=0;i<source.count;++i) {auto point=source.read(source.context,i);lastPoints.push_back(point);any|=point.valid;}
     lastX=xr;lastY=yr;lastLines=lines;lastDots=dots;return any;
@@ -134,12 +138,208 @@ static void CheckBufferViews()
     buffer.AddSample(7,42,1);assert(buffer.View()[0].TimeMs==7);
 }
 
+static void CheckVectorScroll()
+{
+    // Exercise the actual chronological ring view and Main's axis resolver,
+    // including grid shifts both before and after the first ring overwrite.
+    for(uint32_t origin : {0u,0xfffff000u}) {
+        BufferClass buffer;GraphState state;state.tightYAxis=true;
+        PlotVector::Vertex vertices[BufferClass::Capacity*2];
+        unsigned shifts=0,wraps=0;double previousStart=0;
+        for(unsigned n=0;n<BufferClass::Capacity*3u;++n) {
+            buffer.AddSample(origin+n*50,5.0f+0.01f*float(sin(n*.7)),.001f);
+            auto view=buffer.View();
+            state.Resolve(buffer,view,50000,true);
+            if(state.X().start!=previousStart) ++shifts;
+            previousStart=state.X().start;
+            if(n>=BufferClass::Capacity) ++wraps;
+            const GraphState::Trace trace{&state,view,GraphState::Voltage};
+            const auto source=trace.Source(view.Count());
+            auto result=PlotVector::Build(source,state.X(),state.y[0],664,160,
+                                         vertices,BufferClass::Capacity*2);
+            assert(result.complete && result.any);
+            for(unsigned i=0;i<result.count;++i) {
+                assert(vertices[i].x>=0 && vertices[i].x<=664);
+                assert(vertices[i].y>=0 && vertices[i].y<=160);
+                if(i) assert(vertices[i].x>=vertices[i-1].x);
+            }
+            // Independent per-segment reference using the old raster's
+            // normalization and clipping, checking every emitted endpoint.
+            unsigned segment=0;
+            for(unsigned i=1;i<source.count;++i) {
+                const auto a=source.read(source.context,i-1),b=source.read(source.context,i);
+                assert(b.x>a.x);
+                double x0=(a.x-state.X().start)/(state.X().division*10);
+                double x1=(b.x-state.X().start)/(state.X().division*10);
+                double y0=(a.y-state.y[0].start)/(state.y[0].division*6);
+                double y1=(b.y-state.y[0].start)/(state.y[0].division*6);
+                if(!ClipPlotLine(x0,y0,x1,y1)) continue;
+                while(segment+1<result.count && vertices[segment+1].move) ++segment;
+                assert(segment+1<result.count);
+                assert(abs(vertices[segment].x-int(x0*664+.5))<=1);
+                assert(abs(vertices[segment].y-int((1-y0)*160+.5))<=1);
+                ++segment;
+                assert(abs(vertices[segment].x-int(x1*664+.5))<=1);
+                assert(abs(vertices[segment].y-int((1-y1)*160+.5))<=1);
+            }
+            assert(!result.count || segment+1==result.count);
+        }
+        assert(shifts>10 && wraps>0);
+    }
+    puts("PASS: vector grid shifts, ring overwrite, timestamp rollover, bounds and every clipped segment");
+}
+
 int main()
 {
+    {
+        BufferClass history;GraphState fixed;
+        assert(fixed.scrolling);
+        double previous=0,step=0;
+        unsigned shifts=0;
+        for(unsigned i=0;i<BufferClass::Capacity*2u;++i) {
+            history.AddSample(i*50,5,.001f);
+            fixed.Resolve(history,history.View(),50000,true);
+            if(!i) {step=fixed.X().division;Near(fixed.X().start,0);}
+            Near(fixed.X().division,step);
+            if(fixed.X().start!=previous) {
+                Near(fixed.X().start,previous+step);
+                ++shifts;
+            }
+            previous=fixed.X().start;
+        }
+        assert(shifts>1);
+    }
+    {
+        BufferClass history;GraphState full;full.scrolling=false;
+        for(unsigned i=0;i<BufferClass::Capacity*2u;++i) {
+            history.AddSample(i*50,5,.001f);
+            auto view=history.View();full.Resolve(history,view,50000,true);
+            const double newest=GraphState::Time(view[view.Count()-1],full.timeOrigin);
+            const double right=full.X().start+full.X().division*GraphState::XDivisions;
+            if(view.Count()>1) Near(right,newest);
+            else assert(right>newest);
+        }
+    }
+    CheckVectorScroll();
+    {
+        SystemClass stable;GraphPanel panel(0,0,800,240);panel.SetSystem(&stable);
+        GraphPage menu(0,0,800,480);menu.SetSystem(&stable);menu.Open();
+        stable.SetGraphStyle(GraphStyle::Lines);
+        // A selected sample must remain selected until it expires from history,
+        // both during filling and across repeated ring overwrites.
+        for(unsigned n=0;n<BufferClass::Capacity*3u;++n) {
+            stable.SetGraphStyle(n&1?GraphStyle::Both:GraphStyle::Lines);
+            stable.Buffer.AddSample(n*10,float(n),.001f);panel.Draw();
+            assert(lastLines && lastDots==bool(n&1) && lastPreferVectors);
+            const auto mainPoints=lastPoints;
+            menu.Draw();assert(lastPreferVectors && lastPoints.size()==mainPoints.size());
+            texts.clear();
+            for(unsigned i=0;i<lastPoints.size();++i) {
+                Near(lastPoints[i].x,mainPoints[i].x);Near(lastPoints[i].y,mainPoints[i].y);
+            }
+            const unsigned first=n+1-stable.Buffer.GetCount();
+            const unsigned firstEven=first+(first&1),lastEven=n-(n&1);
+            assert(lastPoints.size()==(lastEven-firstEven)/2+1);
+            for(unsigned i=0;i<lastPoints.size();++i) {
+                assert(lastPoints[i].valid);
+                Near(lastPoints[i].y,firstEven+2*i);
+            }
+        }
+        Press(menu,1);
+        for(unsigned q=1;q<4;++q) {Press(menu,7+q);Press(menu,11);}
+        traceCalls=0;Press(menu,0);
+        assert(traceCalls==4 && lastPreferVectors && lastPoints.size()==BufferClass::Capacity/2);
+        stable.SetGraphStyle(GraphStyle::Points);menu.Draw();
+        assert(!lastPreferVectors && !lastLines && lastDots && lastPoints.size()==BufferClass::Capacity);
+        stable.SetGraphStyle(GraphStyle::Both);Press(menu,1);Press(menu,16);Press(menu,0);
+        assert(lastPreferVectors && lastLines && lastDots && lastPoints.size()==BufferClass::Capacity/2);
+        stable.ClearMeasurementBuffer();stable.Buffer.AddSample(50000,77,.001f);panel.Draw();
+        assert(lastPoints.size()==1);Near(lastPoints[0].y,77);
+        puts("PASS: stable every-second acquisition indices, newest-point selection, ring wraps and reset");
+    }
+    {
+        PlotVector::Vertex lines[8],dots[8];
+        PlotPoint points[]={{-1,2,true},{2,3,true},{4,4,false},{6,2,true},{11,3,true}};
+        PlotPointSource source{points,[](const void* p,uint16_t i) {
+            return static_cast<const PlotPoint*>(p)[i];
+        },5};
+        auto result=PlotVector::Build(source,{0,1,true},{0,1,true},600,180,lines,8,dots,8);
+        assert(result.complete && result.points==2 && result.strips==2);
+        assert(dots[0].x==120 && dots[1].x==360); // No dots at clipped crossings.
+        assert(PlotVector::Words(result,true)==PlotVector::Words(result)+5);
+        const auto bytes=PlotVector::Words(result,true)*4;
+        assert(PlotVector::Fits(result,8192-bytes-2048,2048,true));
+        assert(!PlotVector::Fits(result,8192-bytes-2048+4,2048,true));
+        result=PlotVector::Build(source,{0,1,true},{0,1,true},600,180,lines,8,dots,1);
+        assert(!result.complete);
+        source.count=1;points[0]={2,3,true};
+        result=PlotVector::Build(source,{0,1,true},{0,1,true},600,180,lines,8,dots,8);
+        assert(result.complete && result.count==0 && result.points==1 && result.any);
+        assert(dots[0].x==120 && dots[0].y==90);
+    }
+    {
+        PlotPoint points[10];
+        for(unsigned i=0;i<10;++i) points[i]={double(i),double(i),true};
+        for(uint16_t count=0;count<=10;++count) {
+            PlotEverySecondSource reduced{{points,[](const void* p,uint16_t i) {
+                return static_cast<const PlotPoint*>(p)[i];
+            },count}};
+            const auto source=reduced.Source();
+            assert(source.count==(count+1)/2);
+            for(uint16_t i=0;i<source.count;++i) {
+                const auto point=source.read(source.context,i);
+                assert(point.valid);Near(point.x,unsigned(i)*2);
+            }
+            if(count) Near(source.read(source.context,source.count-1).x,2*((count-1)/2));
+        }
+        points[1].valid=false;
+        PlotEverySecondSource reduced{{points,[](const void* p,uint16_t i) {
+            return static_cast<const PlotPoint*>(p)[i];
+        },10}};
+        assert(!reduced.Source().read(&reduced,1).valid);
+    }
+    {
+        PlotVector::Vertex vertices[BufferClass::Capacity*2];
+        PlotRange xr{0,1,true},yr{0,1,true};
+        PlotPointSource source{nullptr,[](const void*,uint16_t i) {
+            return PlotPoint{10.0*i/(BufferClass::Capacity-1),3,true};
+        },BufferClass::Capacity};
+        auto result=PlotVector::Build(source,xr,yr,600,180,vertices,BufferClass::Capacity*2);
+        assert(result.complete && result.any && result.count==BufferClass::Capacity && result.strips==1);
+        assert(vertices[0].x==0 && vertices[result.count-1].x==600);
+        assert(PlotVector::Words(result)==BufferClass::Capacity+10);
+        const unsigned bytes=PlotVector::Words(result)*4;
+        assert(PlotVector::Fits(result,8192-2048-bytes,2048));
+        assert(!PlotVector::Fits(result,8192-2048-bytes+4,2048));
+        assert(!PlotVector::Fits(result,8193,0));
+        auto shortResult=PlotVector::Build(source,xr,yr,600,180,vertices,3);
+        assert(!shortResult.complete && shortResult.count==3 && !PlotVector::Fits(shortResult,0,0));
+        PlotPoint points[]={{0,0,true},{2,2,true},{3,3,false},{4,4,true},{5,5,true}};
+        source={points,[](const void* p,uint16_t i) {return static_cast<const PlotPoint*>(p)[i];},5};
+        result=PlotVector::Build(source,xr,yr,600,180,vertices,10);
+        assert(result.complete && result.count==4 && result.strips==2);
+        assert(vertices[0].move && !vertices[1].move && vertices[2].move);
+        // Leaving and re-entering the viewport must not join along its edge.
+        points[0]={2,2,true};points[1]={12,3,true};points[2]={2,4,true};source.count=3;
+        result=PlotVector::Build(source,xr,yr,600,180,vertices,10);
+        assert(result.count==4 && result.strips==2);
+        for(unsigned i=0;i<result.count;++i) assert(vertices[i].x>=0 && vertices[i].x<=600 && vertices[i].y>=0 && vertices[i].y<=180);
+        points[0]={-5,2,true};points[1]={-2,4,true};source.count=2;
+        result=PlotVector::Build(source,xr,yr,600,180,vertices,10);
+        assert(!result.any && result.count==0);
+        points[0]={0,0,true};points[1]={10,6,true};
+        result=PlotVector::Build(source,xr,yr,600,180,vertices,10);
+        assert(result.count==2 && vertices[0].y==180 && vertices[1].y==0);
+        source.count=1;result=PlotVector::Build(source,xr,yr,600,180,vertices,10);
+        assert(result.any && result.count==0);
+        points[0].y=NAN;result=PlotVector::Build(source,xr,yr,600,180,vertices,10);
+        assert(!result.any && result.count==0);
+    }
     CheckBufferViews();
     constexpr unsigned overwritten=76, totalReadings=BufferClass::Capacity+overwritten;
     constexpr unsigned lastRows=BufferClass::Capacity-ReadingTableState::Rows;
     constexpr unsigned lastCache=BufferClass::Capacity-ReadingTableState::PageCapacity;
+    nativeButtons=flatButtons=compactButtons=customButtons=0;
     Button native;native.SetBounds(10,10,80,40);native.SetText("1");native.SetNativeFlat(true);
     native.SetBackgroundColor(0x204060);native.SetCornerRadius(6);
     native.Draw();assert(lastForeground==0x204060 && nativeButtons==1 && flatButtons==1);
@@ -166,7 +366,26 @@ int main()
     for(unsigned i=0;i<100;++i) buffer.AddSample(10000+i*i,static_cast<float>(i-0.0),2);
     BufferSample samples[BufferClass::Capacity];
     auto count=buffer.CopyLatest(samples,BufferClass::Capacity);
-    GraphState state;state.windowSeconds=10;state.scrolling=false;state.Resolve(samples,count);
+    {
+        GraphState single,all;
+        single.tightYAxis=all.tightYAxis=true;
+        for(unsigned q=0;q<4;++q) {
+            single.selected=all.selected=static_cast<GraphState::Quantity>(q);
+            PlotRange previous[4];for(unsigned i=0;i<4;++i) previous[i]=single.y[i];
+            single.Resolve(buffer,buffer.View(),MeasurementTiming::PairTimeUs(0),true);
+            all.Resolve(buffer,buffer.View(),MeasurementTiming::PairTimeUs(0));
+            Near(single.X().start,all.X().start);Near(single.X().division,all.X().division);
+            Near(single.y[q].start,all.y[q].start);Near(single.y[q].division,all.y[q].division);
+            for(unsigned i=0;i<4;++i) if(i!=q) {
+                Near(single.y[i].start,previous[i].start);
+                Near(single.y[i].division,previous[i].division);
+            }
+        }
+        single.y[single.selected]={2,3,false};
+        single.Resolve(buffer,buffer.View(),MeasurementTiming::PairTimeUs(0),true);
+        Near(single.y[single.selected].start,2);Near(single.y[single.selected].division,3);
+    }
+    GraphState state;state.windowSeconds=10;state.scrolling=true;state.Resolve(samples,count);
     Near(state.X().start,0);Near(state.X().division*10,10);
     assert(state.y[0].start<=0 && state.y[0].start+state.y[0].division*6>=99);
     auto old=state.X();assert(state.Zoom(0.5));Near(state.X().division,old.division/2);assert(!state.X().automatic);
@@ -223,8 +442,8 @@ int main()
             assert(oldTrace[j].x==newTrace[j].x && oldTrace[j].y==newTrace[j].y);
         }
     }
-    // Default Full buffer: no continuously changing X scale or closed history.
-    GraphState fullHistory;fullHistory.windowSeconds=10;fullHistory.scrolling=false;
+    // Explicit stepped view keeps a fixed scale and closed history.
+    GraphState fullHistory;fullHistory.windowSeconds=10;fullHistory.scrolling=true;
     fullHistory.Resolve(stableSamples,40);
     assert(fullHistory.X().start==0 && fullHistory.X().division==1);
     const auto oldHistoryCount=fullHistory.MakePoints(stableSamples,40,GraphState::Voltage,oldTrace);
@@ -262,9 +481,9 @@ int main()
     shifted[0].Voltage=2;shifted[1].Voltage=3;tracking.Resolve(shifted,2);
     Near(tracking.y[0].start,-10);Near(tracking.y[0].division,5);
     quiet.AutoScale();quiet.Resolve(bounded,3);assert(quiet.y[0].division<.001);
-    bounded[2].TimeMs=10100;quiet.Resolve(bounded,3);Near(quiet.X().division,2);
-    bounded[2].TimeMs=20100;quiet.Resolve(bounded,3);Near(quiet.X().division,5);
-    // Default stepped scrolling: fixed span, exact edges, delayed frames and ring retention.
+    bounded[2].TimeMs=10100;quiet.Resolve(bounded,3);Near(quiet.X().division,1.01);
+    bounded[2].TimeMs=20100;quiet.Resolve(bounded,3);Near(quiet.X().division,2.01);
+    // Explicit stepped scrolling: fixed span, exact edges, delayed frames and ring retention.
     GraphState stepped;assert(stepped.scrolling && stepped.windowSeconds==100);stepped.hasOrigin=true;stepped.timeOrigin=0;
     BufferSample stepSamples[]={Hardware::MakeMeasurement(0,5,.005f),Hardware::MakeMeasurement(0,5,.005f)};
     const uint32_t times[]={0,99999,100000,100001,110000,110001,119999,120000,120001,250000,1200000};
@@ -344,8 +563,10 @@ int main()
     const double peaks[]={100,0.5,50,200};
     for(unsigned mode=0;mode<4;++mode) {
         compactSystem.SetMeasureMode(modes[mode]);nativeButtons=0;compact.Draw();assert(nativeButtons==0);
+        assert(compactSystem.Buffer.GetCount()==BufferClass::Capacity);
+        assert(lastPoints.size()==BufferClass::Capacity/2);
         double peak=-1;for(const auto& point:lastPoints) if(point.valid) peak=std::max(peak,point.y);
-        Near(peak,peaks[mode]);Near(lastPoints.back().x,(BufferClass::Capacity-1)*0.002);
+        Near(peak,peaks[mode]);Near(lastPoints.back().x,(BufferClass::Capacity-2)*0.002);
     }
     compactSystem.ClearMeasurementBuffer();compact.Draw();assert(lastPoints.empty());
     compactSystem.Buffer.AddSample(20000,1,0);compact.Draw();
@@ -356,7 +577,7 @@ int main()
     // never expires data inside the automatic viewport as it advances.
     const double expectedWindows[]={0.4,4,20,40,200,400};
     for(unsigned profile=0;profile<MeasurementTiming::Count;++profile) {
-        BufferClass history;GraphState automatic;
+        BufferClass history;GraphState automatic;automatic.scrolling=true;
         const auto period=MeasurementTiming::PairTimeUs(profile);
         automatic.Resolve(history,history.View(),period);
         Near(automatic.windowSeconds,expectedWindows[profile]);
@@ -412,7 +633,7 @@ int main()
         Near(state->X().start,0);Near(state->X().division,4);
         assert(state->X().automatic && state->timeOrigin==600000);
     }
-    Near(lastPoints.front().x,0);Near(lastPoints.back().x,1);
+    Near(lastPoints.front().x,0);Near(lastPoints.back().x,0); // Stable Lines selection: index 0.
     resetSystem.ClearMeasurementBuffer();resetPanel.Draw();resetPage.Draw();
     Near(resetPanel.GetGraphState().X().start,0);Near(resetPage.GetGraphState().X().start,0);
     assert(!resetPanel.GetGraphState().hasOrigin && !resetPage.GetGraphState().hasOrigin);
@@ -496,7 +717,7 @@ int main()
     Near(mainGraph.GetGraphState().y[GraphState::Voltage].start,mainYBefore.start);
     Near(mainGraph.GetGraphState().y[GraphState::Voltage].division,mainYBefore.division);
     auto frozen=mainGraph.GetGraphState().X();system.Buffer.AddSample(1500,3,0.3f);source.Draw();
-    Near(mainGraph.GetGraphState().X().start,frozen.start);Near(mainGraph.GetGraphState().X().division,frozen.division);
+    Near(mainGraph.GetGraphState().X().start,frozen.start);assert(mainGraph.GetGraphState().X().division>=frozen.division);
     source.TouchStart(400,360);source.TouchEnd(400,360);
     source.TouchStart(400,360);source.TouchEnd(400,360);source.Draw();assert(mainGraph.GetGraphState().X().automatic);
     // A modal above MainPage blocks starting a pinch.
@@ -513,7 +734,9 @@ int main()
     for(unsigned style=0;style<3;++style) {
         Press(page,12+style);source.Draw();
         assert(lastLines==(style!=1) && lastDots==(style!=0));
-        Press(page,0);assert(lastLines==(style!=1) && lastDots==(style!=0));Press(page,1);
+        assert(lastPreferVectors==(style!=1));
+        Press(page,0);assert(lastLines==(style!=1) && lastDots==(style!=0));
+        assert(lastPreferVectors==(style!=1));Press(page,1);
     }
     Press(page,14);assert(system.GetGraphSettings().style==GraphStyle::Both);
     Press(page,16);assert(page.GetGraphState().iv);Press(page,15);assert(!page.GetGraphState().iv);Near(page.GetGraphState().X().division,manualDivision);
@@ -582,6 +805,27 @@ int main()
     rasterPoints[0]={0,0,true};rasterPoints[1]={0,0,false};rasterPoints[2]={100,6,true};rasterSource.count=3;
     raster.Draw(rasterSource,dense.X(),dense.y[0],true,false);
     for(auto byte:rasterBits) assert(byte==0); // no line across the invalid sample
+    {
+        // Corner inclusion for decimal spans and the extreme reciprocal fallback.
+        uint8_t guarded[7]={0xA5,0,0,0,0,0,0x5A};
+        PlotRaster small(guarded+1,5,5);
+        PlotPoint corners[4];
+        PlotPointSource source{corners,[](const void* p,uint16_t i) {
+            return static_cast<const PlotPoint*>(p)[i];},4};
+        for(double division:{0.03,0.7,1e-310}) {
+            PlotRange xr{0,division,false},yr{0,division,false};
+            const double xmax=division*10,ymax=division*6;
+            corners[0]={0,0,true};corners[1]={xmax,0,true};
+            corners[2]={0,ymax,true};corners[3]={xmax,ymax,true};
+            assert(small.Draw(source,xr,yr,false,true));
+            assert((guarded[1]&0x88)==0x88 && (guarded[5]&0x88)==0x88);
+            assert(guarded[0]==0xA5 && guarded[6]==0x5A);
+        }
+        // A point exactly on a pixel-rounding midpoint rounds upward as before.
+        corners[0]={0.125,0.5,true};source.count=1;
+        assert(small.Draw(source,{0,0.1,false},{0,1.0/6,false},false,true));
+        assert(guarded[2]&0x40); // upper arm of the dot centered at x=1, y=2
+    }
     compact.Draw();assert(lastPoints.size()==compactSystem.Buffer.GetCount());
     char axisLabel[64];
     DisplayFormat::FormatUnsigned(0,axisLabel,sizeof(axisLabel));assert(std::string(axisLabel)=="0");

@@ -1,6 +1,5 @@
 #include "Beeper.h"
-#include <mbed.h>
-#include <chrono>
+#include "InterruptGuard.h"
 
 /**
  * @brief Globale Beeper-Instanz.
@@ -23,6 +22,7 @@ BeeperClass::BeeperClass()
  */
 void BeeperClass::Begin(uint8_t pin, bool activeHigh)
 {
+    InterruptGuard lock;
     Stop(); // Cancel any previous timer and silence the old pin before reinitializing.
     _pin = pin;
     _activeHigh = activeHigh;
@@ -36,8 +36,15 @@ void BeeperClass::Begin(uint8_t pin, bool activeHigh)
 // Runs in interrupt context: only write the already-initialized GPIO and state.
 void BeeperClass::OnTimeout()
 {
+    _alarm=0;
     SetOutput(false);
     _active=false;
+}
+
+int64_t BeeperClass::Alarm(alarm_id_t, void* context)
+{
+    static_cast<BeeperClass*>(context)->OnTimeout();
+    return 0;
 }
 
 /**
@@ -45,9 +52,10 @@ void BeeperClass::OnTimeout()
  */
 void BeeperClass::Beep(uint16_t durationMs)
 {
-    mbed::CriticalSectionLock lock;
+    InterruptGuard lock;
     if (!_initialized) return;
-    _timeout.detach();
+    if(_alarm>0) cancel_alarm(_alarm);
+    _alarm=0;
     if(durationMs==0)
     {
         SetOutput(false);_active=false;return;
@@ -56,7 +64,9 @@ void BeeperClass::Beep(uint16_t durationMs)
     _active=true;
     // A new request restarts the duration. Cancellation and rearming are atomic
     // with respect to the timeout interrupt, so an old timeout cannot cut it short.
-    _timeout.attach(mbed::callback(this,&BeeperClass::OnTimeout),std::chrono::milliseconds(durationMs));
+    _alarm=add_alarm_in_ms(durationMs,Alarm,this,true);
+    // Fail silent if the SDK alarm pool is exhausted.
+    if(_alarm<=0) {SetOutput(false);_active=false;_alarm=0;}
 }
 
 /**
@@ -80,8 +90,9 @@ void BeeperClass::Error()
  */
 void BeeperClass::Stop()
 {
-    mbed::CriticalSectionLock lock;
-    _timeout.detach();
+    InterruptGuard lock;
+    if(_alarm>0) cancel_alarm(_alarm);
+    _alarm=0;
     if (!_initialized)
     {
         return;

@@ -34,6 +34,12 @@
 - Read shared preferences through GetGraphSettings and change them through SystemClass setters. Keep the settings representation independent of UI widgets so a versioned save/load format can be added later.
 - Touch tracking and viewport gestures remain presentation state; do not reset manual zoom during ordinary redraws.
 
+## Graph Time Axis – 2026-11-27
+
+- User-confirmed default for Main and MENU/Graph: start at t=0 with a fixed X-axis scale. Fill the plot; when the newest reading passes the right edge, shift the window left by exactly one grid division and continue drawing. Do not continuously rescale or reposition the axis during ordinary updates.
+- Keep the shared graph renderer and the stable every-second displayed sample selection. The complete measurement history remains available for statistics and scaling.
+- MENU/Graph may offer Full Buffer as an explicit alternative; it is not the default. Preserve explicit manual zoom/pan and I(V) behavior.
+
 
 ## Temporary Build Artifacts
 
@@ -81,3 +87,11 @@
 - Follow the binding measurement-color table in StyleGuide.md for new or revised visualizations: Voltage green, Current cyan, Power yellow, Resistance pink/purple.
 - Never rotate colors by first-opened quantity or selection order. Match traces/bars, legends, associated axes and quantity selection indicators. I(V) uses the Current color for its trace/Y axis.
 - Keep general form/status colors separate. Reuse central Theme constants when implementing color changes; do not create additional page-local palettes.
+
+## Multicore Ownership – 2026-11-27
+
+- User-approved design: Core 0 owns EVE, USB, SPI1 (display/W5500), SystemClass and the sole measurement history. Statistics and graph preparation remain on Core 0 initially.
+- Core 1 owns simulation and later ADC/DAC, SPI0, I2C0 hardware control and sweep timing. Never call EVE/GUI/USB or access SystemClass/history from Core 1.
+- Keep the one 256-sample transport FIFO; use the Pico-SDK mutex for short FIFO and configuration transfers. Calculate/perform hardware I/O outside the lock. Never replace inter-core synchronization with volatile or local IRQ masking.
+- Configuration mailbox may coalesce setpoints, but OFF stays latched until consumed. Clear/configuration generations reject stale in-flight results. Future sweep actions need explicit command acknowledgement.
+- See system.md for the binding bus allocation, overflow policy and stack budget. Do not add full-history copies or move BufferView consumption to Core 1.

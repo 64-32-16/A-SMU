@@ -1,0 +1,462 @@
+{
+  "unit": "mm",
+  "parts": {
+    "Steg_links": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        218.455,
+        190.106,
+        8.2
+      ],
+      "fits_with_brim": true,
+      "triangles": 5052,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 61985.457
+    },
+    "Steg_rechts": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        218.455,
+        190.106,
+        8.2
+      ],
+      "fits_with_brim": true,
+      "triangles": 5052,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 61985.457
+    },
+    "Frontplatte": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        233.6,
+        93.6,
+        3.0
+      ],
+      "fits_with_brim": true,
+      "triangles": 2504,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 34424.225
+    },
+    "Rueckplatte": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        233.6,
+        93.6,
+        3.0
+      ],
+      "fits_with_brim": true,
+      "triangles": 12,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 65594.883
+    },
+    "Verbinder_Boden_1": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        14.0,
+        40.0,
+        6.0
+      ],
+      "fits_with_brim": true,
+      "triangles": 908,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 3146.806
+    },
+    "Verbinder_Deckel_1": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        14.0,
+        40.0,
+        6.0
+      ],
+      "fits_with_brim": true,
+      "triangles": 908,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 3146.806
+    },
+    "Verbinder_Boden_2": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        14.0,
+        40.0,
+        6.0
+      ],
+      "fits_with_brim": true,
+      "triangles": 908,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 3146.806
+    },
+    "Verbinder_Deckel_2": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        14.0,
+        40.0,
+        6.0
+      ],
+      "fits_with_brim": true,
+      "triangles": 908,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 3146.806
+    },
+    "Boden_vorne": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        240.0,
+        170.85,
+        49.85
+      ],
+      "fits_with_brim": true,
+      "triangles": 2852,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 173335.545
+    },
+    "Boden_hinten": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        240.0,
+        128.85,
+        49.85
+      ],
+      "fits_with_brim": true,
+      "triangles": 1988,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 132372.251
+    },
+    "Deckel_vorne": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        240.0,
+        170.85,
+        49.85
+      ],
+      "fits_with_brim": true,
+      "triangles": 22036,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 162889.097
+    },
+    "Deckel_hinten": {
+      "valid_solid": true,
+      "step_roundtrip": true,
+      "print_XYZ_mm": [
+        240.0,
+        128.85,
+        49.85
+      ],
+      "fits_with_brim": true,
+      "triangles": 15068,
+      "closed_two_manifold_edges": true,
+      "mesh_volume_mm3": 125249.673
+    }
+  },
+  "collisions": {
+    "Steg_links/Steg_rechts": 0.0,
+    "Steg_links/Frontplatte": 0.0,
+    "Steg_links/Rueckplatte": 0.0,
+    "Steg_links/Verbinder_Boden_1": 0.0,
+    "Steg_links/Verbinder_Deckel_1": 0.0,
+    "Steg_links/Verbinder_Boden_2": 0.0,
+    "Steg_links/Verbinder_Deckel_2": 0.0,
+    "Steg_links/Boden_vorne": 0.0,
+    "Steg_links/Boden_hinten": 0.0,
+    "Steg_links/Deckel_vorne": 0.0,
+    "Steg_links/Deckel_hinten": 0.0,
+    "Steg_rechts/Frontplatte": 0.0,
+    "Steg_rechts/Rueckplatte": 0.0,
+    "Steg_rechts/Verbinder_Boden_1": 0.0,
+    "Steg_rechts/Verbinder_Deckel_1": 0.0,
+    "Steg_rechts/Verbinder_Boden_2": 0.0,
+    "Steg_rechts/Verbinder_Deckel_2": 0.0,
+    "Steg_rechts/Boden_vorne": 0.0,
+    "Steg_rechts/Boden_hinten": 0.0,
+    "Steg_rechts/Deckel_vorne": 0.0,
+    "Steg_rechts/Deckel_hinten": 0.0,
+    "Frontplatte/Rueckplatte": 0.0,
+    "Frontplatte/Verbinder_Boden_1": 0.0,
+    "Frontplatte/Verbinder_Deckel_1": 0.0,
+    "Frontplatte/Verbinder_Boden_2": 0.0,
+    "Frontplatte/Verbinder_Deckel_2": 0.0,
+    "Frontplatte/Boden_vorne": 0.0,
+    "Frontplatte/Boden_hinten": 0.0,
+    "Frontplatte/Deckel_vorne": 0.0,
+    "Frontplatte/Deckel_hinten": 0.0,
+    "Rueckplatte/Verbinder_Boden_1": 0.0,
+    "Rueckplatte/Verbinder_Deckel_1": 0.0,
+    "Rueckplatte/Verbinder_Boden_2": 0.0,
+    "Rueckplatte/Verbinder_Deckel_2": 0.0,
+    "Rueckplatte/Boden_vorne": 0.0,
+    "Rueckplatte/Boden_hinten": 0.0,
+    "Rueckplatte/Deckel_vorne": 0.0,
+    "Rueckplatte/Deckel_hinten": 0.0,
+    "Verbinder_Boden_1/Verbinder_Deckel_1": 0.0,
+    "Verbinder_Boden_1/Verbinder_Boden_2": 0.0,
+    "Verbinder_Boden_1/Verbinder_Deckel_2": 0.0,
+    "Verbinder_Boden_1/Boden_vorne": 0.0,
+    "Verbinder_Boden_1/Boden_hinten": 0.0,
+    "Verbinder_Boden_1/Deckel_vorne": 0.0,
+    "Verbinder_Boden_1/Deckel_hinten": 0.0,
+    "Verbinder_Deckel_1/Verbinder_Boden_2": 0.0,
+    "Verbinder_Deckel_1/Verbinder_Deckel_2": 0.0,
+    "Verbinder_Deckel_1/Boden_vorne": 0.0,
+    "Verbinder_Deckel_1/Boden_hinten": 0.0,
+    "Verbinder_Deckel_1/Deckel_vorne": 0.0,
+    "Verbinder_Deckel_1/Deckel_hinten": 0.0,
+    "Verbinder_Boden_2/Verbinder_Deckel_2": 0.0,
+    "Verbinder_Boden_2/Boden_vorne": 0.0,
+    "Verbinder_Boden_2/Boden_hinten": 0.0,
+    "Verbinder_Boden_2/Deckel_vorne": 0.0,
+    "Verbinder_Boden_2/Deckel_hinten": 0.0,
+    "Verbinder_Deckel_2/Boden_vorne": 0.0,
+    "Verbinder_Deckel_2/Boden_hinten": 0.0,
+    "Verbinder_Deckel_2/Deckel_vorne": 0.0,
+    "Verbinder_Deckel_2/Deckel_hinten": 0.0,
+    "Boden_vorne/Boden_hinten": 0.0,
+    "Boden_vorne/Deckel_vorne": 0.0,
+    "Boden_vorne/Deckel_hinten": 0.0,
+    "Boden_hinten/Deckel_vorne": 0.0,
+    "Boden_hinten/Deckel_hinten": 0.0,
+    "Deckel_vorne/Deckel_hinten": 0.0
+  },
+  "lid_lifts_mm": [
+    0.15,
+    1,
+    4,
+    8,
+    15,
+    40,
+    80
+  ],
+  "printer_xyz_mm": [
+    248.0,
+    205.0,
+    270.0
+  ],
+  "brim_allowance_mm": 3.0,
+  "strength": "not assessed",
+  "holes_lowered_mm": 5.0,
+  "panels_insert_from_above_without_lid": true,
+  "display_reference_136x93_clear_of_shells": true,
+  "assembly_XYZ_mm": [
+    240.0,
+    300.0,
+    100.0
+  ],
+  "assembly_step_solids": 12,
+  "front_cutouts": {
+    "source": "Front_Quelle.sc",
+    "source_panel_mm": [
+      230.0,
+      120.0
+    ],
+    "target_panel_mm": [
+      233.6,
+      93.6,
+      3.0
+    ],
+    "translation_relative_to_panel_lower_left_mm": [
+      1.7999999999999972,
+      -13.200000000000003
+    ],
+    "scaling": 1,
+    "jack_pitch_mm": [
+      19.05,
+      19.05
+    ],
+    "aperture_count": 8,
+    "cutouts": [
+      {
+        "type": "Displayausschnitt",
+        "curves": [
+          "l5",
+          "l6",
+          "l7",
+          "l8"
+        ],
+        "center_from_panel_lower_left_mm": [
+          93.13484024578008,
+          46.3
+        ],
+        "global_center_xz_mm": [
+          96.33484024578009,
+          49.5
+        ],
+        "width_mm": 124.00000000000003,
+        "height_mm": 79.0,
+        "area_mm2": 9796.0
+      },
+      {
+        "type": "Buchse_abgeflacht",
+        "curves": [
+          "a4",
+          "l42",
+          "a5",
+          "l43"
+        ],
+        "center_from_panel_lower_left_mm": [
+          191.00138207564416,
+          31.257529653272673
+        ],
+        "global_center_xz_mm": [
+          194.20138207564415,
+          34.45752965327267
+        ],
+        "width_mm": 12.0,
+        "height_mm": 10.5,
+        "area_mm2": 107.19465775388716,
+        "diameter_mm": 12
+      },
+      {
+        "type": "Buchse_abgeflacht",
+        "curves": [
+          "a6",
+          "l45",
+          "a7",
+          "l46"
+        ],
+        "center_from_panel_lower_left_mm": [
+          191.00138207564416,
+          12.207529653272662
+        ],
+        "global_center_xz_mm": [
+          194.20138207564415,
+          15.407529653272661
+        ],
+        "width_mm": 11.999999999999943,
+        "height_mm": 10.499999999999996,
+        "area_mm2": 107.1946577538868,
+        "diameter_mm": 12
+      },
+      {
+        "type": "Buchse_abgeflacht",
+        "curves": [
+          "a8",
+          "l48",
+          "a9",
+          "l49"
+        ],
+        "center_from_panel_lower_left_mm": [
+          210.05138207564417,
+          31.257529653272673
+        ],
+        "global_center_xz_mm": [
+          213.25138207564416,
+          34.45752965327267
+        ],
+        "width_mm": 12.0,
+        "height_mm": 10.499999999999993,
+        "area_mm2": 107.19465775388704,
+        "diameter_mm": 12
+      },
+      {
+        "type": "Buchse_abgeflacht",
+        "curves": [
+          "a10",
+          "l51",
+          "a11",
+          "l52"
+        ],
+        "center_from_panel_lower_left_mm": [
+          210.05138207564417,
+          12.207529653272662
+        ],
+        "global_center_xz_mm": [
+          213.25138207564416,
+          15.407529653272661
+        ],
+        "width_mm": 11.999999999999943,
+        "height_mm": 10.499999999999996,
+        "area_mm2": 107.1946577538868,
+        "diameter_mm": 12
+      },
+      {
+        "type": "Rundbohrung",
+        "curves": [
+          "c3"
+        ],
+        "center_from_panel_lower_left_mm": [
+          185.24898060340038,
+          73.40527252190095
+        ],
+        "global_center_xz_mm": [
+          188.44898060340037,
+          76.60527252190096
+        ],
+        "width_mm": 7.0,
+        "height_mm": 7.0,
+        "area_mm2": 38.48451000647496,
+        "diameter_mm": 7.0
+      },
+      {
+        "type": "Rundbohrung",
+        "curves": [
+          "c4"
+        ],
+        "center_from_panel_lower_left_mm": [
+          213.05568218748445,
+          73.40527252190095
+        ],
+        "global_center_xz_mm": [
+          216.25568218748444,
+          76.60527252190096
+        ],
+        "width_mm": 9.0,
+        "height_mm": 9.0,
+        "area_mm2": 63.61725123519331,
+        "diameter_mm": 9.0
+      },
+      {
+        "type": "Rundbohrung",
+        "curves": [
+          "c5"
+        ],
+        "center_from_panel_lower_left_mm": [
+          14.604896629622388,
+          6.8
+        ],
+        "global_center_xz_mm": [
+          17.804896629622387,
+          10.0
+        ],
+        "width_mm": 9.0,
+        "height_mm": 9.0,
+        "area_mm2": 63.61725123519331,
+        "diameter_mm": 9.0
+      }
+    ],
+    "ignored_open_geometry": [
+      [
+        "l44"
+      ],
+      [
+        "l47"
+      ],
+      [
+        "l50"
+      ],
+      [
+        "l53"
+      ],
+      [
+        "l54",
+        "l57",
+        "l56"
+      ]
+    ],
+    "removed_front_volume_mm3": 31171.492930477267,
+    "verified_through_apertures": 8
+  },
+  "coupon": {
+    "triangles": 2544,
+    "closed_two_manifold_edges": true,
+    "mesh_volume_mm3": 5179.959
+  }
+}

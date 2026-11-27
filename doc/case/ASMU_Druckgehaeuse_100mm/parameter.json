@@ -1,0 +1,62 @@
+{
+  "width": 240.0,
+  "height": 100.0,
+  "depth": 300.0,
+  "wall": 3.0,
+  "outer_radius": 2.0,
+  "seam_gap": 0.3,
+  "panel_thickness": 3.0,
+  "panel_setback": 2.0,
+  "panel_edge_clearance": 0.2,
+  "groove_width": 3.4,
+  "groove_depth": 2.5,
+  "rim_length": 8.0,
+  "upper_right_drop": 5.0,
+  "rail_thickness": 8.0,
+  "rail_height": 30.0,
+  "rail_end_inset": 20.0,
+  "rail_clearance": 0.2,
+  "screw_y": [
+    35.0,
+    150.0,
+    265.0
+  ],
+  "screw_z": [
+    42.0,
+    58.0
+  ],
+  "screw_clearance": 3.4,
+  "insert_bore": 4.1,
+  "insert_depth": 6.0,
+  "split_y": 171.0,
+  "split_gap": 0.3,
+  "join_x": [
+    90.0,
+    150.0
+  ],
+  "join_y": [
+    160.0,
+    182.0
+  ],
+  "slot_width": 2.0,
+  "slot_length": 40.0,
+  "slot_pitch": 6.0,
+  "slot_y_start": 42.0,
+  "slot_count_per_bank": 37,
+  "slot_bank_x": [
+    55.0,
+    185.0
+  ],
+  "printer_xyz": [
+    248.0,
+    205.0,
+    270.0
+  ],
+  "brim_allowance": 3.0,
+  "display_reference_bbox_xz": [
+    28.89002882456643,
+    3.525422878811847,
+    164.89002882456643,
+    96.52542287881185
+  ]
+}

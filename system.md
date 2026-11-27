@@ -472,3 +472,16 @@ Messintervalle, relative Messzeitstempel, Beeper und Backlight-Inaktivitaet blei
 
 ## Source Settings ownership - 25.11.2026
 SourceSettingsPage is a read-only presentation of SystemClass state with callbacks for editor requests. Application wiring opens the existing SourceModePopup, SourceRangePopup, NumberPadPopup (LimitValue) and OutputOffStatePopup instances. Source mode determines the displayed source range and opposite compliance quantity. No page-local domain settings, duplicate editors, or additional output enable action.
+
+## Verbindliche Core-Aufteilung – Nutzerfreigabe 27.11.2026
+
+Ein RP2040/Pico, zwei Cores. Diese Festlegung ersetzt den vorangegangenen temporären Single-Core-Timerbetrieb:
+
+- **Core 0:** EVE/GDClass vollständig, Display/Touch/Menüs, USB, Beeper und später W5500. SystemClass bleibt die einzige GUI-Schnittstelle für Domain-Werte und Eigentümer der Messhistorie. Veröffentlichung neuer Messwerte, Statistik, Graphaufbereitung und Zeichnen bleiben synchron auf Core 0.
+- **Core 1:** aktuell Simulation; später reale ADC/DAC-Erfassung, Sweep-Timing und Hardware-Bereichsumschaltung. Keine EVE-/GUI-/USB-Aufrufe, keine direkte Änderung an SystemClass oder der Historie.
+- **SPI1 ausschließlich Core 0:** EVE/W5500, SCK GP14, MOSI GP15, MISO GP12. **SPI0 ausschließlich Core 1:** ADC/DAC über Isolator, SCK GP18, MOSI GP19, MISO GP16, DAC-CS GP10, ADC-CS GP11. **I²C0 ausschließlich Core 1:** SDA GP4, SCL GP5, MCP23017. Der aktuelle Simulator aktiviert diese künftigen SMU-Schnittstellen nicht. Teilnehmer eines Busses brauchen weiterhin nacheinander abgeschlossene Transaktionen mit passenden SPI-Einstellungen/CS; kein Buszugriff vom jeweils anderen Core.
+- Eine einzige **256 × 16 Byte = 4 KiB Messwert-FIFO** transportiert Samples Core 1 → Core 0. Die 1024-Punkte-Historie bleibt auf Core 0; keine zweite vollständige Historie. Bei voller FIFO ältesten Eintrag verwerfen, neuesten aufnehmen und Verlust zählen. Das ist keine Garantie lückenloser Sweep-Aufzeichnung.
+- Pico-SDK-Mutex (hardwaregestützt) schützt kurze FIFO-/Steuerzugriffe. Simulation und später Hardware-I/O laufen außerhalb der Sperre; kein Zeichnen, Warten auf Messung oder USB unter der Sperre. Die lokale Interruptsperre des Beepers ist dafür kein Ersatz.
+- Einstellungen gehen als vollständiger aktueller Datensatz in einer kleinen separaten Mailbox an Core 1. Noch nicht angewendete Sollwerte dürfen durch neuere ersetzt werden. OFF ist zusätzlich verriegelt, bis Core 1 es übernommen hat; OFF→ON zwischen zwei Worker-Aufrufen geht damit nicht verloren. CLEAR leert die FIFO und verwirft durch eine Revision auch bereits laufende Ergebnisse. Requested/Applied-Revision quittieren die Übernahme, nicht einen künftig physisch abgeschlossenen Hardwarevorgang.
+- Start/Stop eines realen Sweeps und reale Hardwaretreiber existieren noch nicht. Diese diskreten Aktionen später als ausdrücklich quittierte Befehle ergänzen; nicht als überschreibbaren Sollwert in die Mailbox stecken.
+- Kein zusätzlicher dynamischer Messpuffer. Für Core 1 wird ausdrücklich ein separater 8-KiB-Stack reserviert (`core1_separate_stack`), damit Core 0 seinen bisherigen Stack behält.

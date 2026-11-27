@@ -2,10 +2,18 @@
 #include "GDClass.h"
 #include "EVE.h"
 #include "PlotRaster.h"
+#include "PlotVector.h"
+#include "UiTiming.h"
 
 namespace
 {
-arduino::MbedSPI displaySpi(EVE_MISO, EVE_MOSI, EVE_SCK);
+SPIClassRP2040& displaySpi = SPI1;
+constexpr unsigned plotSlotBytes=25600;
+union PlotScratch {
+    uint8_t pixels[plotSlotBytes];
+    PlotVector::Vertex vertices[plotSlotBytes/sizeof(PlotVector::Vertex)];
+};
+PlotScratch plotScratch;
 }
 
 // EVE_target_Arduino_RP2040.h
@@ -28,12 +36,15 @@ void GDClass::begin(byte p)
     pinMode(EVE_PDN, OUTPUT);
     digitalWrite(EVE_PDN, HIGH);
 
-    // Mbed selects SPI1 from the CN4 pins. EVE uses that same peripheral
-    // through EVE_SPI=spi1, configured globally in platformio.ini.
+    // Core 0 exclusively owns EVE and SPI1. CN4 pinout is unchanged.
+    displaySpi.setRX(EVE_MISO);
+    displaySpi.setTX(EVE_MOSI);
+    displaySpi.setSCK(EVE_SCK);
     displaySpi.begin();
     displaySpi.beginTransaction(SPISettings(8000000UL, MSBFIRST, SPI_MODE0));
 
     EveStatus = EVE_init();
+    displaySpi.endTransaction();
     Serial.print("EVE init status: ");
     Serial.println(EveStatus); // 0 = E_OK
 
@@ -183,6 +194,7 @@ void GDClass::Display(void)
  */
 void GDClass::swap(void)
 {
+    if(_frameFailed) return; // Keep the last complete frame on a FIFO timeout.
     EVE_cmd_dl(DL_DISPLAY);
     EVE_cmd_dl(CMD_SWAP);
 }
@@ -222,12 +234,15 @@ bool GDClass::BeginFrame()
     // Report new peaks instead of logging every frame (serial monitor, bytes).
     static uint16_t peakBytes=0;
     const uint16_t completedBytes=EVE_memRead16(REG_CMD_DL);
+#if ASMU_UI_TIMING
+    if(completedBytes>UiTiming::geometry.dlMax) UiTiming::geometry.dlMax=completedBytes;
+#endif
     if(completedBytes>peakBytes)
     {
         peakBytes=completedBytes;
         Serial.print("EVE DL peak: ");Serial.print(peakBytes);Serial.println(" / 8192 bytes");
     }
-    _plotBank^=1;_plotSlot=0;
+    _plotBank^=1;_plotSlot=0;_frameFailed=false;
     cmd_dlstart();
     return true;
 }
@@ -512,15 +527,84 @@ void GDClass::DrawTableGrid(int16_t x,int16_t y,int16_t rowHeight,uint16_t rows,
 // Handles 16..19 avoid modal handle 0 and ROM-font handles 1/2.
 bool GDClass::DrawPlotTrace(int16_t x,int16_t y,int16_t width,int16_t height,
                            const PlotPointSource& source,const PlotRange& xr,const PlotRange& yr,
-                           uint32_t color,bool lines,bool dots) {
-    constexpr unsigned slotBytes=25600;
-    static uint8_t pixels[slotBytes];
+                           uint32_t color,bool lines,bool dots,bool preferVectors) {
+    constexpr unsigned slotBytes=plotSlotBytes;
+    auto& pixels=plotScratch.pixels;
     if(width<=0 || height<=0 || width>=800 || height>=256 || _plotSlot>=4) return false;
+    if(preferVectors && _allowPlotVectors && lines && x>=0 && y>=0) {
+        PlotVector::Result vector;
+        constexpr unsigned capacity=sizeof(plotScratch.vertices)/sizeof(plotScratch.vertices[0]);
+        const unsigned lineCapacity=dots?capacity/2:capacity;
+        auto* dotVertices=dots?plotScratch.vertices+lineCapacity:nullptr;
+        UI_TIMED(PlotVector, vector=PlotVector::Build(source,xr,yr,width,height,
+            plotScratch.vertices,lineCapacity,dotVertices,dots?capacity-lineCapacity:0));
+        // Wait only briefly for preceding labels/widgets to finish expanding.
+        // REG_CMD_DL is meaningful for this budget check only once FIFO is idle.
+        const uint32_t start=micros();
+        uint8_t state;
+        do {state=EVE_busy();} while(state==EVE_IS_BUSY && uint32_t(micros()-start)<2000);
+        if(state==EVE_FAULT_RECOVERED) {_frameFailed=true;return vector.any;}
+        // The caller reserves space for subsequent widgets and DISPLAY.
+        if(state==E_OK && PlotVector::Fits(vector,EVE_memRead16(REG_CMD_DL),_plotVectorReserveBytes,dots)) {
+            UI_TIMING_SCOPE(PlotCommands);
+            unsigned remaining=0;
+            auto send=[&](uint32_t command) {
+                if(_frameFailed) return;
+                if(!remaining) {
+                    const uint32_t waitStart=micros();
+                    for(;;) {
+                        const unsigned free=EVE_memRead16(REG_CMDB_SPACE);
+                        if((free&3)==0 && free>=256) {remaining=64;break;}
+                        if((free&3)!=0 || uint32_t(micros()-waitStart)>=2000) {
+                            _frameFailed=true;return;
+                        }
+                    }
+                }
+                EVE_cmd_dl(command);--remaining;
+            };
+            send(DL_SAVE_CONTEXT);send(DL_VERTEX_FORMAT);
+            send(DL_COLOR_A|255);send(DL_COLOR_RGB|(color&0xffffff));
+            send(DL_SCISSOR_XY|(uint32_t(x)<<11)|uint32_t(y));
+            send(DL_SCISSOR_SIZE|(uint32_t(width+1)<<12)|uint32_t(height+1));
+            send(DL_LINE_WIDTH|8);
+            bool strip=false;
+            for(unsigned i=0;i<vector.count && !_frameFailed;++i) {
+                const auto& v=plotScratch.vertices[i];
+#if ASMU_UI_TIMING
+                auto& g=UiTiming::geometry;
+                if(!g.haveVertices) {g.minX=g.maxX=v.x;g.minY=g.maxY=v.y;g.haveVertices=true;}
+                if(v.x<g.minX) g.minX=v.x;
+                if(v.x>g.maxX) g.maxX=v.x;
+                if(v.y<g.minY) g.minY=v.y;
+                if(v.y>g.maxY) g.maxY=v.y;
+                if(v.x<0 || v.x>width || v.y<0 || v.y>height) ++g.outside;
+#endif
+                if(v.move) {if(strip) send(DL_END);send(DL_BEGIN|EVE_LINE_STRIP);strip=true;}
+                send(VERTEX2F(x+v.x,y+v.y));
+            }
+            if(strip) send(DL_END);
+            if(dots) {
+                send(DL_POINT_SIZE|24); // Radius 1.5 pixels: 3-pixel diameter.
+                send(DL_BEGIN|EVE_POINTS);
+                for(unsigned i=0;i<vector.points && !_frameFailed;++i)
+                    send(VERTEX2F(x+dotVertices[i].x,y+dotVertices[i].y));
+                send(DL_END);
+            }
+            send(DL_RESTORE_CONTEXT);
+            UI_PLOT_VECTOR_INFO(source.count,PlotVector::Words(vector,dots)*4);
+#if ASMU_UI_TIMING
+            UiTiming::geometry.vertices=vector.count;UiTiming::geometry.strips=vector.strips;
+#endif
+            return vector.any;
+        }
+    }
     const unsigned stride=(width+1+7)/8,rows=height+1;
     PlotRaster raster(pixels,width+1,rows);
-    const bool any=raster.Draw(source,xr,yr,lines,dots);
+    bool any;
+    UI_TIMED(PlotRaster, any=raster.Draw(source,xr,yr,lines,dots));
     const uint32_t address=(_plotBank*4+_plotSlot)*slotBytes;
-    EVE_memWrite_sram_buffer(address,pixels,stride*rows);
+    UI_PLOT_INFO(source.count,stride*rows);
+    UI_TIMED(PlotUpload, EVE_memWrite_sram_buffer(address,pixels,stride*rows));
     SaveContext();VertexFormat(0);ColorA(255);ColorRGB(color);
     EVE_scissor_xy(x,y);EVE_scissor_size(width+1,height+1);
     EVE_bitmap_handle(16+_plotSlot++);

@@ -272,7 +272,11 @@ public:
                       uint8_t columns, uint8_t rows, uint32_t color);
     bool DrawPlotTrace(int16_t x,int16_t y,int16_t w,int16_t h,
                        const PlotPointSource& source,const PlotRange& xr,const PlotRange& yr,
-                       uint32_t color,bool lines,bool dots);
+                       uint32_t color,bool lines,bool dots,bool preferVectors=false);
+    // Caller reserves room for UI drawn after the curve; disable for overlays.
+    void AllowPlotVectors(bool allow,unsigned reserveBytes) {
+        _allowPlotVectors=allow;_plotVectorReserveBytes=reserveBytes;
+    }
     void DrawPlotSeries(int16_t x, int16_t y, int16_t w, int16_t h,
                         const PlotPoint* points, uint16_t count,
                         const PlotRange& xRange, const PlotRange& yRange,
@@ -326,6 +330,8 @@ public:
 private:
     uint8_t _backlightDuty=255; // last hardware write, not a user setting
     uint8_t _plotBank=0,_plotSlot=0;
+    bool _allowPlotVectors=false,_frameFailed=false;
+    unsigned _plotVectorReserveBytes=0;
     bool _captureRequested=false, _capturePending=false, _backdropReady=false;
 
 };

@@ -2,13 +2,13 @@
 #define _BEEPER_H_INCLUDED
 
 #include <Arduino.h>
-#include <drivers/Timeout.h>
+#include <pico/time.h>
 
 /**
  * @brief Einfache nicht-blockierende Beeper-Klasse.
  *
  * Die Klasse schaltet einen aktiven Beeper für eine definierte Zeit ein
- * und beendet den Ton durch einen Mbed-Timer-Interrupt, unabhängig von der GUI.
+ * und beendet den Ton durch einen Pico-Timer-Interrupt, unabhängig von der GUI.
  */
 class BeeperClass
 {
@@ -57,13 +57,14 @@ public:
 private:
     void SetOutput(bool on);
     void OnTimeout();
+    static int64_t Alarm(alarm_id_t id, void* context);
 
 private:
     uint8_t _pin;
     bool _activeHigh;
     bool _initialized;
     volatile bool _active;
-    mbed::Timeout _timeout;
+    alarm_id_t _alarm=0;
     bool (*_clickAllowed)()=nullptr;
 };
 

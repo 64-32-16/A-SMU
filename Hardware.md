@@ -175,3 +175,56 @@ Gemeinsamer SDA/SCL-Bus mit 100 kHz, begrenzt durch TC74. Ein gemeinsames Pull-u
 Wichtig: Die DS3231-I2C-Schnittstelle bleibt bei gueltiger VBAT auch ohne VCC zugaenglich. Rueckspeisungsvermeidung entsteht daher durch das gesamte Versorgungskonzept, nicht durch eine angenommene Abschaltung seiner I2C-Pins. Nur VBAT erhaelt die dauerhafte Versorgung. Backup-Quelle, genaue DS3231-Variante, Abblockung und eventuelle INT/SQW-/32-kHz-/RST-Anbindungen werden im neuen Schaltplan geprueft; keine neuen GPIOs reserviert.
 
 Quellen: [Microchip TC74 DS21462D](https://ww1.microchip.com/downloads/en/devicedoc/21462d.pdf), Adresstabelle und 100-kHz-Grenze; [Analog Devices DS3231](https://www.analog.com/media/en/technical-documentation/data-sheets/DS3231.pdf), Adresse 0x68, Versorgung und I2C-Interface bei VBAT.
+
+## Arduino-Pico-Migration – 27.11.2026
+
+Auf Nutzerauftrag ersetzt Arduino-Pico von Earle Philhower den bisherigen ArduinoCore-mbed. Es bleibt **ein RP2040/Pico**; Core 1 wird in diesem Schritt nicht gestartet. Ein RP2350-Wechsel ist nicht Teil dieser Migration.
+
+- PlatformIO verwendet die in der [Arduino-Pico-Dokumentation](https://arduino-pico.readthedocs.io/en/latest/platformio.html) beschriebene Plattform von maxgerhardt, auf Commit `5d4561a05e3b212660ac6fdd3fbfb328d1988aa1` fixiert, und `board_build.core = earlephilhower`. Die Plattform legt ihrerseits den Framework-Commit fest. CPU-Takt bleibt 133 MHz.
+- EVE/GDClass, Touch, Menüs, USB und Zeichnen bleiben auf Core 0. SPI1 wird über das Arduino-Pico-Objekt `SPI1` initialisiert; CN4-Pins bleiben GP14/12/15, CS GP17, PDN GP20. EVE 5.x verwendet den Mbed-Namen `_spi_init`; ein dokumentiertes Build-Alias bildet ihn auf die Pico-SDK-Funktion `spi_init` ab. Keine Änderung am heruntergeladenen Bibliothekscode erforderlich.
+- Der Mbed-Simulationsthread mit 4096 Byte eigenem Stack entfällt. Ein Pico-SDK-Repeating-Timer auf Core 0 ruft den begrenzten Simulationsschritt auf. Pollintervall ist das schnellste konfigurierte Messpaarintervall (derzeit 400 µs); andere NPLC-Intervalle können dadurch um weniger als ein Pollintervall verzögert sein, zusätzlich zu realer IRQ-Latenz. Verpasste Messperioden werden gezählt, nicht als erfundene Samples nachgeholt.
+- Der Timer führt nur Simulation aus, keine SPI-, USB-, EVE-, Heap- oder Historienzugriffe. Die 256 × 16 Byte große Transport-FIFO bleibt erhalten. Kurze Interruptsperren mit Wiederherstellung des vorherigen Zustands schützen sie gegen gleichzeitige Main-/IRQ-Zugriffe. Das ist **keine Multicore-Synchronisation** und muss vor Nutzung von Core 1 ersetzt werden.
+- Nur SystemClass veröffentlicht Messwerte in die bestehende Historie; BufferView und synchrone Darstellung bleiben unverändert. Keine zusätzliche vollständige Messhistorie, kein Core-1-Stack.
+- Beeper-Abschaltung erfolgt über einen Pico-SDK-Alarm; Retrigger/Stop sind gegen den IRQ abgesichert. Bei fehlendem Alarmplatz bleibt der Beeper aus. Falls der Erfassungstimer nicht startet, bleibt der bisherige synchrone Fallback aktiv, mit serieller Fehlermeldung.
+
+### Test am Gerät
+
+Die erste Firmware nach dem Core-Wechsel per BOOTSEL/UF2 aufspielen. Beim USB-Anstecken BOOTSEL gedrückt halten und die neu gebaute `firmware.uf2` auf `RPI-RP2` kopieren. Windows kann eine neue COM-Portnummer vergeben; `monitor_port = COM5` gegebenenfalls lokal anpassen.
+
+1. Seriell bei 115200: `A-SMU Arduino-Pico / Core 0 / simulation`, `EVE init status: 0`, `Setup done` prüfen.
+2. Kaltstart und Neustart, Display/Backlight, Touch, Menüs und Dialoge testen.
+3. Klick-/Fehlerton einschließlich rasch wiederholter Bedienung prüfen; kein hängender Ton.
+4. Simulation, Graph/Zoom, Histogramm, Statistik und Reading Table prüfen. NPLC bis 0.01 ändern und unter Zeichnen auf `ACQ OVERRUN` achten: echte Timer-/Renderlast und USB sind nur am Gerät abschließend prüfbar.
+5. SIM OFF muss weiterhin NO HARDWARE ergeben. Reale ADC/DAC-Treiber und Sweeps werden durch diese Migration nicht hinzugefügt.
+
+Später: Core 1 übernimmt ADC/DAC und Sweep-Timing; Messdaten/Befehle erhalten eine coresichere Übergabe. SPI0 gehört zum ADC/DAC-Pfad, SPI1 zu Display/W5500; noch keine parallelen Busnutzer aktivieren. Statistik/Graphvorbereitung erfordern zusätzlich eine klar geregelte Historien-Lebensdauer.
+
+### Verifikation der Migration
+
+Build am 27.11.2026 erfolgreich mit Arduino-Pico **6.4.0** (Framework-Commit `fd65f6d4ab168d4bb181a3709738fe353ac93585`). Log: `tmp/logs/arduino-pico-build.log`. Acht Host-Testgruppen erfolgreich: Pico-Timer/IRQ-Adapter, Beeper, Acquisition, Hardware-Simulation, Strombereiche, Statistik, Graph und Menünavigation. Die Tests verwenden SDK-Testdoubles; sie ersetzen keine IRQ-Latenz-/USB-/Displaymessung am Gerät.
+
+PlatformIO: **85.620 Byte statisches RAM / 262.144 Byte (32,7 %)**, **162.076 Byte Flash / 2.093.056 Byte (7,7 %)**. ELF-Abgleich: `.data` 9.576, `.bss` 76.044 Byte; zusätzlich 192 Byte RAM-Vektortabelle. Der Linker trennt 8 KiB oberen RAM für den Stackbereich ab; Core 1 bleibt ungestartet. Der ausgewiesene Heapbereich umfasst 176.332 Byte vor Laufzeit-Allokationen. Die Prozentangabe ist keine Messung des freien RAM im Betrieb. Kein zusätzlicher Worker-Stack oder vollständiger Messpuffer wurde angelegt.
+
+Die EVE-Bibliothek meldet weiterhin Register-Makro-Neudefinitionen und pedantische Warnungen aus Pico-SDK-Headern; der Build ist ohne Fehler abgeschlossen. `UiTiming.h` verwendet jetzt die Arduino-Pico-USB-API mit begrenzter TX-Portion statt Mbed `send_nb`.
+
+Testdatei: `.pio/build/pico/firmware.uf2` (348.672 Byte). Kein Upload durchgeführt. Hardwaretest steht aus.
+
+### Korrektur: fehlende Zahlen nach Core-Wechsel – 27.11.2026
+
+Am Gerät erschien im Main-Messfeld nur die Einheit (z. B. mV). Die erste Arduino-Pico-Firmware enthielt nur die Integer-Variante von snprintf, ohne `_printf_float`; `%f` lieferte dadurch keinen Zahlentext. `platformio.ini` erzwingt jetzt mit `-Wl,-u,_printf_float` die Float-Ausgabe, entsprechend der Arduino-IDE-Linkkonfiguration des installierten Cores. Kein Eingriff in Simulation oder Messwertübergabe.
+
+Neubau erfolgreich; Float-Konvertierung im ELF anhand `_printf_float` und `_dtoa_r` geprüft. Statisches RAM unverändert 85.620 Byte (32,7 %), Flash jetzt 169.140 Byte (8,1 %, +7.064 Byte). Log: `tmp/logs/arduino-pico-float-build.log`. Die UF2 wurde neu erzeugt; die vorherige Dateigröße oben beschreibt den ersten Migrationsbuild. Anzeige am Gerät nach erneutem PlatformIO-Upload prüfen. Host-Tests allein konnten diesen Linkerfehler nicht erkennen, weil sie die C-Bibliothek des PCs verwenden.
+
+### Umsetzung der Core-Aufteilung – 27.11.2026
+
+Nutzerfreigegebene Architektur in system.md/AGENTS.md festgehalten. `setup1` meldet Bereitschaft, `loop1` führt SimulationAcquisition aus; der frühere Erfassungs-Timer auf Core 0 entfällt. Core 1 prüft mit 50 µs Pause die NPLC-Fristen, erzeugt maximal einen tatsächlichen Messpunkt je Schritt und zählt verpasste Perioden. Core 0 wartet beim Start höchstens 500 ms auf Bereitschaft und meldet sonst den synchronen Simulationsfallback.
+
+Messwertberechnung und FIFO-Veröffentlichung sind getrennt. Der SDK-Mutex umfasst nur kleine Datensatz-/Index-/Statusoperationen; CLEAR verwirft die FIFO in konstanter Zeit. Eine Revisionsprüfung verwirft Ergebnisse, deren Konfiguration während der Berechnung geändert oder gelöscht wurde. Der Konfigurationsschritt unter der Sperre kopiert ausschließlich Simulationsparameter; reale Backend-Aufrufe müssen bei späterer Ergänzung außerhalb dieser Sperre erfolgen. Eigenständige SPI-Treiber, reale Sweep-Funktion und Ethernet sind damit noch nicht implementiert.
+
+Build erfolgreich: **85.672 Byte statisches RAM (32,7 %)**, 165.612 Byte Flash (7,9 %). Statisches RAM +52 Byte gegenüber dem korrigierten Single-Core-Build. Zusätzlich reserviert Arduino-Pico zur Laufzeit **8.192 Byte für Core 1**; dieser Betrag ist in der statischen RAM-Zahl nicht enthalten. Core 0 behält seinen bisherigen Stack. Die FIFO bleibt 4 KiB, keine neue vollständige Historie. Log: `tmp/logs/multicore-build.log`.
+
+Host-Test `run_multicore.cmd`: echtes Producer-/Consumer-Threadpaar mit Mutex-Testdouble, 2000 Konfigurationswechsel, FIFO-Überlauf/Drop-oldest, OFF→ON, CLEAR, Revisionsquittierung und gezielt erzwungenes CLEAR zwischen Berechnungsvorbereitung und Veröffentlichung. Hardwaretest der echten Spinlocks, Stackauslastung und Latenzen steht aus.
+
+Nach PlatformIO-Upload seriell auf `Core 1 acquisition ready` achten; Main/Graph/Histogramm/Tabelle, schnelle Sollwertwechsel, SIM OFF/ON und CLEAR bei laufender Darstellung testen. Bei NPLC 0.01 auf ACQ OVERRUN achten. Keine Übertragung auf das Gerät durch den Agenten durchgeführt.
+
+Verifikation abgeschlossen: alle acht Host-Testgruppen (Multicore, Acquisition, Beeper, Hardware, Statistik, Graph, Menünavigation, Strombereiche) erfolgreich. ELF enthält `setup1`, `loop1`, `multicore_launch_core1_with_stack` sowie weiterhin `_printf_float`. Der Hardwaretest auf dem Pico bleibt erforderlich; es wurde nichts hochgeladen.
